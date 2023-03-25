@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <style>
+        #phone {
+            width: 5cm;
+            height: 5cm
+        }
+
+        #Mario {
+            width: 5cm;
+            height: 5cm;
+        }
+
+        #oil {
+            width: 5cm;
+            height: 5cm;
+        }
+
+        #toy {
+            width: 5cm;
+            height: 5cm;
+        }
+
+        #bowl {
+            height: 5cm;
+            width: 5cm;
+        }
+
+
+        #fog {
+            height: 5cm;
+            width: 5cm;
+        }
+
+        .greathealth-image {
+            height: 5cm;
+            width: 5cm;
+        }
+
+        .dialog {
+            z-index: 3;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            border: lightgray 2px solid;
+            border-radius: .5em;
+            background-color: black;
+            color: white;
+            padding: 1em;
+            min-width: 20em;
+        }
+
+        #luigi {
+            width: 5cm;
+            height: 5cm;
+        }
+
+        #pong {
+            width: 5cm;
+            height: 5cm;
+        }
+
+        #car {
+            width: 5cm;
+            height: 5cm;
+        }
+
+        #you {
+            height: 5cm;
+            width: 6cm;
+        }
+
+        #purse {
+            height: 5cm;
+            width: 5cm;
+        }
+
+        #koko {
+            height: 6px;
+        }
+
+        #nono {
+            width: 6cm;
+            height: 5cm
+        }
+
+        #smother {
+            width: 6cm;
+            height: 5cm;
+        }
+
+        #gogo {
+            width: 5cm;
+            height: 5cm;
+        }
+
+        #popo {
+            width: 5cm;
+            height: 5cm;
+        }
+
+        #lolo {
+
+            width: 5cm;
+            height: 5cm;
+
+        }
+
+        #momo {
+            width: 5cm;
+            height: 5cm;
+
+        }
+
+        #gulp {
+            position: fixed;
+            left: 0px;
+            top: 0px;
+        }
+
+        body {
+            background-image: url("grass.jpg");
+            background-size: cover;
+        }
+
+        .monster-image {
+            width: 64px;
+            height: 64px;
+        }
+
+        #you {
+            width: 5cm;
+            height: 5cm;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="start" hidden>
+
+
+
+
+
+        <img id="playerHealth" src="greathealth.jpg">
+        <img id="attack1" src="greatlazer.jpg" hidden>
+        <img id="monsterHealth" src="greatgravyhealth.jpg">
+        <h1 id="monstername" style="color:aqua">Zombie Battle</h1>
+        <button style="background-color:brown" id="atk">attack</button><br />
+        <strong id="conditions" style="color:red">
+            conditions<br />
+            the enemy uses copy but starts off with lower health
+        </strong>
+
+    </div>
+    <div id="map">
+        <table id="foree" class="dialog">
+            <caption>MailBox</caption>
+            <tr>
+
+                <td id="ovel" name="request" style="color:royalblue"></td>
+                <td style="color:blueviolet">you got a letter</td><br />
+                <td>Computer:<button id="ana" style="background-color:aquamarine">Read</button></td><br />
+                <td id="polar"></td>
+                <td id="me" hidden>you got a request<button id="friend">accept</button></td>
+            </tr>
+        </table>
+        <table class="dialog" id="cash">
+            <caption>Shop</caption><br />
+            <tr>
+                <td style="color:red">Damp Style</td><br />
+                <td style="color:blue">
+                    nothings in stock Go explore Dude</td>
+            </tr>
+        </table>
+        <table class="dialog" id="inventory" id="Caden" hidden>
+            <caption>Inventory</caption>
+            <tr></tr>
+        </table>
+        <div id="gulp">
+            <button id="mor" style="background-color:green">friends text</button><input id="textbox" type="text" hidden>
+            <button style="background-color:blueviolet" id="fox">mailbox</button>
+            <button id="for" style="background-color:greenyellow">name</button>
+            <input id="text" type="text" hidden>
+            <button style="background-color:brown" id="buy">shop</button>
+            <input id="tb" type="text" hidden>
+            <button id="command" style="background-color:yellow">comment</button>
+            <button style="background-color:blue" id="color" style="background-color:red">Switch Gender</button>
+            <button id="different">switch map</button>
+        </div>
+        <template id="monsterTemplate">
+            <img class="monster-image">
+        </template>
+
+        <script>
+            const monsterTypes = [
+                {
+
+                    name: "boom",
+                    imageUrl: "boom.jpg",
+                    maxHealth: 15,
+                    level: 1,
+                    verb: "spins at",
+                    copy: true,
+                    increase: -2,
+                    conditions: "The enemies normal attacks have increased power: -2. The enemy does not have a spawn rate",
+                    coins: 80
+                },
+                {
+                    name: "Zombie",
+                    imageUrl: "greatzombie.jpg",
+                    maxHealth: 4,
+                    level: 0,
+                    verb: "bites",
+                    copy: true,
+                    increase: -1,
+                    conditions: "the enemy uses copy but has lower health",
+                    coins: 50,
+                    spawn: 1.0
+                },
+                {
+                    name: "Rob",
+                    imageUrl: "Rob.png",
+                    difficulty: "medium",
+                    maxHealth: 7,
+                    verb: "lazer beams come out of the enemies eyes",
+                    increase: -1,
+                    copy: false,
+                    conditions: "The enemy is really mad at you for some reason",
+                    items: "lazer",
+                    spawn: 0.4
+                },
+                {
+                    name: "Piglin",
+                    imageUrl: "Great piglin.webp",
+                    maxHealth: 5,
+                    level: 3,
+                    verb: "attacks you with sword",
+                    copy: false,
+                    increase: -2,
+                    conditions: "the enemy has hyper sword attacks",
+                    items: "gold sword",
+                    spawn: 0.95
+                },
+                {
+                    name: "starman",
+                    imageUrl: "starman.png",
+                    maxHealth: 10,
+                    level: 9,
+                    verb: "shoots you with lazer",
+                    copy: false,
+                    increase: -5,
+                    conditions: "The enemy can shoot you very very easily, This enemy is a boss it's spawn rate is very low If you consider defeating it and this is your first try it is game over. This is only a demo your progress will not be saved",
+                    items: "lazer beam",
+                    spawn: 0.1,
+                    
+                }
+            ];
+
+            const gender = {
+                GIRL: {
+                    name: "GIRL",
+                    image: "girl.jpg"
+                },
+                BOY: {
+                    name: "BOY",
+                    image: "man.jpg"
+                }
+            };
+
+            const player = {
+                name: "Player",
+                level: 1,
+                maxHealth: 5,
+                imageUrl: "man.jpg",
+                gender: gender.GIRL,
+                position: {
+                    x: 0,
+                    y: 0,
+                }
+            };
+
+            player.health = player.maxHealth;
+
+            const modes = {
+                BATTLE: "battle",
+                FIELD: "field",
+            };
+
+            alert("This is not the full version of gameplay school ;)");
+
+            const phone = document.getElementById("phone")
+            const friend = document.getElementById("friend")
+            friend.addEventListener("click", onfriendClick)
+            const attack1 = document.getElementById("attack1")
+            const map = document.getElementById("map")
+            const me = document.getElementById("me")
+            const conditions = document.getElementById("conditions")
+            const monstername = document.getElementById("monstername");
+            const atk = document.getElementById("atk");
+            atk.addEventListener("click", onattackClick);
+            const playerHealth = document.getElementById("playerHealth");
+            const monsterHealth = document.getElementById("monsterHealth");
+            const ovel = document.getElementById("ovel");
+            const request = document.getElementsByName("request");
+            const zombie = document.getElementById("zombie");
+            const Mario = document.getElementById("Mario");
+            const oil = document.getElementById("oil");
+            const toy = document.getElementById("toy");
+            const bowl = document.getElementById("bowl");
+            const fog = document.getElementById("fog");
+            const polar = document.getElementById("polar");
+            const textbox = document.getElementById("textbox");
+            textbox.addEventListener("keydown", onTextboxKeydown);
+            const friendstext = document.getElementById("mor");
+            friendstext.addEventListener("click", onfriendstextClick);
+            const start = document.getElementById("start");
+            const mailbox = document.getElementById("fox");
+            mailbox.addEventListener("click", onmailboxClick);
+            //fox 
+            const luigi = document.getElementById("luigi")
+            const you = document.getElementById("you")
+            const foree = document.getElementById("foree");
+            const Read = document.getElementById("ana");
+            Read.addEventListener("click", onReadClick);
+            const text = document.getElementById("text");
+            text.addEventListener("keydown", onTextKeydown);
+            const name = document.getElementById("for");
+            name.addEventListener("click", onnameClick);
+            const add = document.getElementById("add");
+            const cash = document.getElementById("cash")
+            const dialog = document.getElementsByClassName("dialog")
+            const shop = document.getElementById("buy")
+            shop.addEventListener("click", onshopClick)
+            const barbra = document.getElementById("barbra")
+            const car = document.getElementById("car")
+            const male = document.getElementById("color")
+
+            male.addEventListener("click", onSwitchGenderClick)
+            const comment = document.getElementById("command")
+            comment.addEventListener("click", oncommentClick)
+            const tb = document.getElementById("tb")
+            tb.addEventListener("keydown", ontbKeyDown)
+            const to = document.getElementById("to")
+            const crump = document.getElementById("crump")
+            const zach = document.getElementById("zach")
+            const op = document.getElementById("op")
+            const two = document.getElementById("two")
+            const nono = document.getElementById("nono")
+            const smother = document.getElementById("smother")
+            const popo = document.getElementById("popo")
+            const knife = document.getElementById("knife");
+            const lolo = document.getElementById("lolo");
+            const go = document.getElementById("fight");
+            const gulp = document.getElementById("gulp");
+            const pop = document.getElementById("pop")
+            const monsterTemplate = document.getElementById("monsterTemplate");
+            const tileWidth = 64;
+            const tileHeight = 64;
+            const maxX = 32;
+            const maxY = 32;
+
+            // list of all monsters on field
+            let monsters = [];
+
+            // current monster being battled
+            let currentMonster = null;
+
+            // current gameplay mode
+            let mode = modes.FIELD;
+
+            document.addEventListener("keydown", onDocKeydown);
+            initMonsters();
+            initPlayer();
+            showFieldUi();
+
+            function onfriendClick() {
+                alert(`${player.name} is now friends with ${player.name}`);
+            }
+
+            function onattackClick() {
+                attack1.hidden = false;
+                attack1.hidden = true
+                player.health -= 1;
+                currentMonster.health -= 1;
+                updateBattleMode();
+            }
+
+            function onmailboxClick() {
+                foree.hidden = false;
+            }
+
+            function onReadClick() {
+                alert("computer is short for log.")
+                alert("If your current monster health is less then yours you can always run by refreshing your page but it does save automaticcally.")
+            }
+
+            function onnameClick() {
+                text.hidden = false;
+                text.value = player.name;
+                text.focus();
+                foree.hidden = true
+                cash.hidden = true
+            }
+
+            function onshopClick() {
+                cash.hidden = false
+                alert("Hi I am damp")
+            }
+
+            function onSwitchGenderClick() {
+                foree.hidden = true
+                cash.hidden = true
+                console.log(player);
+                if (player.imageUrl === "girl.jpg") {
+                    player.imageUrl = "man.jpg";
+                } else {
+                    player.imageUrl = "girl.jpg";
+                }
+
+                updatePlayer();
+            }
+
+            function initMonsters() {
+                const numMonsters = 36;
+                const sum = monsterTypes.reduce((a, b) => a + (b.spawn || 1), 0);
+
+                for (let i = 0; i < numMonsters; ++i) {
+                    const chance = Math.random() * sum;
+                    let cur = 0;
+                    let idx = 0;
+
+                    for (idx = 0; idx < monsterTypes.length; ++idx) {
+                        cur += (monsterTypes[idx].spawn || 1);
+                        if (chance < cur) {
+                            break;
+                        }
+                    }
+
+                    const x = Math.floor(Math.random() * 32);
+                    const y = Math.floor(Math.random() * 32);
+                    const monster = monsterTypes[idx];
+                    monsters.push(initMonster(monster, x, y));
+                }
+            }
+
+            function initMonster(monsterType, x, y) {
+                const monster = Object.assign({}, monsterType);
+                const img = monsterTemplate.content.querySelector(".monster-image").cloneNode();
+                img.src = monster.imageUrl;
+                img.style.position = "absolute";
+                img.style.left = `${x * tileWidth}px`;
+                img.style.top = `${y * tileHeight}px`;
+                img.title = monster.name
+                document.body.appendChild(img);
+                monster.image = img;
+                monster.position = { x, y };
+                monster.health = monster.maxHealth;
+                return monster;
+            }
+
+            function initPlayer() {
+                const img = monsterTemplate.content.querySelector(".monster-image").cloneNode();
+                img.src = player.imageUrl;
+                img.style.position = "absolute";
+                img.style.left = `${player.position.x * tileWidth}px`;
+                img.style.top = `${player.position.y * tileHeight}px`;
+                document.body.appendChild(img);
+                player.image = img;
+                return player;
+            }
+
+            function updatePlayer() {
+                if (player.position.x < 0) {
+                    player.position.x = 0;
+                }
+
+                if (player.position.y < 0) {
+                    player.position.y = 0;
+                }
+
+                if (player.position.x >= maxX) {
+                    player.position.x = maxX - 1;
+                }
+
+                if (player.position.y >= maxY) {
+                    player.position.y = maxY - 1;
+                }
+
+                player.image.style.left = `${player.position.x * tileWidth}px`;
+                player.image.style.top = `${player.position.y * tileHeight}px`;
+                player.image.src = player.imageUrl;
+                player.image.title = player.name;
+            }
+
+            function onTextboxKeydown(evt) {
+                if (evt.key !== "Enter") {
+                    return;
+                }
+
+                if (textbox.value.toLocaleLowerCase() === player.name.toLocaleLowerCase()) {
+                    alert("request sent for " + textbox.value)
+                    me.hidden = false
+                }
+            }
+
+            function showFieldUi() {
+                // show/hide everything
+                start.hidden = true;
+                map.hidden = true;
+            }
+
+            function showBattleUi() {
+            }
+
+            function ontbKeyDown(evt) {
+                if (evt.key !== "Enter") {
+
+                    return;
+                    alert(tb.value)
+                    tb.hidden = true
+                }
+
+                const value = tb.value || "NO VALUE!";
+                alert(tb.value);
+            }
+
+            function onfriendstextClick() {
+                //foree
+                //cash
+                foree.hidden = true
+                cash.hidden = true
+                textbox.hidden = false
+            }
+
+            function oncommentClick() {
+                tb.hidden = false
+                foree.hidden = true
+                cash.hidden = true
+            }
+
+            function update() {
+                smother.style.width = health.toString() + "cm";
+                nono.style.width = zombiehealth.toString() + "cm";
+            }
+
+            function onDocKeydown(evt) {
+                if (evt.target.matches("input")) {
+                    return;
+                }
+
+                const startPosition = Object.assign({}, player.position);
+
+                if (evt.key === "ArrowLeft") {
+                    player.position.x -= 1;
+                    updatePlayer();
+                }
+
+                if (evt.key === "ArrowUp") {
+                    player.position.y -= 1;
+                    updatePlayer();
+                }
+
+                if (evt.key === "ArrowRight") {
+                    player.position.x += 1;
+                    updatePlayer();
+                }
+
+                if (evt.key === "ArrowDown") {
+                    player.position.y += 1;
+                    updatePlayer();
+                }
+                if (evt.key === "X") {
+                    alert("phone:you want some advice hm?")
+                    alert("you: why would I want to get advice from you...")
+                    alert("phone: would you just focus anyways this is the advice you need...")
+                    alert("you:I said..")
+                    alert("phone:okay anyways you should probaly start off fighting zombies and piglins and then R.O.B")
+                    alert("phone:But there is a saying that is said that if you want to battle starman right away...")
+                    alert("phone:you are a fool!!!!!!!!!!!!!")
+                    alert("phone: got that?")
+                    alert("you: I wasn't even listening")
+                    alert(`${player.name} your new name should be ${player.name}`)
+                    alert("you: what is the difference?")
+                    alert("phone: ugh JUST SHUT UP AND GROW UP IT'S NOT MY CHOICE TO BE WITH YOU!")
+                    alert("you: really phone? cause I thought you said you are hunting monsters hm? you can count me in")
+                    alert("...")
+                }
+
+                if (evt.key === "Enter") {
+                    tb.hidden = true
+
+                    if (text.value === textbox.value) {
+                        alert("you cannot friend yourself")
+                    }
+                }
+
+
+                if (!samePosition(player.position, startPosition)) {
+                    checkPlayerMonsterCollision();
+                }
+
+                evt.preventDefault();
+            }
+
+            function onTextKeydown(evt) {
+                if (evt.key !== "Enter") {
+                    return;
+                }
+
+                player.name = text.value;
+                updatePlayer();
+                text.hidden = true;
+                textbox.hidden = true;
+            }
+
+            function samePosition(a, b) {
+                return a.x === b.x && a.y === b.y;
+            }
+
+            function checkPlayerMonsterCollision() {
+                for (const monster of monsters) {
+                    if (samePosition(monster.position, player.position)) {
+                        handlePlayerMonsterCollision(monster);
+                    }
+                }
+            }
+
+            function handlePlayerMonsterCollision(monster) {
+                for (const monster of monsters) {
+                    monster.image.hidden = true;
+                }
+
+
+
+
+
+                map.hidden = true;
+                player.image.hidden = true;
+                start.hidden = false;
+                monstername.textContent = `${monster.name} Battle`;
+                conditions.textContent = `${monster.conditions}`;
+                mode = modes.BATTLE;
+                currentMonster = monster;
+                updateBattleMode();
+            }
+
+            function updateBattleMode() {
+                // update health bars
+                if (player.health <= 0) {
+                    alert("GAME OVER");
+                    player.health = 5
+                    showFieldUi();
+                    map.hidden = false
+                    player.image.hidden = false
+                    monsterTypes.hidden = false
+                    mode = modes.FIELD
+
+                    for (const monster of monsters) {
+                        monster.image.hidden = false;
+                    }
+                    return;
+                }
+
+                if (currentMonster.health === 0) {
+                    alert("level up");
+                    start.hidden = true
+                    showFieldUi();
+                    map.hidden = false
+                    mode = modes.FIELD
+                    player.image.hidden = false;
+
+                    monsters.splice(monsters.indexOf(currentMonster), 1);
+                    player.maxHealth += 1;
+                          player.health = player.maxHealth;
+
+                    for (const monster of monsters) {
+                        monster.image.hidden = false;
+                    }
+                }
+
+
+
+
+
+                playerHealth.style.width = `${player.health * 100}px`;
+                monsterHealth.style.width = `${currentMonster.health * 100}px`;
+            }
+        </script>
+</body>
+
+</html>
