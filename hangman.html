@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Click the Object Game</title>
+    <style>
+      #game-container {
+        position: relative;
+        width: 500px;
+        height: 500px;
+        border: 1px solid black;
+      }
+      #game-object {
+        position: absolute;
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background-color: red;
+        cursor: pointer;
+      }
+      #score-container {
+        font-size: 24px;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Click the Object Game</h1>
+    <div id="game-container">
+      <div id="game-object"></div>
+    </div>
+    <div id="score-container">Score: <span id="score">0</span></div>
+    <script>
+      const gameObject = document.querySelector('#game-object');
+      const scoreElement = document.querySelector('#score');
+      let score = 0;
+      let intervalTime = 1000;
+
+      function getRandomPosition(min, max) {
+        return Math.floor(Math.random() * (max - min + 1) + min);
+      }
+
+      function moveObject() {
+        const x = getRandomPosition(0, 450);
+        const y = getRandomPosition(0, 450);
+        gameObject.style.top = `${y}px`;
+        gameObject.style.left = `${x}px`;
+      }
+
+      function increaseScore() {
+        score++;
+        scoreElement.textContent = score;
+        if (score % 10 === 0) {
+          alert('Advance!');
+          intervalTime -= 100;
+          clearInterval(interval);
+          interval = setInterval(moveObject, intervalTime);
+        }
+      }
+
+      gameObject.addEventListener('click', () => {
+        increaseScore();
+        moveObject();
+      });
+
+      let interval = setInterval(moveObject, intervalTime);
+    </script>
+  </body>
+</html>
