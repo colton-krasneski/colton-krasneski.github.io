@@ -620,16 +620,34 @@
   const canon = s => s.trim().toLowerCase();
   const pairId = (a, b) => [a, b].sort().join('__');
 
-  /* ----- content filter (best-effort, client-side) ----- */
-  const BADWORDS = [
-    'fuck','fuk','fucker','fucking','motherfucker','shit','bullshit','bitch',
-    'bastard','asshole','ass','dick','dickhead','piss','cunt','slut','whore',
-    'cock','pussy','nigger','nigga','faggot','fag','retard','retarded',
-    'wanker','twat','prick','jerkoff','dumbass'
+  /* ----- content filter: defeats spacing, punctuation, leetspeak, and repeats ----- */
+  const LEET = {
+    a:'a@4^', b:'b8', c:'c(<{[', d:'d', e:'e3', f:'f', g:'g69', h:'h',
+    i:'i1!|', j:'j', k:'k', l:'l', m:'m', n:'n', o:'o0', p:'p', q:'q',
+    r:'r', s:'s5$', t:'t7+', u:'uv', v:'v', w:'w', x:'x', y:'y', z:'z2'
+  };
+  // longer words first so they censor fully before their shorter roots
+  const RX_WORDS = [
+    'motherfucker','bullshit','asshole','dickhead','dumbass','jackass',
+    'fuck','fuk','fuc','fux','shit','shiet','shyt','sht','bitch','biatch',
+    'ass','azz','dick','dik','piss','cunt','kunt','slut','whore','cock','kock',
+    'pussy','pusy','nigger','nigga','niger','faggot','fagot','fag','retard',
+    'bastard','wanker','twat','prick','jerkoff','damn'
   ];
-  const badReG = new RegExp('\\b(' + BADWORDS.join('|') + ')\\b', 'gi');
-  const cleanText = t => String(t).replace(badReG, m => '*'.repeat(m.length));
-  const hasBad = t => new RegExp('\\b(' + BADWORDS.join('|') + ')\\b', 'i').test(String(t));
+  function wordRegex(w, lb) {
+    const sep = '[\\s\\W_]*';                 // spaces / punctuation between letters
+    let pat = lb ? '(?<![a-z])' : '';
+    for (let i = 0; i < w.length; i++) {
+      const cls = (LEET[w[i]] || w[i]).replace(/[\]\\^-]/g, '\\$&');
+      pat += '[' + cls + ']+';                // '+' absorbs repeated letters (fuuuck)
+      if (i < w.length - 1) pat += sep;
+    }
+    return pat + '(?![a-z])';
+  }
+  function buildBadRe(lb) { return new RegExp('(' + RX_WORDS.map(w => wordRegex(w, lb)).join('|') + ')', 'gi'); }
+  let BAD_RE; try { BAD_RE = buildBadRe(true); } catch (e) { BAD_RE = buildBadRe(false); }
+  const cleanText = t => { BAD_RE.lastIndex = 0; return String(t).replace(BAD_RE, m => '*'.repeat(m.length)); };
+  const hasBad = t => { BAD_RE.lastIndex = 0; return BAD_RE.test(String(t)); };
   const TRUST_KEY = 'colton_user';
   let me = null; // logged-in username (canonical)
 
