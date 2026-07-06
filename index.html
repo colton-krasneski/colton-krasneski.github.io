@@ -182,9 +182,25 @@
     .conv .preview { color: #00ff4188; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .empty-note { padding: 2rem 1rem; text-align: center; color: #00ff4177; font-size: 0.9rem; line-height: 1.5; }
     .thread { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
-    .bubble { max-width: 75%; padding: 0.6rem 0.9rem; border-radius: 14px; font-size: 0.95rem; line-height: 1.35; word-wrap: break-word; }
-    .bubble.me { align-self: flex-end; background: #00662a; color: #d6ffe4; border-bottom-right-radius: 4px; }
-    .bubble.them { align-self: flex-start; background: rgba(0,255,65,0.12); color: #baffcf; border: 1px solid #00ff4133; border-bottom-left-radius: 4px; }
+    .msg-wrap { display: flex; flex-direction: column; max-width: 100%; }
+    .msg-wrap.mine { align-items: flex-end; }
+    .msg-wrap.theirs { align-items: flex-start; }
+    .bubble { max-width: 75%; padding: 0.6rem 0.9rem; border-radius: 14px; font-size: 0.95rem; line-height: 1.35; word-wrap: break-word; cursor: pointer; user-select: none; }
+    .bubble.me { background: #00662a; color: #d6ffe4; border-bottom-right-radius: 4px; }
+    .bubble.them { background: rgba(0,255,65,0.12); color: #baffcf; border: 1px solid #00ff4133; border-bottom-left-radius: 4px; }
+    .reacts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+    .chip {
+      font-size: 0.72rem; background: rgba(0,0,0,0.5); border: 1px solid #00ff4144;
+      border-radius: 10px; padding: 1px 6px; cursor: pointer; color: #baffcf; user-select: none;
+    }
+    .chip.mine { border-color: #00ff41; background: rgba(0,255,65,0.18); }
+    #reactBar {
+      position: fixed; display: none; gap: 4px; z-index: 20;
+      background: rgba(0,12,4,0.96); border: 1px solid #00ff4166;
+      border-radius: 22px; padding: 6px 9px; box-shadow: 0 0 16px rgba(0,255,65,0.45);
+    }
+    #reactBar button { background: none; border: none; font-size: 1.35rem; cursor: pointer; line-height: 1; padding: 2px 3px; transition: transform 0.12s ease; }
+    #reactBar button:hover { transform: scale(1.3); }
     .composer {
       display: flex; gap: 0.5rem; padding: 0.8rem; border-top: 1px solid #00ff4133;
       padding-bottom: calc(0.8rem + env(safe-area-inset-bottom));
@@ -270,7 +286,7 @@
   <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, collection, doc, getDoc, setDoc, addDoc,
+    getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc,
     query, where, onSnapshot, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -399,7 +415,8 @@
   });
 
   /* ===== MESSAGES (Firestore, real-time) ===== */
-  let unsubList = null, unsubThread = null, currentContact = null;
+  let unsubList = null, unsubThread = null, unsubReacts = null, currentContact = null;
+  let threadMsgs = [], threadReacts = {}, activeMsgId = null;
 
   $('messagesApp').addEventListener('click', () => { showScreen('messages'); openList(); });
   $('msgHome').addEventListener('click', () => { stopList(); showScreen('home'); });
@@ -474,27 +491,112 @@
   function startThread() {
     stopThread();
     const pid = pairId(me, currentContact);
-    const q = query(collection(db, 'messages'), where('pair', '==', pid));
-    unsubThread = onSnapshot(q, snap => {
-      const msgs = [];
-      snap.forEach(d => msgs.push(d.data()));
+    // live messages
+    const mq = query(collection(db, 'messages'), where('pair', '==', pid));
+    unsubThread = onSnapshot(mq, snap => {
+      threadMsgs = [];
+      snap.forEach(d => threadMsgs.push({ id: d.id, ...d.data() }));
       const key = m => m.createdAt ? m.createdAt.toMillis() : (m.clientTime || Date.now());
-      msgs.sort((a,b) => key(a) - key(b));
-      renderThread(msgs);
+      threadMsgs.sort((a,b) => key(a) - key(b));
+      renderThread();
+    });
+    // live reactions
+    const rq = query(collection(db, 'reactions'), where('pair', '==', pid));
+    unsubReacts = onSnapshot(rq, snap => {
+      threadReacts = {};
+      snap.forEach(d => {
+        const r = d.data();
+        (threadReacts[r.msgId] = threadReacts[r.msgId] || []).push({ id: d.id, emoji: r.emoji, from: r.from });
+      });
+      renderThread();
     });
   }
-  function stopThread() { if (unsubThread) { unsubThread(); unsubThread = null; } }
+  function stopThread() {
+    if (unsubThread) { unsubThread(); unsubThread = null; }
+    if (unsubReacts) { unsubReacts(); unsubReacts = null; }
+    threadMsgs = []; threadReacts = {};
+  }
 
-  function renderThread(msgs) {
+  function renderThread() {
     const thread = $('thread');
     thread.innerHTML = '';
-    msgs.forEach(m => {
+    threadMsgs.forEach(m => {
+      const wrap = document.createElement('div');
+      wrap.className = 'msg-wrap ' + (m.from === me ? 'mine' : 'theirs');
+
       const b = document.createElement('div');
       b.className = 'bubble ' + (m.from === me ? 'me' : 'them');
       b.textContent = m.text;
-      thread.appendChild(b);
+      b.addEventListener('contextmenu', e => { e.preventDefault(); openReactBar(e, m.id); });
+      b.addEventListener('click', e => { e.stopPropagation(); openReactBar(e, m.id); });
+      wrap.appendChild(b);
+
+      const rs = threadReacts[m.id];
+      if (rs && rs.length) {
+        const chips = document.createElement('div');
+        chips.className = 'reacts';
+        const counts = {};
+        rs.forEach(r => {
+          counts[r.emoji] = counts[r.emoji] || { n: 0, mine: false };
+          counts[r.emoji].n++;
+          if (r.from === me) counts[r.emoji].mine = true;
+        });
+        Object.keys(counts).forEach(em => {
+          const c = document.createElement('span');
+          c.className = 'chip' + (counts[em].mine ? ' mine' : '');
+          c.textContent = em + ' ' + counts[em].n;
+          c.addEventListener('click', ev => { ev.stopPropagation(); toggleReaction(m.id, em); });
+          chips.appendChild(c);
+        });
+        wrap.appendChild(chips);
+      }
+      thread.appendChild(wrap);
     });
     thread.scrollTop = thread.scrollHeight;
+  }
+
+  /* ----- reaction picker ----- */
+  const REACTS = ['👍','❤️','😂','😮','😢','🔥','🐱'];
+  const reactBar = document.createElement('div');
+  reactBar.id = 'reactBar';
+  REACTS.forEach(em => {
+    const btn = document.createElement('button');
+    btn.textContent = em;
+    btn.addEventListener('click', ev => {
+      ev.stopPropagation();
+      if (activeMsgId) toggleReaction(activeMsgId, em);
+      hideReactBar();
+    });
+    reactBar.appendChild(btn);
+  });
+  document.body.appendChild(reactBar);
+
+  function openReactBar(e, msgId) {
+    activeMsgId = msgId;
+    reactBar.style.display = 'flex';
+    const barW = 260, barH = 44;
+    let x = (e.clientX != null ? e.clientX : window.innerWidth / 2) - barW / 2;
+    let y = (e.clientY != null ? e.clientY : window.innerHeight / 2) - barH - 8;
+    x = Math.max(8, Math.min(x, window.innerWidth - barW - 8));
+    y = Math.max(8, y);
+    reactBar.style.left = x + 'px';
+    reactBar.style.top = y + 'px';
+  }
+  function hideReactBar() { reactBar.style.display = 'none'; activeMsgId = null; }
+  document.addEventListener('click', hideReactBar);
+  document.getElementById('thread').addEventListener('scroll', hideReactBar);
+
+  async function toggleReaction(msgId, emoji) {
+    const existing = (threadReacts[msgId] || []).find(r => r.from === me && r.emoji === emoji);
+    try {
+      if (existing) {
+        await deleteDoc(doc(db, 'reactions', existing.id));
+      } else {
+        await addDoc(collection(db, 'reactions'), {
+          pair: pairId(me, currentContact), msgId, emoji, from: me, clientTime: Date.now()
+        });
+      }
+    } catch (e) { alert('Reaction failed: ' + e.message); }
   }
 
   async function sendMessage() {
