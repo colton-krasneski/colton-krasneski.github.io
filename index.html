@@ -211,10 +211,35 @@
       font-family: inherit; font-size: 16px; outline: none;
     }
     .composer input:focus { box-shadow: 0 0 10px rgba(0,255,65,0.4); }
-    .composer button {
+    .composer button#sendBtn {
       padding: 0 1.2rem; background: #00ff41; color: #000; border: none;
       border-radius: 20px; font-family: inherit; font-weight: bold; cursor: pointer;
     }
+    .gif-btn {
+      flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%;
+      border: 2px solid #00ff41; background: rgba(0,0,0,0.4); color: #00ff41;
+      font-size: 1.5rem; line-height: 1; cursor: pointer; font-family: inherit;
+      display: flex; align-items: center; justify-content: center; padding: 0;
+      box-shadow: 0 0 8px rgba(0,255,65,0.3); transition: all 0.15s ease;
+    }
+    .gif-btn:hover { background: #00ff41; color: #000; }
+    .gif-btn.active { background: #00ff41; color: #000; transform: rotate(45deg); }
+    #gifPanel { display: none; flex-direction: column; border-top: 1px solid #00ff4133; max-height: 42vh; }
+    #gifPanel.open { display: flex; }
+    #gifSearch {
+      margin: 0.6rem; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.5);
+      border: 1px solid #00ff4155; border-radius: 16px; color: #d6ffe4;
+      font-family: inherit; font-size: 16px; outline: none;
+    }
+    #gifSearch:focus { box-shadow: 0 0 10px rgba(0,255,65,0.4); }
+    #gifResults {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+      padding: 0 0.6rem 0.6rem; overflow-y: auto;
+    }
+    #gifResults img { width: 100%; border-radius: 8px; cursor: pointer; display: block; aspect-ratio: 1; object-fit: cover; }
+    #gifResults .note { grid-column: 1 / -1; color: #00ff4188; text-align: center; padding: 1rem; font-size: 0.85rem; }
+    .bubble.gif { padding: 3px; background: transparent; border: none; }
+    .bubble.gif img { max-width: 200px; width: 55vw; border-radius: 10px; display: block; }
   </style>
 </head>
 <body>
@@ -275,7 +300,12 @@
           <span style="width:34px;"></span>
         </div>
         <div class="thread" id="thread"></div>
+        <div id="gifPanel">
+          <input id="gifSearch" type="text" placeholder="Search cats…">
+          <div id="gifResults"></div>
+        </div>
         <div class="composer">
+          <button id="gifBtn" class="gif-btn" title="Send a GIF">+</button>
           <input id="msgInput" type="text" placeholder="Type a message…">
           <button id="sendBtn">Send</button>
         </div>
@@ -422,6 +452,7 @@
   $('msgHome').addEventListener('click', () => { stopList(); showScreen('home'); });
 
   function openList() {
+    closeGif();
     $('listView').style.display = 'flex';
     $('chatView').style.display = 'none';
     stopThread();
@@ -482,6 +513,7 @@
     $('chatName').textContent = name;
     $('listView').style.display = 'none';
     $('chatView').style.display = 'flex';
+    closeGif();
     stopList();
     startThread();
     $('msgInput').focus();
@@ -526,7 +558,14 @@
 
       const b = document.createElement('div');
       b.className = 'bubble ' + (m.from === me ? 'me' : 'them');
-      b.textContent = m.text;
+      if (m.type === 'gif') {
+        b.classList.add('gif');
+        const img = document.createElement('img');
+        img.src = m.text; img.alt = 'gif';
+        b.appendChild(img);
+      } else {
+        b.textContent = m.text;
+      }
       b.addEventListener('contextmenu', e => { e.preventDefault(); openReactBar(e, m.id); });
       b.addEventListener('click', e => { e.stopPropagation(); openReactBar(e, m.id); });
       wrap.appendChild(b);
@@ -618,6 +657,67 @@
   }
   $('sendBtn').addEventListener('click', sendMessage);
   $('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+  /* ----- GIF picker (GIPHY) ----- */
+  const GIPHY_KEY = 'tyC31epHwRUPex8AME7WUOquGpmiqe33';
+  let gifTimer = null;
+
+  $('gifBtn').addEventListener('click', () => {
+    const panel = $('gifPanel');
+    const open = panel.classList.toggle('open');
+    $('gifBtn').classList.toggle('active', open);
+    if (open) {
+      $('gifSearch').value = '';
+      searchGifs('cat');       // default to cats 🐱
+      $('gifSearch').focus();
+    }
+  });
+
+  $('gifSearch').addEventListener('input', e => {
+    clearTimeout(gifTimer);
+    const q = e.target.value.trim();
+    gifTimer = setTimeout(() => searchGifs(q || 'cat'), 350);
+  });
+
+  async function searchGifs(q) {
+    const box = $('gifResults');
+    box.innerHTML = '<div class="note">Loading…</div>';
+    try {
+      const url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(q)}&limit=24&rating=g`;
+      const res = await fetch(url);
+      const data = await res.json();
+      if (!data.data || !data.data.length) { box.innerHTML = '<div class="note">No GIFs found.</div>'; return; }
+      box.innerHTML = '';
+      data.data.forEach(g => {
+        const img = document.createElement('img');
+        img.src = g.images.fixed_width_small ? g.images.fixed_width_small.url : g.images.fixed_width.url;
+        img.loading = 'lazy';
+        img.addEventListener('click', () => sendGif(g.images.downsized_medium ? g.images.downsized_medium.url : g.images.fixed_width.url));
+        box.appendChild(img);
+      });
+    } catch (err) {
+      box.innerHTML = '<div class="note">Could not load GIFs: ' + err.message + '</div>';
+    }
+  }
+
+  function closeGif() {
+    $('gifPanel').classList.remove('open');
+    $('gifBtn').classList.remove('active');
+  }
+
+  async function sendGif(gifUrl) {
+    if (!currentContact) return;
+    closeGif();
+    try {
+      await addDoc(collection(db, 'messages'), {
+        from: me, to: currentContact,
+        participants: [me, currentContact],
+        pair: pairId(me, currentContact),
+        text: gifUrl, type: 'gif',
+        clientTime: Date.now(), createdAt: serverTimestamp()
+      });
+    } catch (e) { alert('Could not send GIF: ' + e.message); }
+  }
 
   function esc(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
