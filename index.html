@@ -1240,9 +1240,15 @@
     // ---- scene helpers ----
     function crowdTexture() {
       const c = document.createElement('canvas'); c.width = c.height = 128; const x = c.getContext('2d');
-      x.fillStyle = '#0a1420'; x.fillRect(0, 0, 128, 128);
-      for (let i = 0; i < 500; i++) { x.fillStyle = `hsl(${Math.random() * 360},55%,${35 + Math.random() * 35}%)`; x.beginPath(); x.arc(Math.random() * 128, Math.random() * 128, 2, 0, 7); x.fill(); }
-      const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(8, 2); return t;
+      x.fillStyle = '#0b1522'; x.fillRect(0, 0, 128, 128);
+      for (let ry = 10; ry < 128; ry += 16) {
+        x.fillStyle = '#05090f'; x.fillRect(0, ry + 7, 128, 5);
+        for (let cx = 6; cx < 128; cx += 9) {
+          x.fillStyle = `hsl(${Math.random() * 360},50%,${45 + Math.random() * 25}%)`;
+          x.beginPath(); x.arc(cx + Math.random() * 2, ry, 3, 0, 7); x.fill();
+        }
+      }
+      const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(10, 3); return t;
     }
     function addBox(scene, mat, w, h, d, x, y, z) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat); m.position.set(x, y, z); scene.add(m); return m; }
     function paddleMesh(mat, pr) {
@@ -1297,10 +1303,19 @@
       addBox(scene, new THREE.MeshBasicMaterial({ color: 0x00ff41 }), gap, 0.04, 0.14, 0, 0.02, -TH / 2);
       addBox(scene, new THREE.MeshBasicMaterial({ color: 0xff3b52 }), gap, 0.04, 0.14, 0, 0.02, TH / 2);
       const crowd = new THREE.MeshStandardMaterial({ map: crowdTexture(), roughness: 1 });
-      const sh = 7, sd = 10;
-      addBox(scene, crowd, sd, sh, TH + sd, -(TW / 2 + sd / 2 + 1.5), sh / 2 - 0.3, 0);
-      addBox(scene, crowd, sd, sh, TH + sd, (TW / 2 + sd / 2 + 1.5), sh / 2 - 0.3, 0);
-      addBox(scene, crowd, TW + sd * 2 + 3, sh, sd, 0, sh / 2 - 0.3, -(TH / 2 + sd / 2 + 1.5));
+      const wallMat = new THREE.MeshStandardMaterial({ color: 0x081018, roughness: 0.9 });
+      // tiered crowd bowl on 3 sides (near side left open so you can see your goal)
+      const rows = 4;
+      for (let r = 0; r < rows; r++) {
+        const y = 0.15 + r * 1.15, off = 1.5 + r * 1.35;
+        addBox(scene, crowd, 1.5, 1.15, TH + 7, -TW / 2 - off, y, -0.5);   // left
+        addBox(scene, crowd, 1.5, 1.15, TH + 7, TW / 2 + off, y, -0.5);    // right
+        addBox(scene, crowd, TW + 7, 1.15, 1.5, 0, y, -TH / 2 - off);      // far end
+      }
+      // dark base walls behind the stands
+      addBox(scene, wallMat, 0.4, 5, TH + 9, -TW / 2 - 1.5 - rows * 1.35, 2, -0.5);
+      addBox(scene, wallMat, 0.4, 5, TH + 9, TW / 2 + 1.5 + rows * 1.35, 2, -0.5);
+      addBox(scene, wallMat, TW + 9, 5, 0.4, 0, 2, -TH / 2 - 1.5 - rows * 1.35);
       const pr = 16 * S, kr = 13 * S;
       const youPad = paddleMesh(new THREE.MeshStandardMaterial({ color: 0x00ff41, roughness: 0.3, metalness: 0.3 }), pr);
       const oppPad = paddleMesh(new THREE.MeshStandardMaterial({ color: 0xff3b52, roughness: 0.3, metalness: 0.3 }), pr);
@@ -1335,6 +1350,7 @@
 
     function update() {
       const g = game;
+      const ppx = g.px, ppy = g.py, pox = g.ox, poy = g.oy;
       if (keyL) g.px -= 6; if (keyR) g.px += 6;
       if (keyU) g.py -= 6; if (keyD) g.py += 6;
       if (targetX != null) { g.px += (targetX - g.px) * 0.4; g.py += (targetY - g.py) * 0.4; }
@@ -1345,27 +1361,37 @@
       g.ox = clamp(g.ox, g.pr, g.W - g.pr);
       const tgtD = (g.by < g.H * 0.5) ? Math.min(g.by, g.H * 0.4) : g.H * 0.18;
       g.oy += (tgtD - g.oy) * 0.05; g.oy = clamp(g.oy, g.pr, g.H * 0.46);
+      const pvx = g.px - ppx, pvy = g.py - ppy, ovx = g.ox - pox, ovy = g.oy - poy;
       const now = performance.now();
       if (g.freeze) { if (now < g.freeze) return; g.freeze = 0; g.bvx = (Math.random() * 2 - 1) * 2; g.bvy = g.serveDir * 3.4; }
-      g.bx += g.bvx; g.by += g.bvy; g.bvx *= 0.999; g.bvy *= 0.999;
-      if (g.bx < g.kr) { g.bx = g.kr; g.bvx = Math.abs(g.bvx); wallSound(); }
-      if (g.bx > g.W - g.kr) { g.bx = g.W - g.kr; g.bvx = -Math.abs(g.bvx); wallSound(); }
       const gap = g.W * 0.30;
-      if (g.by < g.kr) { if (Math.abs(g.bx - g.W / 2) < gap / 2) { g.you++; return goal('you'); } g.by = g.kr; g.bvy = Math.abs(g.bvy); wallSound(); }
-      if (g.by > g.H - g.kr) { if (Math.abs(g.bx - g.W / 2) < gap / 2) { g.opp++; return goal('opp'); } g.by = g.H - g.kr; g.bvy = -Math.abs(g.bvy); wallSound(); }
-      collide(g.px, g.py); collide(g.ox, g.oy);
-      const s = Math.hypot(g.bvx, g.bvy); if (s > 12) { g.bvx *= 12 / s; g.bvy *= 12 / s; }
+      const steps = Math.max(1, Math.ceil(Math.hypot(g.bvx, g.bvy) / (g.kr * 0.7)));
+      for (let st = 0; st < steps; st++) {
+        g.bx += g.bvx / steps; g.by += g.bvy / steps;
+        if (g.bx < g.kr) { g.bx = g.kr; g.bvx = Math.abs(g.bvx); wallSound(); }
+        else if (g.bx > g.W - g.kr) { g.bx = g.W - g.kr; g.bvx = -Math.abs(g.bvx); wallSound(); }
+        if (g.by < g.kr) { if (Math.abs(g.bx - g.W / 2) < gap / 2) { g.you++; return goal('you'); } g.by = g.kr; g.bvy = Math.abs(g.bvy); wallSound(); }
+        else if (g.by > g.H - g.kr) { if (Math.abs(g.bx - g.W / 2) < gap / 2) { g.opp++; return goal('opp'); } g.by = g.H - g.kr; g.bvy = -Math.abs(g.bvy); wallSound(); }
+        collide(g.px, g.py, pvx, pvy);
+        collide(g.ox, g.oy, ovx, ovy);
+      }
+      g.bvx *= 0.999; g.bvy *= 0.999;
+      const s = Math.hypot(g.bvx, g.bvy); if (s > 13) { g.bvx *= 13 / s; g.bvy *= 13 / s; }
       $('ahYou').textContent = g.you; $('ahOpp').textContent = g.opp;
     }
-    function collide(mx, my) {
+    function collide(mx, my, pvx, pvy) {
       const g = game, dx = g.bx - mx, dy = g.by - my, d = Math.hypot(dx, dy), min = g.kr + g.pr;
       if (d < min && d > 0) {
         const nx = dx / d, ny = dy / d;
         g.bx = mx + nx * min; g.by = my + ny * min;
-        const dot = g.bvx * nx + g.bvy * ny;
-        g.bvx -= 2 * dot * nx; g.bvy -= 2 * dot * ny;
-        g.bvx += nx * 2.4; g.bvy += ny * 2.4;
-        hitSound();
+        let rvx = g.bvx - pvx, rvy = g.bvy - pvy;
+        const vn = rvx * nx + rvy * ny;
+        if (vn < 0) {
+          const e = 1.05;
+          rvx -= (1 + e) * vn * nx; rvy -= (1 + e) * vn * ny;
+          g.bvx = rvx + pvx; g.bvy = rvy + pvy;
+          hitSound();
+        }
       }
     }
     function goal(who) {
