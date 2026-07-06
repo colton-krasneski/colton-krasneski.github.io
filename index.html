@@ -2,16 +2,18 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
   <title>Colton's Site</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body {
-      height: 100%;
+      height: 100vh;
+      height: 100dvh;
       overflow: hidden;
       background: #000;
       font-family: 'Courier New', Courier, monospace;
       color: #00ff41;
+      -webkit-text-size-adjust: 100%;
     }
     #matrix {
       position: fixed;
@@ -25,7 +27,8 @@
     .screen {
       position: fixed;
       top: 0; left: 0;
-      width: 100%; height: 100%;
+      width: 100%;
+      height: 100vh; height: 100dvh;
       z-index: 2;
       display: flex;
       flex-direction: column;
@@ -159,6 +162,7 @@
     .msg-top {
       display: flex; align-items: center; justify-content: space-between;
       padding: 1rem; border-bottom: 1px solid #00ff4133;
+      padding-top: calc(1rem + env(safe-area-inset-top));
     }
     .msg-top .back { cursor: pointer; font-size: 1.3rem; color: #00ff41; background: none; border: none; font-family: inherit; }
     .msg-top .heading { font-size: 1.2rem; letter-spacing: 0.15em; color: #00ff41; text-shadow: 0 0 10px #00ff41; }
@@ -181,11 +185,14 @@
     .bubble { max-width: 75%; padding: 0.6rem 0.9rem; border-radius: 14px; font-size: 0.95rem; line-height: 1.35; word-wrap: break-word; }
     .bubble.me { align-self: flex-end; background: #00662a; color: #d6ffe4; border-bottom-right-radius: 4px; }
     .bubble.them { align-self: flex-start; background: rgba(0,255,65,0.12); color: #baffcf; border: 1px solid #00ff4133; border-bottom-left-radius: 4px; }
-    .composer { display: flex; gap: 0.5rem; padding: 0.8rem; border-top: 1px solid #00ff4133; }
+    .composer {
+      display: flex; gap: 0.5rem; padding: 0.8rem; border-top: 1px solid #00ff4133;
+      padding-bottom: calc(0.8rem + env(safe-area-inset-bottom));
+    }
     .composer input {
       flex: 1; padding: 0.7rem 1rem; background: rgba(0,0,0,0.5);
       border: 1px solid #00ff4155; border-radius: 20px; color: #d6ffe4;
-      font-family: inherit; font-size: 0.95rem; outline: none;
+      font-family: inherit; font-size: 16px; outline: none;
     }
     .composer input:focus { box-shadow: 0 0 10px rgba(0,255,65,0.4); }
     .composer button {
@@ -412,7 +419,7 @@
       snap.forEach(d => {
         const m = d.data();
         const other = m.from === me ? m.to : m.from;
-        const t = m.createdAt ? m.createdAt.toMillis() : 0;
+        const t = m.createdAt ? m.createdAt.toMillis() : (m.clientTime || Date.now());
         if (!latest[other] || t >= latest[other].t) latest[other] = { text: m.text, t };
       });
       renderConvList(latest);
@@ -471,7 +478,8 @@
     unsubThread = onSnapshot(q, snap => {
       const msgs = [];
       snap.forEach(d => msgs.push(d.data()));
-      msgs.sort((a,b) => (a.createdAt ? a.createdAt.toMillis() : 0) - (b.createdAt ? b.createdAt.toMillis() : 0));
+      const key = m => m.createdAt ? m.createdAt.toMillis() : (m.clientTime || Date.now());
+      msgs.sort((a,b) => key(a) - key(b));
       renderThread(msgs);
     });
   }
@@ -501,6 +509,7 @@
         participants: [me, currentContact],
         pair: pairId(me, currentContact),
         text,
+        clientTime: Date.now(),
         createdAt: serverTimestamp()
       });
     } catch (e) { alert('Could not send: ' + e.message); input.value = text; }
