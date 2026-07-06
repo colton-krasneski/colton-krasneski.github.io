@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Colton's Site</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    #matrix {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .title {
+      color: #00ff41;
+      font-size: clamp(2.5rem, 9vw, 7rem);
+      font-weight: bold;
+      letter-spacing: 0.1em;
+      text-shadow:
+        0 0 10px #00ff41,
+        0 0 20px #00ff41,
+        0 0 40px #00ff41,
+        0 0 80px #008f11;
+      animation: flicker 3s infinite alternate;
+      user-select: none;
+    }
+    @keyframes flicker {
+      0%, 92%, 100% { opacity: 1; }
+      93% { opacity: 0.6; }
+      94% { opacity: 1; }
+      96% { opacity: 0.4; }
+      97% { opacity: 1; }
+    }
+    .go-btn {
+      margin-top: 2.5rem;
+      padding: 0.9rem 3rem;
+      font-family: inherit;
+      font-size: clamp(1rem, 3vw, 1.6rem);
+      font-weight: bold;
+      letter-spacing: 0.15em;
+      color: #00ff41;
+      background: rgba(0, 0, 0, 0.4);
+      border: 2px solid #00ff41;
+      border-radius: 4px;
+      cursor: pointer;
+      pointer-events: auto;
+      text-transform: uppercase;
+      box-shadow: 0 0 10px #00ff41, inset 0 0 10px rgba(0, 255, 65, 0.2);
+      transition: all 0.25s ease;
+    }
+    .go-btn:hover {
+      background: #00ff41;
+      color: #000;
+      box-shadow: 0 0 25px #00ff41, 0 0 50px #00ff41;
+      transform: scale(1.05);
+    }
+    .go-btn:active {
+      transform: scale(0.97);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="matrix"></canvas>
+  <div class="overlay">
+    <div class="title">Colton's Site</div>
+    <button class="go-btn">Let's go!</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('matrix');
+    const ctx = canvas.getContext('2d');
+
+    let columns, drops;
+    const fontSize = 16;
+    const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*'.split('');
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      columns = Math.floor(canvas.width / fontSize);
+      drops = new Array(columns).fill(1);
+    }
+    resize();
+    window.addEventListener('resize', resize);
+
+    function draw() {
+      // translucent black to create the fading trail
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = '#00ff41';
+      ctx.font = fontSize + 'px monospace';
+
+      for (let i = 0; i < drops.length; i++) {
+        const text = chars[Math.floor(Math.random() * chars.length)];
+        ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+        // randomly reset the drop back to the top after it falls past the screen
+        if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+          drops[i] = 0;
+        }
+        drops[i]++;
+      }
+    }
+
+    setInterval(draw, 40);
+  </script>
+</body>
+</html>
