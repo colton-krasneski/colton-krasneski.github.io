@@ -15,13 +15,43 @@
       color: #00ff41;
       -webkit-text-size-adjust: 100%;
     }
+    #bgImage {
+      position: fixed; inset: 0; z-index: 0;
+      background-size: cover; background-position: center; background-repeat: no-repeat;
+      pointer-events: none;
+    }
     #matrix {
       position: fixed;
       top: 0; left: 0;
       width: 100%; height: 100%;
       display: block;
-      z-index: 0;
+      z-index: 1;
     }
+    #menuBtn {
+      position: fixed; top: 1rem; right: 1rem; z-index: 40;
+      width: 42px; height: 42px; border-radius: 8px;
+      background: rgba(0,10,3,0.6); border: 1px solid #00ff4166; color: #00ff41;
+      font-size: 1.4rem; cursor: pointer; font-family: inherit;
+      box-shadow: 0 0 10px rgba(0,255,65,0.3);
+    }
+    #menuBtn:hover { background: #00ff41; color: #000; }
+    #bgMenu {
+      position: fixed; top: 3.6rem; right: 1rem; z-index: 40;
+      display: none; flex-direction: column; gap: 4px; width: 215px;
+      background: rgba(0,12,4,0.96); border: 1px solid #00ff4166;
+      border-radius: 10px; padding: 8px; box-shadow: 0 0 18px rgba(0,255,65,0.4);
+    }
+    #bgMenu.open { display: flex; }
+    #bgMenu .menu-title {
+      color: #00ff41aa; font-size: 0.72rem; letter-spacing: 0.15em;
+      text-transform: uppercase; padding: 2px 6px 6px;
+    }
+    #bgMenu button {
+      text-align: left; background: rgba(0,0,0,0.4); border: 1px solid #00ff4133;
+      color: #baffcf; border-radius: 6px; padding: 0.5rem 0.7rem;
+      font-family: inherit; font-size: 0.9rem; cursor: pointer;
+    }
+    #bgMenu button:hover { background: #00ff41; color: #000; }
 
     /* ---- Screen system ---- */
     .screen {
@@ -134,7 +164,7 @@
     .home-header .welcome { font-size: 1rem; color: #00ff41cc; letter-spacing: 0.2em; }
     .home-header .user { font-size: 2rem; color: #00ff41; text-shadow: 0 0 15px #00ff41; margin-top: 0.3rem; }
     .logout {
-      position: absolute; top: 1rem; right: 1rem;
+      position: absolute; top: 1rem; left: 1rem;
       font-size: 0.75rem; color: #00ff4199;
       background: none; border: 1px solid #00ff4155;
       padding: 0.35rem 0.7rem; border-radius: 4px; cursor: pointer; font-family: inherit;
@@ -252,7 +282,22 @@
   </style>
 </head>
 <body>
+  <div id="bgImage"></div>
   <canvas id="matrix"></canvas>
+
+  <!-- background menu -->
+  <button id="menuBtn" aria-label="Menu">☰</button>
+  <div id="bgMenu">
+    <div class="menu-title">Background</div>
+    <button data-anim="matrix">🟩 Matrix</button>
+    <button data-anim="spiral">🌈 Rainbow Spiral</button>
+    <button data-anim="pong">🏓 Pong (plays)</button>
+    <button data-anim="foosball">⚽ Foosball (plays)</button>
+    <button id="bgCats">🐱 Cats</button>
+    <button id="bgUploadImg">🖼️ Upload Image</button>
+    <button id="bgUploadGif">🎞️ Upload GIF</button>
+  </div>
+  <input type="file" id="bgFile" accept="image/*" style="display:none">
 
   <!-- ===== INTRO ===== -->
   <div class="screen" id="intro">
@@ -359,7 +404,13 @@
   }
   resize();
   window.addEventListener('resize', resize);
-  function draw() {
+  let activeAnim = 'matrix';
+  let drawEnabled = true;
+  let frame = 0;
+  let pong, foos;
+  const bgLayer = document.getElementById('bgImage');
+
+  function drawMatrix() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = mode.color;
@@ -371,7 +422,99 @@
       drops[i]++;
     }
   }
-  setInterval(draw, 40);
+
+  function drawSpiral() {
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const cx = canvas.width / 2, cy = canvas.height / 2;
+    const maxR = Math.hypot(cx, cy), pts = 260;
+    for (let t = 0; t < pts; t++) {
+      const ang = t * 0.3 + frame * 0.04, r = t * (maxR / pts);
+      ctx.fillStyle = `hsl(${(t * 4 + frame * 2) % 360},100%,55%)`;
+      ctx.beginPath(); ctx.arc(cx + r * Math.cos(ang), cy + r * Math.sin(ang), 7, 0, 7); ctx.fill();
+    }
+  }
+
+  function initPong() {
+    pong = { bx: canvas.width / 2, by: canvas.height / 2,
+      vx: 4 * (Math.random() < .5 ? 1 : -1), vy: 3 * (Math.random() < .5 ? 1 : -1),
+      lp: canvas.height / 2, rp: canvas.height / 2, ph: 90, pw: 12 };
+  }
+  function drawPong() {
+    if (!pong) initPong();
+    const p = pong;
+    ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    p.bx += p.vx; p.by += p.vy;
+    if (p.by < 12 || p.by > canvas.height - 12) p.vy *= -1;
+    const s = 4.4;
+    p.lp += Math.max(-s, Math.min(s, p.by - p.lp));
+    p.rp += Math.max(-s, Math.min(s, p.by - p.rp));
+    const lx = 34, rx = canvas.width - 34;
+    if (p.bx < lx + p.pw && Math.abs(p.by - p.lp) < p.ph / 2 && p.vx < 0) p.vx *= -1;
+    if (p.bx > rx - p.pw && Math.abs(p.by - p.rp) < p.ph / 2 && p.vx > 0) p.vx *= -1;
+    if (p.bx < 0 || p.bx > canvas.width) initPong();
+    ctx.strokeStyle = '#00ff4144'; ctx.lineWidth = 2; ctx.setLineDash([10, 16]);
+    ctx.beginPath(); ctx.moveTo(canvas.width / 2, 0); ctx.lineTo(canvas.width / 2, canvas.height); ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle = '#00ff41';
+    ctx.fillRect(lx, p.lp - p.ph / 2, p.pw, p.ph);
+    ctx.fillRect(rx - p.pw, p.rp - p.ph / 2, p.pw, p.ph);
+    ctx.fillRect(p.bx - 6, p.by - 6, 12, 12);
+  }
+
+  function initFoosball() {
+    const cols = 6, rods = [];
+    for (let i = 0; i < cols; i++)
+      rods.push({ x: (i + 1) * canvas.width / (cols + 1), phase: Math.random() * 6.28, team: i % 2 });
+    foos = { rods, bx: canvas.width / 2, by: canvas.height / 2,
+      vx: 5 * (Math.random() < .5 ? 1 : -1), vy: 3 * (Math.random() < .5 ? 1 : -1) };
+  }
+  function drawFoosball() {
+    if (!foos) initFoosball();
+    const f = foos;
+    ctx.fillStyle = '#0a3d16'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#ffffff33'; ctx.lineWidth = 2;
+    ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+    ctx.beginPath(); ctx.moveTo(canvas.width / 2, 10); ctx.lineTo(canvas.width / 2, canvas.height - 10); ctx.stroke();
+    ctx.beginPath(); ctx.arc(canvas.width / 2, canvas.height / 2, 55, 0, 7); ctx.stroke();
+    f.bx += f.vx; f.by += f.vy;
+    if (f.by < 20 || f.by > canvas.height - 20) f.vy *= -1;
+    if (f.bx < 8 || f.bx > canvas.width - 8) initFoosball();
+    const ph = 46, pw = 16, sp = canvas.height / 4;
+    f.rods.forEach(r => {
+      const off = Math.sin(frame * 0.03 + r.phase) * sp * 0.45;
+      ctx.strokeStyle = '#dddddd55'; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(r.x, 0); ctx.lineTo(r.x, canvas.height); ctx.stroke();
+      ctx.fillStyle = r.team ? '#ff3b52' : '#3aa0ff';
+      for (let j = 0; j < 3; j++) {
+        const py = sp * (j + 1) + off;
+        ctx.fillRect(r.x - pw / 2, py - ph / 2, pw, ph);
+        if (Math.abs(f.bx - r.x) < pw / 2 + 8 && Math.abs(f.by - py) < ph / 2 + 8) { f.vx *= -1; f.bx += f.vx * 2; }
+      }
+    });
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(f.bx, f.by, 8, 0, 7); ctx.fill();
+  }
+
+  function tick() {
+    frame++;
+    if (!drawEnabled) return;
+    if (activeAnim === 'spiral') drawSpiral();
+    else if (activeAnim === 'pong') drawPong();
+    else if (activeAnim === 'foosball') drawFoosball();
+    else drawMatrix();
+  }
+  setInterval(tick, 33);
+
+  function setAnim(name) {
+    activeAnim = name; drawEnabled = true;
+    bgLayer.style.backgroundImage = 'none';
+    if (name === 'pong') initPong();
+    else if (name === 'foosball') initFoosball();
+    else if (name === 'matrix') drops = new Array(columns).fill(1);
+  }
+  function setImage(url) {
+    drawEnabled = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    bgLayer.style.backgroundImage = `url("${url}")`;
+  }
 
   /* ===== HELPERS ===== */
   const $ = id => document.getElementById(id);
@@ -469,8 +612,8 @@
   let unsubList = null, unsubThread = null, unsubReacts = null, currentContact = null;
   let threadMsgs = [], threadReacts = {}, activeMsgId = null;
 
-  $('messagesApp').addEventListener('click', () => { showScreen('messages'); openList(); });
-  $('msgHome').addEventListener('click', () => { stopList(); showScreen('home'); });
+  $('messagesApp').addEventListener('click', () => { $('menuBtn').style.display = 'none'; showScreen('messages'); openList(); });
+  $('msgHome').addEventListener('click', () => { $('menuBtn').style.display = ''; stopList(); showScreen('home'); });
 
   function openList() {
     closeGif();
@@ -762,6 +905,57 @@
   function esc(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
+
+  /* ===== BACKGROUND MENU ===== */
+  const BG_KEY = 'colton_bg';
+  function saveBg(state) { try { localStorage.setItem(BG_KEY, JSON.stringify(state)); } catch (e) {} }
+  function closeMenu() { $('bgMenu').classList.remove('open'); }
+
+  $('menuBtn').addEventListener('click', e => { e.stopPropagation(); $('bgMenu').classList.toggle('open'); });
+  $('bgMenu').addEventListener('click', e => e.stopPropagation());
+  document.addEventListener('click', closeMenu);
+
+  // preset animations
+  document.querySelectorAll('#bgMenu [data-anim]').forEach(b => {
+    b.addEventListener('click', () => { setAnim(b.dataset.anim); saveBg({ mode: b.dataset.anim }); closeMenu(); });
+  });
+
+  // cats: pull a random G-rated cat GIF
+  $('bgCats').addEventListener('click', async () => {
+    closeMenu();
+    try {
+      const res = await fetch(`https://api.giphy.com/v1/gifs/random?api_key=${GIPHY_KEY}&tag=cat&rating=g`);
+      const d = await res.json();
+      const url = d.data.images.original.url;
+      setImage(url); saveBg({ mode: 'cats', data: url });
+    } catch (e) { alert('Could not load cat background: ' + e.message); }
+  });
+
+  // uploads from device
+  const bgFile = $('bgFile');
+  $('bgUploadImg').addEventListener('click', () => { bgFile.accept = 'image/*'; bgFile.click(); closeMenu(); });
+  $('bgUploadGif').addEventListener('click', () => { bgFile.accept = 'image/gif'; bgFile.click(); closeMenu(); });
+  bgFile.addEventListener('change', () => {
+    const file = bgFile.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const url = reader.result;
+      setImage(url);
+      try { localStorage.setItem(BG_KEY, JSON.stringify({ mode: 'image', data: url })); }
+      catch (e) { alert('Background set for now, but this file is too big to remember after a refresh.'); }
+    };
+    reader.readAsDataURL(file);
+    bgFile.value = '';
+  });
+
+  // restore saved background on load
+  (function () {
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(BG_KEY) || 'null'); } catch (e) {}
+    if (!saved) return;
+    if (['matrix', 'spiral', 'pong', 'foosball'].includes(saved.mode)) setAnim(saved.mode);
+    else if ((saved.mode === 'image' || saved.mode === 'cats') && saved.data) setImage(saved.data);
+  })();
   </script>
 </body>
 </html>
