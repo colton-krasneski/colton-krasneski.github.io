@@ -1229,12 +1229,6 @@
         setTimeout(() => blip(660, 0.25, 'square', 0.14), 150);
         setTimeout(() => blip(880, 0.3, 'square', 0.13), 340);
       }
-      try {
-        speechSynthesis.cancel();
-        const u = new SpeechSynthesisUtterance('Goooooooaaaaalll!');
-        u.rate = 0.6; u.pitch = 1.2;
-        speechSynthesis.speak(u);
-      } catch (e) {}
     }
     function showGoal() {
       const b = $('ahGoalBanner');
