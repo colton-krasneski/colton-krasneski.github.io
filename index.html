@@ -53,6 +53,47 @@
     }
     #bgMenu button:hover { background: #00ff41; color: #000; }
 
+    /* ---- Air Hockey ---- */
+    .ah-wrap { width: min(100%, 460px); height: 100%; margin: 0 auto; display: flex; flex-direction: column; }
+    .ah-top {
+      display: flex; align-items: center; gap: 0.8rem; padding: 1rem;
+      padding-top: calc(1rem + env(safe-area-inset-top)); border-bottom: 1px solid #00ff4133;
+    }
+    .ah-top .back { cursor: pointer; font-size: 1.3rem; color: #00ff41; background: none; border: none; font-family: inherit; }
+    .ah-coins { color: #ffd24a; font-size: 1rem; }
+    .ah-title { margin-left: auto; color: #00ff41; letter-spacing: 0.12em; text-shadow: 0 0 10px #00ff41; }
+    .ah-view { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.8rem; padding: 1rem; overflow: hidden; }
+    .ah-btn {
+      width: min(80%, 260px); padding: 0.9rem; font-family: inherit; font-size: 1.1rem;
+      font-weight: bold; letter-spacing: 0.1em; color: #00ff41; background: rgba(0,0,0,0.4);
+      border: 2px solid #00ff41; border-radius: 6px; cursor: pointer; text-transform: uppercase;
+      box-shadow: 0 0 10px rgba(0,255,65,0.3);
+    }
+    .ah-btn:hover { background: #00ff41; color: #000; }
+    .ah-btn:disabled { opacity: 0.5; cursor: default; }
+    .ah-btn.ghost { border-color: #00ff4177; color: #00ff41aa; box-shadow: none; }
+    .ah-sub { color: #00ff41; letter-spacing: 0.15em; text-transform: uppercase; font-size: 0.9rem; }
+    .skins { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; width: 100%; max-width: 360px; overflow-y: auto; padding: 2px; }
+    .skin { border: 1px solid #00ff4144; border-radius: 10px; padding: 0.6rem 0.3rem; text-align: center; cursor: pointer; background: rgba(0,0,0,0.4); }
+    .skin.owned { border-color: #00ff4188; }
+    .skin.active { box-shadow: 0 0 14px #00ff41; border-color: #00ff41; }
+    .skin .disc { width: 44px; height: 44px; border-radius: 50%; margin: 0 auto 4px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
+    .skin .nm { font-size: 0.72rem; color: #baffcf; }
+    .skin .cost { font-size: 0.7rem; color: #ffd24a; margin-top: 2px; }
+    .ah-score { font-size: 1.6rem; color: #00ff41; text-shadow: 0 0 10px #00ff41; }
+    .ah-opp-name { font-size: 0.85rem; color: #00ff41aa; margin-bottom: 0.3rem; }
+    #ahCanvas { background: #001206; border: 1px solid #00ff4155; border-radius: 10px; touch-action: none; max-width: 100%; }
+    .ah-hint { font-size: 0.72rem; color: #00ff4188; margin-top: 0.5rem; text-align: center; }
+    .bracket { display: flex; flex-direction: column; gap: 0.4rem; width: 100%; max-width: 320px; overflow-y: auto; }
+    .match { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.4rem 0.7rem; border: 1px solid #00ff4133; border-radius: 6px; font-size: 0.85rem; color: #baffcf; }
+    .match.done { opacity: 0.5; }
+    .match.next { border-color: #00ff41; box-shadow: 0 0 8px rgba(0,255,65,0.3); }
+    .ah-result {
+      position: absolute; inset: 0; z-index: 5; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 1rem; background: rgba(0,4,1,0.88);
+    }
+    .ah-result-text { font-size: 1.5rem; color: #00ff41; text-shadow: 0 0 12px #00ff41; text-align: center; padding: 0 1rem; white-space: pre-line; }
+
     /* ---- Screen system ---- */
     .screen {
       position: fixed;
@@ -329,7 +370,7 @@
         <div class="user" id="homeUser">—</div>
       </div>
       <div class="dock">
-        <div class="app locked" title="Coming soon">?</div>
+        <div class="app" id="airHockeyApp">🏒<span class="label">Air Hockey</span></div>
         <div class="app" id="messagesApp">💬<span class="label">Messages</span></div>
         <div class="app locked" title="Coming soon">?</div>
       </div>
@@ -364,6 +405,48 @@
           <input id="msgInput" type="text" placeholder="Type a message…">
           <button id="sendBtn">Send</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== AIR HOCKEY ===== -->
+  <div class="screen inactive" id="airhockey">
+    <div class="ah-wrap">
+      <div class="ah-top">
+        <button class="back" id="ahBack">‹</button>
+        <div class="ah-coins">🪙 <span id="ahCoins">0</span></div>
+        <div class="ah-title">Air Hockey</div>
+      </div>
+
+      <div class="ah-view" id="ahMenu">
+        <button class="ah-btn" id="ahPlay">Quick Play</button>
+        <button class="ah-btn" id="ahTourBtn">Tournament</button>
+        <button class="ah-btn" id="ahShopBtn">Shop</button>
+      </div>
+
+      <div class="ah-view" id="ahShop" style="display:none;">
+        <div class="ah-sub">Puck Skins</div>
+        <div class="skins" id="ahSkins"></div>
+        <button class="ah-btn ghost" id="ahShopBack">Back</button>
+      </div>
+
+      <div class="ah-view" id="ahTour" style="display:none;">
+        <div class="ah-sub">Tournament</div>
+        <div class="bracket" id="ahBracket"></div>
+        <button class="ah-btn" id="ahTourPlay">Play Next Match</button>
+        <button class="ah-btn ghost" id="ahTourBack">Back</button>
+      </div>
+
+      <div class="ah-view" id="ahGame" style="display:none;">
+        <div class="ah-score"><span id="ahYou">0</span> — <span id="ahOpp">0</span></div>
+        <div class="ah-opp-name" id="ahOppName"></div>
+        <canvas id="ahCanvas"></canvas>
+        <div class="ah-hint">A / D or ← / →&nbsp;&nbsp;·&nbsp;&nbsp;or drag your paddle</div>
+      </div>
+
+      <div class="ah-result" id="ahResult" style="display:none;">
+        <div class="ah-result-text" id="ahResultText"></div>
+        <button class="ah-btn" id="ahResultBtn">Continue</button>
       </div>
     </div>
   </div>
@@ -535,7 +618,7 @@
   let me = null; // logged-in username (canonical)
 
   function showScreen(id) {
-    ['login','home','messages'].forEach(s => $(s).classList.add('inactive'));
+    ['login','home','messages','airhockey'].forEach(s => $(s).classList.add('inactive'));
     $(id).classList.remove('inactive');
   }
 
@@ -604,7 +687,7 @@
     localStorage.removeItem(TRUST_KEY);
     me = null;
     mode = MODES.intro;
-    ['login','home','messages'].forEach(s => $(s).classList.add('inactive'));
+    ['login','home','messages','airhockey'].forEach(s => $(s).classList.add('inactive'));
     $('intro').classList.remove('hidden-up');
   });
 
@@ -955,6 +1038,257 @@
     if (!saved) return;
     if (['matrix', 'spiral', 'pong', 'foosball'].includes(saved.mode)) setAnim(saved.mode);
     else if ((saved.mode === 'image' || saved.mode === 'cats') && saved.data) setImage(saved.data);
+  })();
+
+  /* ===== AIR HOCKEY ===== */
+  (function () {
+    const K = { coins:'colton_ah_coins', owned:'colton_ah_owned', skin:'colton_ah_skin', tour:'colton_ah_tour' };
+    const AH = {
+      coins: parseInt(localStorage.getItem(K.coins) || '0', 10),
+      owned: JSON.parse(localStorage.getItem(K.owned) || '["classic"]'),
+      skin: localStorage.getItem(K.skin) || 'classic',
+      tour: JSON.parse(localStorage.getItem(K.tour) || 'null')
+    };
+    const SKINS = [
+      { id:'classic', name:'Classic', kind:'color', val:'#ff3355', cost:0 },
+      { id:'blue',    name:'Blue',    kind:'color', val:'#3aa0ff', cost:50 },
+      { id:'green',   name:'Green',   kind:'color', val:'#00ff41', cost:50 },
+      { id:'purple',  name:'Purple',  kind:'color', val:'#b95cff', cost:80 },
+      { id:'soccer',  name:'Soccer',  kind:'emoji', val:'⚽', cost:120 },
+      { id:'gold',    name:'Gold',    kind:'color', val:'#ffd24a', cost:150 },
+      { id:'cat',     name:'Cat',     kind:'emoji', val:'🐱', cost:200 },
+      { id:'alien',   name:'Alien',   kind:'emoji', val:'👽', cost:250 },
+      { id:'ghost',   name:'Ghost',   kind:'emoji', val:'👻', cost:250 },
+      { id:'homer',   name:'Homer',   kind:'emoji', val:'🍩', cost:1000 }
+    ];
+    const COUNTRIES = [
+      {f:'🇧🇷',n:'Brazil'},{f:'🇯🇵',n:'Japan'},{f:'🇩🇪',n:'Germany'},{f:'🇨🇦',n:'Canada'},
+      {f:'🇰🇷',n:'Korea'},{f:'🇫🇷',n:'France'},{f:'🇲🇽',n:'Mexico'},{f:'🇺🇸',n:'USA'}
+    ];
+
+    function save() {
+      localStorage.setItem(K.coins, AH.coins);
+      localStorage.setItem(K.owned, JSON.stringify(AH.owned));
+      localStorage.setItem(K.skin, AH.skin);
+      if (AH.tour) localStorage.setItem(K.tour, JSON.stringify(AH.tour));
+      else localStorage.removeItem(K.tour);
+    }
+    function setCoins(v) { AH.coins = v; $('ahCoins').textContent = v; save(); }
+    function skinObj() { return SKINS.find(s => s.id === AH.skin) || SKINS[0]; }
+    function ahView(id) { ['ahMenu','ahShop','ahTour','ahGame'].forEach(v => $(v).style.display = 'none'); $(id).style.display = 'flex'; }
+
+    function openAH() {
+      $('menuBtn').style.display = 'none';
+      showScreen('airhockey');
+      $('ahCoins').textContent = AH.coins;
+      $('ahResult').style.display = 'none';
+      stopGame(); ahView('ahMenu');
+    }
+    $('airHockeyApp').addEventListener('click', openAH);
+    $('ahBack').addEventListener('click', () => { stopGame(); $('menuBtn').style.display = ''; showScreen('home'); });
+    $('ahPlay').addEventListener('click', () => startMatch({ name:'Practice Bot', diff:0.6, target:7, tournament:false }));
+    $('ahShopBtn').addEventListener('click', openShop);
+    $('ahShopBack').addEventListener('click', () => ahView('ahMenu'));
+    $('ahTourBtn').addEventListener('click', openTour);
+    $('ahTourBack').addEventListener('click', () => ahView('ahMenu'));
+
+    // ---- SHOP ----
+    function openShop() {
+      const grid = $('ahSkins'); grid.innerHTML = '';
+      SKINS.forEach(s => {
+        const owned = AH.owned.includes(s.id), active = AH.skin === s.id;
+        const el = document.createElement('div');
+        el.className = 'skin' + (owned ? ' owned' : '') + (active ? ' active' : '');
+        const disc = s.kind === 'color'
+          ? `<div class="disc" style="background:${s.val}"></div>`
+          : `<div class="disc">${s.val}</div>`;
+        el.innerHTML = disc + `<div class="nm">${s.name}</div>` +
+          (owned ? `<div class="cost">${active ? '✓ On' : 'Use'}</div>` : `<div class="cost">🪙 ${s.cost}</div>`);
+        el.addEventListener('click', () => {
+          if (AH.owned.includes(s.id)) { AH.skin = s.id; save(); openShop(); }
+          else if (AH.coins >= s.cost) { AH.owned.push(s.id); AH.skin = s.id; setCoins(AH.coins - s.cost); openShop(); }
+          else alert('Not enough coins — you need ' + (s.cost - AH.coins) + ' more 🪙');
+        });
+        grid.appendChild(el);
+      });
+      ahView('ahShop');
+    }
+
+    // ---- TOURNAMENT ----
+    function openTour() {
+      if (!AH.tour) {
+        const pool = [...COUNTRIES].sort(() => Math.random() - 0.5).slice(0, 4);
+        AH.tour = { round:0, opponents:pool, results:[] }; save();
+      }
+      renderBracket(); ahView('ahTour');
+    }
+    function renderBracket() {
+      const b = $('ahBracket'); b.innerHTML = '';
+      AH.tour.opponents.forEach((o, i) => {
+        const done = i < AH.tour.round, next = i === AH.tour.round;
+        const m = document.createElement('div');
+        m.className = 'match' + (done ? ' done' : '') + (next ? ' next' : '');
+        m.innerHTML = `<span>R${i+1}: ${o.f} ${o.n}</span><span>${AH.tour.results[i] || (next ? '▶' : '')}</span>`;
+        b.appendChild(m);
+      });
+      const fin = AH.tour.round >= AH.tour.opponents.length;
+      $('ahTourPlay').textContent = fin ? '🏆 Champion!' : 'Play Next Match';
+      $('ahTourPlay').disabled = fin;
+    }
+    $('ahTourPlay').addEventListener('click', () => {
+      if (AH.tour.round >= AH.tour.opponents.length) return;
+      const o = AH.tour.opponents[AH.tour.round];
+      startMatch({ name:o.f + ' ' + o.n, diff:0.6 + AH.tour.round * 0.14, target:7, tournament:true });
+    });
+
+    // ---- ENGINE ----
+    let game = null, raf = null, keyL = false, keyR = false, touchX = null;
+    const cvs = $('ahCanvas'), gtx = cvs.getContext('2d');
+
+    function sizeCanvas() {
+      const wrap = cvs.parentElement;
+      const w = Math.max(260, Math.min(wrap.clientWidth - 8, 420));
+      const h = Math.min(window.innerHeight * 0.60, w * 1.5);
+      const dpr = window.devicePixelRatio || 1;
+      cvs.style.width = w + 'px'; cvs.style.height = h + 'px';
+      cvs.width = w * dpr; cvs.height = h * dpr;
+      gtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (game) { game.W = w; game.H = h; }
+    }
+    function startMatch(cfg) {
+      ahView('ahGame');
+      $('ahOppName').textContent = cfg.name;
+      $('ahResult').style.display = 'none';
+      game = { cfg, W:300, H:450, you:0, opp:0, pr:16, kr:13,
+        px:150, py:351, ox:150, oy:99, bx:150, by:225, bvx:0, bvy:0 };
+      sizeCanvas();
+      game.px = game.W / 2; game.ox = game.W / 2;
+      resetPuck(1);
+      $('ahYou').textContent = 0; $('ahOpp').textContent = 0;
+      loop();
+    }
+    function resetPuck(dir) {
+      game.bx = game.W / 2; game.by = game.H / 2;
+      game.bvx = (Math.random() * 2 - 1) * 2; game.bvy = dir * 3.4;
+    }
+    function stopGame() { if (raf) { cancelAnimationFrame(raf); raf = null; } game = null; }
+    function loop() { if (!game) return; update(); render(); raf = requestAnimationFrame(loop); }
+
+    function update() {
+      const g = game;
+      if (keyL) g.px -= 6;
+      if (keyR) g.px += 6;
+      if (touchX != null) g.px += (touchX - g.px) * 0.4;
+      g.px = Math.max(g.pr, Math.min(g.W - g.pr, g.px));
+      g.py = g.H * 0.78;
+      const target = (g.by < g.H * 0.55) ? g.bx : g.W / 2;
+      g.ox += (target - g.ox) * 0.05 * (0.7 + g.cfg.diff);
+      g.ox = Math.max(g.pr, Math.min(g.W - g.pr, g.ox));
+      g.oy = g.H * 0.22;
+      g.bx += g.bvx; g.by += g.bvy;
+      if (g.bx < g.kr) { g.bx = g.kr; g.bvx = Math.abs(g.bvx); }
+      if (g.bx > g.W - g.kr) { g.bx = g.W - g.kr; g.bvx = -Math.abs(g.bvx); }
+      const gap = g.W * 0.30;
+      if (g.by < g.kr) {
+        if (Math.abs(g.bx - g.W / 2) < gap / 2) { g.you++; return goal('you'); }
+        g.by = g.kr; g.bvy = Math.abs(g.bvy);
+      }
+      if (g.by > g.H - g.kr) {
+        if (Math.abs(g.bx - g.W / 2) < gap / 2) { g.opp++; return goal('opp'); }
+        g.by = g.H - g.kr; g.bvy = -Math.abs(g.bvy);
+      }
+      collide(g.px, g.py); collide(g.ox, g.oy);
+      const s = Math.hypot(g.bvx, g.bvy);
+      if (s > 12) { g.bvx *= 12 / s; g.bvy *= 12 / s; }
+      $('ahYou').textContent = g.you; $('ahOpp').textContent = g.opp;
+    }
+    function collide(mx, my) {
+      const g = game, dx = g.bx - mx, dy = g.by - my, d = Math.hypot(dx, dy), min = g.kr + g.pr;
+      if (d < min && d > 0) {
+        const nx = dx / d, ny = dy / d;
+        g.bx = mx + nx * min; g.by = my + ny * min;
+        const dot = g.bvx * nx + g.bvy * ny;
+        g.bvx -= 2 * dot * nx; g.bvy -= 2 * dot * ny;
+        g.bvx += nx * 2.4; g.bvy += ny * 2.4;
+      }
+    }
+    function goal(who) {
+      const g = game;
+      if (who === 'you') setCoins(AH.coins + 5);
+      if (g.you >= g.cfg.target || g.opp >= g.cfg.target) return endMatch(g.you > g.opp);
+      resetPuck(who === 'you' ? -1 : 1);
+    }
+    function render() {
+      const g = game, w = g.W, h = g.H;
+      gtx.clearRect(0, 0, w, h);
+      gtx.fillStyle = '#001206'; gtx.fillRect(0, 0, w, h);
+      gtx.strokeStyle = '#00ff4155'; gtx.lineWidth = 2; gtx.strokeRect(4, 4, w - 8, h - 8);
+      gtx.beginPath(); gtx.moveTo(4, h / 2); gtx.lineTo(w - 4, h / 2); gtx.stroke();
+      gtx.beginPath(); gtx.arc(w / 2, h / 2, 34, 0, 7); gtx.stroke();
+      const gap = w * 0.30;
+      gtx.strokeStyle = '#00ff41'; gtx.lineWidth = 4;
+      gtx.beginPath(); gtx.moveTo(w / 2 - gap / 2, 5); gtx.lineTo(w / 2 + gap / 2, 5); gtx.stroke();
+      gtx.beginPath(); gtx.moveTo(w / 2 - gap / 2, h - 5); gtx.lineTo(w / 2 + gap / 2, h - 5); gtx.stroke();
+      drawPaddle(g.ox, g.oy, '#ff3b52');
+      const sk = skinObj();
+      drawPaddle(g.px, g.py, sk.kind === 'color' ? sk.val : '#00ff41');
+      if (sk.kind === 'emoji') {
+        gtx.font = (g.kr * 2) + 'px serif'; gtx.textAlign = 'center'; gtx.textBaseline = 'middle';
+        gtx.fillText(sk.val, g.bx, g.by);
+      } else {
+        gtx.fillStyle = '#fff'; gtx.beginPath(); gtx.arc(g.bx, g.by, g.kr, 0, 7); gtx.fill();
+      }
+    }
+    function drawPaddle(x, y, color) {
+      const g = game;
+      gtx.fillStyle = color; gtx.beginPath(); gtx.arc(x, y, g.pr, 0, 7); gtx.fill();
+      gtx.fillStyle = 'rgba(0,0,0,0.35)'; gtx.beginPath(); gtx.arc(x, y, g.pr * 0.55, 0, 7); gtx.fill();
+    }
+    function endMatch(won) {
+      const cfg = game.cfg; stopGame();
+      let reward = won ? 25 : 5, text;
+      if (cfg.tournament && AH.tour) {
+        if (won) {
+          AH.tour.results[AH.tour.round] = '✅';
+          AH.tour.round++;
+          const fin = AH.tour.round >= AH.tour.opponents.length;
+          reward = fin ? 300 : 40 + AH.tour.round * 10;
+          text = fin ? ('🏆 CHAMPION!\n+' + reward + ' 🪙') : ('Won! On to Round ' + (AH.tour.round + 1) + '\n+' + reward + ' 🪙');
+          if (fin) AH.tour = null;
+          save();
+        } else {
+          AH.tour.results[AH.tour.round] = '❌'; AH.tour = null; save();
+          text = 'Knocked out! 😿\n+' + reward + ' 🪙';
+        }
+      } else {
+        text = (won ? 'You win! 🎉' : 'You lost! 😿') + '\n+' + reward + ' 🪙';
+      }
+      setCoins(AH.coins + reward);
+      $('ahResultText').textContent = text;
+      $('ahResult').style.display = 'flex';
+      $('ahResultBtn').onclick = () => { $('ahResult').style.display = 'none'; if (cfg.tournament) openTour(); else ahView('ahMenu'); };
+    }
+
+    // ---- INPUT ----
+    window.addEventListener('keydown', e => {
+      if ($('airhockey').classList.contains('inactive')) return;
+      const k = e.key;
+      if (k === 'a' || k === 'A' || k === 'ArrowLeft') { keyL = true; e.preventDefault(); }
+      if (k === 'd' || k === 'D' || k === 'ArrowRight') { keyR = true; e.preventDefault(); }
+    });
+    window.addEventListener('keyup', e => {
+      const k = e.key;
+      if (k === 'a' || k === 'A' || k === 'ArrowLeft') keyL = false;
+      if (k === 'd' || k === 'D' || k === 'ArrowRight') keyR = false;
+    });
+    function tx(clientX) { const r = cvs.getBoundingClientRect(); return (clientX - r.left) / r.width * game.W; }
+    cvs.addEventListener('touchstart', e => { if (game) touchX = tx(e.touches[0].clientX); e.preventDefault(); }, { passive:false });
+    cvs.addEventListener('touchmove', e => { if (game) touchX = tx(e.touches[0].clientX); e.preventDefault(); }, { passive:false });
+    cvs.addEventListener('touchend', () => { touchX = null; });
+    cvs.addEventListener('mousedown', e => { if (game) touchX = tx(e.clientX); });
+    cvs.addEventListener('mousemove', e => { if (game && e.buttons) touchX = tx(e.clientX); });
+    window.addEventListener('mouseup', () => { touchX = null; });
+    window.addEventListener('resize', () => { if (game) sizeCanvas(); });
   })();
   </script>
 </body>
