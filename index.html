@@ -33,9 +33,8 @@
       justify-content: center;
       transition: transform 0.8s cubic-bezier(0.7, 0, 0.3, 1), opacity 0.6s ease;
     }
-    .screen.hidden-up   { transform: translateY(-100%); opacity: 0; pointer-events: none; }
-    .screen.hidden-down { transform: translateY(100%);  opacity: 0; pointer-events: none; }
-    .screen.inactive    { opacity: 0; pointer-events: none; }
+    .screen.hidden-up { transform: translateY(-100%); opacity: 0; pointer-events: none; }
+    .screen.inactive  { opacity: 0; pointer-events: none; }
 
     /* ---- Intro ---- */
     .title {
@@ -87,7 +86,7 @@
       font-size: 1.9rem;
       letter-spacing: 0.2em;
       text-shadow: 0 0 12px #ff0033;
-      margin-bottom: 1.5rem;
+      margin-bottom: 1.4rem;
       text-transform: uppercase;
     }
     .field {
@@ -104,42 +103,28 @@
     }
     .field:focus { box-shadow: 0 0 12px #ff0033; }
     .trust {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-size: 0.85rem;
-      color: #ff6677;
-      margin: 0.3rem 0 1.4rem;
-      cursor: pointer;
-      user-select: none;
-      text-align: left;
+      display: flex; align-items: center; gap: 0.5rem;
+      font-size: 0.85rem; color: #ff6677;
+      margin: 0.3rem 0 1.2rem; cursor: pointer; user-select: none; text-align: left;
     }
     .trust input { width: 16px; height: 16px; accent-color: #ff0033; }
     .btn-red {
-      width: 100%;
-      padding: 0.85rem;
-      font-family: inherit;
-      font-size: 1.1rem;
-      font-weight: bold;
-      letter-spacing: 0.15em;
-      color: #ff3355;
-      background: rgba(0,0,0,0.4);
-      border: 2px solid #ff0033;
-      border-radius: 5px;
-      cursor: pointer;
-      text-transform: uppercase;
+      width: 100%; padding: 0.8rem;
+      font-family: inherit; font-size: 1.05rem; font-weight: bold; letter-spacing: 0.12em;
+      color: #ff3355; background: rgba(0,0,0,0.4);
+      border: 2px solid #ff0033; border-radius: 5px; cursor: pointer; text-transform: uppercase;
       box-shadow: 0 0 10px #ff0033, inset 0 0 10px rgba(255,0,51,0.2);
-      transition: all 0.2s ease;
+      transition: all 0.2s ease; margin-bottom: 0.7rem;
     }
     .btn-red:hover { background: #ff0033; color: #000; box-shadow: 0 0 25px #ff0033; }
-    .btn-red:active { transform: scale(0.98); }
+    .btn-red.ghost { background: none; border-color: #ff003377; color: #ff5566aa; box-shadow: none; margin-bottom: 0; }
+    .btn-red.ghost:hover { border-color: #ff0033; color: #ff3355; }
+    .status { min-height: 1.1rem; font-size: 0.82rem; color: #ff8899; margin-bottom: 0.8rem; }
 
     /* ---- Home ---- */
     .home-inner {
       width: 100%; height: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      display: flex; flex-direction: column; justify-content: space-between;
       padding: 2rem 1rem 1.5rem;
     }
     .home-header { text-align: center; }
@@ -149,51 +134,31 @@
       position: absolute; top: 1rem; right: 1rem;
       font-size: 0.75rem; color: #00ff4199;
       background: none; border: 1px solid #00ff4155;
-      padding: 0.35rem 0.7rem; border-radius: 4px; cursor: pointer;
-      font-family: inherit;
+      padding: 0.35rem 0.7rem; border-radius: 4px; cursor: pointer; font-family: inherit;
     }
     .logout:hover { color: #00ff41; border-color: #00ff41; }
-    .dock {
-      display: flex;
-      justify-content: center;
-      gap: 1.6rem;
-      padding-bottom: 0.5rem;
-    }
+    .dock { display: flex; justify-content: center; gap: 1.6rem; padding-bottom: 0.5rem; }
     .app {
-      width: 78px; height: 78px;
-      border-radius: 18px;
-      background: rgba(0, 20, 5, 0.75);
-      border: 1px solid #00ff4155;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.2rem;
-      cursor: pointer;
-      box-shadow: 0 0 12px rgba(0,255,65,0.25);
-      transition: all 0.2s ease;
+      width: 78px; height: 78px; border-radius: 18px;
+      background: rgba(0, 20, 5, 0.75); border: 1px solid #00ff4155;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.2rem; cursor: pointer;
+      box-shadow: 0 0 12px rgba(0,255,65,0.25); transition: all 0.2s ease;
     }
     .app:hover { transform: translateY(-6px) scale(1.05); box-shadow: 0 0 22px rgba(0,255,65,0.6); }
-    .app .label {
-      position: absolute; margin-top: 62px;
-      font-size: 0.65rem; color: #00ff41aa; letter-spacing: 0.05em;
-    }
+    .app .label { position: absolute; margin-top: 62px; font-size: 0.65rem; color: #00ff41aa; }
     .app.locked { color: #00ff4166; }
 
     /* ---- Messages app ---- */
     .msg-app {
-      width: min(100%, 480px);
-      height: 100%;
-      margin: 0 auto;
+      width: min(100%, 480px); height: 100%; margin: 0 auto;
       background: rgba(0, 8, 3, 0.9);
-      border-left: 1px solid #00ff4133;
-      border-right: 1px solid #00ff4133;
-      display: flex;
-      flex-direction: column;
+      border-left: 1px solid #00ff4133; border-right: 1px solid #00ff4133;
+      display: flex; flex-direction: column;
     }
     .msg-top {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 1rem;
-      border-bottom: 1px solid #00ff4133;
+      padding: 1rem; border-bottom: 1px solid #00ff4133;
     }
     .msg-top .back { cursor: pointer; font-size: 1.3rem; color: #00ff41; background: none; border: none; font-family: inherit; }
     .msg-top .heading { font-size: 1.2rem; letter-spacing: 0.15em; color: #00ff41; text-shadow: 0 0 10px #00ff41; }
@@ -205,44 +170,27 @@
     .msg-top .plus:hover { background: #00ff41; color: #000; }
     .conv-list { flex: 1; overflow-y: auto; }
     .conv {
-      padding: 0.9rem 1rem;
-      border-bottom: 1px solid #00ff4118;
-      cursor: pointer;
+      padding: 0.9rem 1rem; border-bottom: 1px solid #00ff4118; cursor: pointer;
       display: flex; flex-direction: column; gap: 0.2rem;
     }
     .conv:hover { background: rgba(0,255,65,0.06); }
     .conv .name { color: #00ff41; font-size: 1.05rem; }
     .conv .preview { color: #00ff4188; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .empty-note { padding: 2rem 1rem; text-align: center; color: #00ff4177; font-size: 0.9rem; line-height: 1.5; }
-
-    /* chat thread */
     .thread { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
-    .bubble {
-      max-width: 75%;
-      padding: 0.6rem 0.9rem;
-      border-radius: 14px;
-      font-size: 0.95rem;
-      line-height: 1.35;
-      word-wrap: break-word;
-    }
+    .bubble { max-width: 75%; padding: 0.6rem 0.9rem; border-radius: 14px; font-size: 0.95rem; line-height: 1.35; word-wrap: break-word; }
     .bubble.me { align-self: flex-end; background: #00662a; color: #d6ffe4; border-bottom-right-radius: 4px; }
     .bubble.them { align-self: flex-start; background: rgba(0,255,65,0.12); color: #baffcf; border: 1px solid #00ff4133; border-bottom-left-radius: 4px; }
-    .composer {
-      display: flex; gap: 0.5rem; padding: 0.8rem; border-top: 1px solid #00ff4133;
-    }
+    .composer { display: flex; gap: 0.5rem; padding: 0.8rem; border-top: 1px solid #00ff4133; }
     .composer input {
-      flex: 1; padding: 0.7rem 1rem;
-      background: rgba(0,0,0,0.5); border: 1px solid #00ff4155; border-radius: 20px;
-      color: #d6ffe4; font-family: inherit; font-size: 0.95rem; outline: none;
+      flex: 1; padding: 0.7rem 1rem; background: rgba(0,0,0,0.5);
+      border: 1px solid #00ff4155; border-radius: 20px; color: #d6ffe4;
+      font-family: inherit; font-size: 0.95rem; outline: none;
     }
     .composer input:focus { box-shadow: 0 0 10px rgba(0,255,65,0.4); }
     .composer button {
       padding: 0 1.2rem; background: #00ff41; color: #000; border: none;
       border-radius: 20px; font-family: inherit; font-weight: bold; cursor: pointer;
-    }
-    .net-note {
-      font-size: 0.7rem; color: #00ff4166; text-align: center; padding: 0.4rem;
-      border-top: 1px solid #00ff4118;
     }
   </style>
 </head>
@@ -259,12 +207,14 @@
   <div class="screen inactive" id="login">
     <div class="login-box">
       <h2>Access</h2>
-      <input class="field" id="loginUser" type="text" autocomplete="username">
-      <input class="field" id="loginPass" type="password" autocomplete="current-password">
+      <input class="field" id="loginUser" type="text" placeholder="username" autocomplete="username">
+      <input class="field" id="loginPass" type="password" placeholder="password" autocomplete="current-password">
       <label class="trust">
         <input type="checkbox" id="trustDevice"> Always trust this device with logins
       </label>
+      <div class="status" id="loginStatus"></div>
       <button class="btn-red" id="loginBtn">Log In</button>
+      <button class="btn-red ghost" id="createBtn">Create Account</button>
     </div>
   </div>
 
@@ -274,7 +224,7 @@
     <div class="home-inner">
       <div class="home-header">
         <div class="welcome">WELCOME BACK</div>
-        <div class="user" id="homeUser">Colton</div>
+        <div class="user" id="homeUser">—</div>
       </div>
       <div class="dock">
         <div class="app locked" title="Coming soon">?</div>
@@ -287,7 +237,6 @@
   <!-- ===== MESSAGES ===== -->
   <div class="screen inactive" id="messages">
     <div class="msg-app">
-      <!-- conversation list view -->
       <div id="listView" style="display:flex;flex-direction:column;height:100%;">
         <div class="msg-top">
           <button class="back" id="msgHome">‹</button>
@@ -295,10 +244,7 @@
           <button class="plus" id="newChatBtn">+</button>
         </div>
         <div class="conv-list" id="convList"></div>
-        <div class="net-note">Local demo — real cross-net delivery needs a backend (ask Claude to add one)</div>
       </div>
-
-      <!-- single chat view -->
       <div id="chatView" style="display:none;flex-direction:column;height:100%;">
         <div class="msg-top">
           <button class="back" id="chatBack">‹</button>
@@ -314,32 +260,42 @@
     </div>
   </div>
 
-  <script>
-  /* =========================================================
-     MATRIX BACKGROUND
-     ========================================================= */
+  <script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+  import {
+    getFirestore, collection, doc, getDoc, setDoc, addDoc,
+    query, where, onSnapshot, serverTimestamp
+  } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCPkwQaND-E_uewYq5NLKpLBP9oUzyVAFs",
+    authDomain: "colton-site.firebaseapp.com",
+    projectId: "colton-site",
+    storageBucket: "colton-site.firebasestorage.app",
+    messagingSenderId: "565997166421",
+    appId: "1:565997166421:web:63a24af02db08878fed9dc"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  /* ===== MATRIX BACKGROUND ===== */
   const canvas = document.getElementById('matrix');
   const ctx = canvas.getContext('2d');
   const fontSize = 16;
   let columns, drops;
-
-  // character sets + colors per mode
   const MODES = {
-    intro: { chars: 'アイウエオカキクケコサシスセソタチツテトABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%'.split(''), color: '#00ff41' },
-    binary:{ chars: ['0','1'], color: '#ff0033' },   // real-matrix 1s and 0s, red for login
-    calm:  { chars: ['0','1'], color: '#00ff41' }    // green binary once inside
+    intro:  { chars: 'アイウエオカキクケコサシスセソタチツテトABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%'.split(''), color: '#00ff41' },
+    binary: { chars: ['0','1'], color: '#ff0033' },
+    calm:   { chars: ['0','1'], color: '#00ff41' }
   };
   let mode = MODES.intro;
-
   function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     columns = Math.floor(canvas.width / fontSize);
     drops = new Array(columns).fill(1);
   }
   resize();
   window.addEventListener('resize', resize);
-
   function draw() {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -354,151 +310,206 @@
   }
   setInterval(draw, 40);
 
-  /* =========================================================
-     ACCOUNT + AUTO LOGIN
-     ========================================================= */
-  const ACCOUNT = { user: 'Colton', pass: 'matrix' };  // the auto-login account
-  const TRUST_KEY = 'colton_trust_device';
+  /* ===== HELPERS ===== */
+  const $ = id => document.getElementById(id);
+  const canon = s => s.trim().toLowerCase();
+  const pairId = (a, b) => [a, b].sort().join('__');
+  const TRUST_KEY = 'colton_user';
+  let me = null; // logged-in username (canonical)
 
   function showScreen(id) {
-    // helper to move between login/home/messages without the up-slide
-    ['login','home','messages'].forEach(s => {
-      document.getElementById(s).classList.add('inactive');
-      document.getElementById(s).classList.remove('hidden-up');
-    });
-    const el = document.getElementById(id);
-    el.classList.remove('inactive');
+    ['login','home','messages'].forEach(s => $(s).classList.add('inactive'));
+    $(id).classList.remove('inactive');
   }
 
-  // Pre-fill the account credentials
-  document.getElementById('loginUser').value = ACCOUNT.user;
-  document.getElementById('loginPass').value = ACCOUNT.pass;
-
-  // "Let's go!" -> slide intro UP -> reveal red login (binary matrix)
-  document.getElementById('letsGoBtn').addEventListener('click', () => {
-    // If device is already trusted, skip straight to home
-    if (localStorage.getItem(TRUST_KEY) === 'yes') {
+  /* ===== INTRO -> LOGIN ===== */
+  $('letsGoBtn').addEventListener('click', () => {
+    const saved = localStorage.getItem(TRUST_KEY);
+    if (saved) {                       // trusted device -> straight in
+      me = saved;
       mode = MODES.calm;
-      document.getElementById('intro').classList.add('hidden-up');
+      $('intro').classList.add('hidden-up');
       enterHome();
       return;
     }
-    mode = MODES.binary;                       // numbers become 1s and 0s, red
-    document.getElementById('intro').classList.add('hidden-up');
-    document.getElementById('login').classList.remove('inactive');
+    mode = MODES.binary;               // 1s and 0s, red
+    $('intro').classList.add('hidden-up');
+    $('login').classList.remove('inactive');
   });
 
-  // Log in
-  document.getElementById('loginBtn').addEventListener('click', () => {
-    if (document.getElementById('trustDevice').checked) {
-      localStorage.setItem(TRUST_KEY, 'yes');
-    }
+  /* ===== ACCOUNTS (Firestore) ===== */
+  async function createAccount() {
+    const u = canon($('loginUser').value);
+    const p = $('loginPass').value;
+    if (!u || !p) { setStatus('Enter a username and password.'); return; }
+    if (u.length < 2) { setStatus('Username too short.'); return; }
+    setStatus('Checking…');
+    try {
+      const ref = doc(db, 'users', u);
+      const snap = await getDoc(ref);
+      if (snap.exists()) { setStatus('That username is taken — pick another.'); return; }
+      await setDoc(ref, { username: u, password: p, createdAt: serverTimestamp() });
+      finishLogin(u);
+    } catch (e) { setStatus('Error: ' + e.message); }
+  }
+
+  async function logIn() {
+    const u = canon($('loginUser').value);
+    const p = $('loginPass').value;
+    if (!u || !p) { setStatus('Enter a username and password.'); return; }
+    setStatus('Signing in…');
+    try {
+      const snap = await getDoc(doc(db, 'users', u));
+      if (!snap.exists()) { setStatus('No account with that name — try Create Account.'); return; }
+      if (snap.data().password !== p) { setStatus('Wrong password.'); return; }
+      finishLogin(u);
+    } catch (e) { setStatus('Error: ' + e.message); }
+  }
+
+  function finishLogin(u) {
+    me = u;
+    if ($('trustDevice').checked) localStorage.setItem(TRUST_KEY, u);
     mode = MODES.calm;
+    setStatus('');
     enterHome();
-  });
+  }
+  function setStatus(t) { $('loginStatus').textContent = t; }
+
+  $('loginBtn').addEventListener('click', logIn);
+  $('createBtn').addEventListener('click', createAccount);
 
   function enterHome() {
-    document.getElementById('homeUser').textContent = ACCOUNT.user;
+    $('homeUser').textContent = me;
     showScreen('home');
   }
 
-  // Log out (clears trust so login shows again)
-  document.getElementById('logoutBtn').addEventListener('click', () => {
+  $('logoutBtn').addEventListener('click', () => {
     localStorage.removeItem(TRUST_KEY);
+    me = null;
     mode = MODES.intro;
-    ['login','home','messages'].forEach(s => document.getElementById(s).classList.add('inactive'));
-    document.getElementById('intro').classList.remove('hidden-up');
+    ['login','home','messages'].forEach(s => $(s).classList.add('inactive'));
+    $('intro').classList.remove('hidden-up');
   });
 
-  /* =========================================================
-     MESSAGES APP  (stored locally in this browser)
-     ========================================================= */
-  const CONV_KEY = 'colton_convos';
-  let convos = JSON.parse(localStorage.getItem(CONV_KEY) || '{}');
-  let currentContact = null;
+  /* ===== MESSAGES (Firestore, real-time) ===== */
+  let unsubList = null, unsubThread = null, currentContact = null;
 
-  function saveConvos() { localStorage.setItem(CONV_KEY, JSON.stringify(convos)); }
-
-  document.getElementById('messagesApp').addEventListener('click', () => {
-    showScreen('messages');
-    openList();
-  });
-  document.getElementById('msgHome').addEventListener('click', () => showScreen('home'));
+  $('messagesApp').addEventListener('click', () => { showScreen('messages'); openList(); });
+  $('msgHome').addEventListener('click', () => { stopList(); showScreen('home'); });
 
   function openList() {
-    document.getElementById('listView').style.display = 'flex';
-    document.getElementById('chatView').style.display = 'none';
-    renderConvList();
+    $('listView').style.display = 'flex';
+    $('chatView').style.display = 'none';
+    stopThread();
+    startList();
   }
 
-  function renderConvList() {
-    const list = document.getElementById('convList');
-    const names = Object.keys(convos);
+  function startList() {
+    stopList();
+    const q = query(collection(db, 'messages'), where('participants', 'array-contains', me));
+    unsubList = onSnapshot(q, snap => {
+      const latest = {};
+      snap.forEach(d => {
+        const m = d.data();
+        const other = m.from === me ? m.to : m.from;
+        const t = m.createdAt ? m.createdAt.toMillis() : 0;
+        if (!latest[other] || t >= latest[other].t) latest[other] = { text: m.text, t };
+      });
+      renderConvList(latest);
+    }, err => {
+      $('convList').innerHTML = '<div class="empty-note">Could not load. Make sure Firestore is enabled in test mode.<br><br>' + err.message + '</div>';
+    });
+  }
+  function stopList() { if (unsubList) { unsubList(); unsubList = null; } }
+
+  function renderConvList(latest) {
+    const list = $('convList');
+    const names = Object.keys(latest).sort((a,b) => latest[b].t - latest[a].t);
     if (names.length === 0) {
-      list.innerHTML = '<div class="empty-note">No chats yet.<br>Tap the <b>+</b> in the top-right to look up an account and start texting.</div>';
+      list.innerHTML = '<div class="empty-note">No chats yet.<br>Tap the <b>+</b> in the top-right to look up someone by username and start texting.</div>';
       return;
     }
     list.innerHTML = '';
     names.forEach(name => {
-      const msgs = convos[name];
-      const last = msgs.length ? msgs[msgs.length - 1].text : '';
       const div = document.createElement('div');
       div.className = 'conv';
-      div.innerHTML = `<span class="name">${escapeHtml(name)}</span><span class="preview">${escapeHtml(last)}</span>`;
+      div.innerHTML = `<span class="name">${esc(name)}</span><span class="preview">${esc(latest[name].text)}</span>`;
       div.addEventListener('click', () => openChat(name));
       list.appendChild(div);
     });
   }
 
-  // + button: look up an account across the net and start a chat
-  document.getElementById('newChatBtn').addEventListener('click', () => {
-    const name = prompt('Look up an account to text (enter a username):');
+  /* + : look up a real account across the net, then open the chat */
+  $('newChatBtn').addEventListener('click', async () => {
+    const input = prompt('Look up an account to text (enter their username):');
+    if (!input) return;
+    const name = canon(input);
     if (!name) return;
-    const clean = name.trim();
-    if (!clean) return;
-    if (!convos[clean]) { convos[clean] = []; saveConvos(); }
-    openChat(clean);
+    if (name === me) { alert("That's you!"); return; }
+    try {
+      const snap = await getDoc(doc(db, 'users', name));
+      if (!snap.exists()) { alert('No user found with the name "' + name + '".'); return; }
+      openChat(name);
+    } catch (e) { alert('Error: ' + e.message); }
   });
 
   function openChat(name) {
     currentContact = name;
-    document.getElementById('chatName').textContent = name;
-    document.getElementById('listView').style.display = 'none';
-    document.getElementById('chatView').style.display = 'flex';
-    renderThread();
-    document.getElementById('msgInput').focus();
+    $('chatName').textContent = name;
+    $('listView').style.display = 'none';
+    $('chatView').style.display = 'flex';
+    stopList();
+    startThread();
+    $('msgInput').focus();
   }
+  $('chatBack').addEventListener('click', () => { stopThread(); openList(); });
 
-  document.getElementById('chatBack').addEventListener('click', openList);
+  function startThread() {
+    stopThread();
+    const pid = pairId(me, currentContact);
+    const q = query(collection(db, 'messages'), where('pair', '==', pid));
+    unsubThread = onSnapshot(q, snap => {
+      const msgs = [];
+      snap.forEach(d => msgs.push(d.data()));
+      msgs.sort((a,b) => (a.createdAt ? a.createdAt.toMillis() : 0) - (b.createdAt ? b.createdAt.toMillis() : 0));
+      renderThread(msgs);
+    });
+  }
+  function stopThread() { if (unsubThread) { unsubThread(); unsubThread = null; } }
 
-  function renderThread() {
-    const thread = document.getElementById('thread');
+  function renderThread(msgs) {
+    const thread = $('thread');
     thread.innerHTML = '';
-    (convos[currentContact] || []).forEach(m => {
+    msgs.forEach(m => {
       const b = document.createElement('div');
-      b.className = 'bubble ' + (m.from === 'me' ? 'me' : 'them');
+      b.className = 'bubble ' + (m.from === me ? 'me' : 'them');
       b.textContent = m.text;
       thread.appendChild(b);
     });
     thread.scrollTop = thread.scrollHeight;
   }
 
-  function sendMessage() {
-    const input = document.getElementById('msgInput');
+  async function sendMessage() {
+    const input = $('msgInput');
     const text = input.value.trim();
-    if (!text) return;
-    convos[currentContact].push({ from: 'me', text });
-    saveConvos();
+    if (!text || !currentContact) return;
     input.value = '';
-    renderThread();
+    try {
+      await addDoc(collection(db, 'messages'), {
+        from: me,
+        to: currentContact,
+        participants: [me, currentContact],
+        pair: pairId(me, currentContact),
+        text,
+        createdAt: serverTimestamp()
+      });
+    } catch (e) { alert('Could not send: ' + e.message); input.value = text; }
   }
-  document.getElementById('sendBtn').addEventListener('click', sendMessage);
-  document.getElementById('msgInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') sendMessage();
-  });
+  $('sendBtn').addEventListener('click', sendMessage);
+  $('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
 
-  function escapeHtml(s) {
-    return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
   </script>
 </body>
