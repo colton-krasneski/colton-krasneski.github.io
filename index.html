@@ -232,6 +232,15 @@
       font-family: inherit; font-size: 16px; outline: none;
     }
     #gifSearch:focus { box-shadow: 0 0 10px rgba(0,255,65,0.4); }
+    #gifPresets {
+      display: flex; gap: 6px; overflow-x: auto; padding: 0 0.6rem 0.5rem; flex: 0 0 auto;
+    }
+    #gifPresets button {
+      flex: 0 0 auto; white-space: nowrap; cursor: pointer; font-family: inherit;
+      font-size: 0.8rem; color: #baffcf; background: rgba(0,0,0,0.5);
+      border: 1px solid #00ff4155; border-radius: 14px; padding: 4px 10px;
+    }
+    #gifPresets button:hover { background: #00ff41; color: #000; }
     #gifResults {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
       padding: 0 0.6rem 0.6rem; overflow-y: auto;
@@ -302,6 +311,7 @@
         <div class="thread" id="thread"></div>
         <div id="gifPanel">
           <input id="gifSearch" type="text" placeholder="Search cats…">
+          <div id="gifPresets"></div>
           <div id="gifResults"></div>
         </div>
         <div class="composer">
@@ -661,6 +671,22 @@
   /* ----- GIF picker (GIPHY) ----- */
   const GIPHY_KEY = 'tyC31epHwRUPex8AME7WUOquGpmiqe33';
   let gifTimer = null;
+
+  // quick-tap favorites — edit these labels/searches anytime
+  const GIF_PRESETS = [
+    ['🐱 Cats', 'cats'],
+    ['🍽️ Hungy', 'hungry cat'],
+    ['😴 Sleepy', 'sleepy cat'],
+    ['🪟 Window', 'cat jumping window'],
+    ['😹 Funny', 'funny cat'],
+    ['💕 Cute', 'cute kitten']
+  ];
+  GIF_PRESETS.forEach(([label, queryStr]) => {
+    const btn = document.createElement('button');
+    btn.textContent = label;
+    btn.addEventListener('click', () => { $('gifSearch').value = queryStr; searchGifs(queryStr); });
+    $('gifPresets').appendChild(btn);
+  });
 
   $('gifBtn').addEventListener('click', () => {
     const panel = $('gifPanel');
