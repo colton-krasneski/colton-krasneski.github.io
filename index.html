@@ -377,6 +377,17 @@
   const $ = id => document.getElementById(id);
   const canon = s => s.trim().toLowerCase();
   const pairId = (a, b) => [a, b].sort().join('__');
+
+  /* ----- content filter (best-effort, client-side) ----- */
+  const BADWORDS = [
+    'fuck','fuk','fucker','fucking','motherfucker','shit','bullshit','bitch',
+    'bastard','asshole','ass','dick','dickhead','piss','cunt','slut','whore',
+    'cock','pussy','nigger','nigga','faggot','fag','retard','retarded',
+    'wanker','twat','prick','jerkoff','dumbass'
+  ];
+  const badReG = new RegExp('\\b(' + BADWORDS.join('|') + ')\\b', 'gi');
+  const cleanText = t => String(t).replace(badReG, m => '*'.repeat(m.length));
+  const hasBad = t => new RegExp('\\b(' + BADWORDS.join('|') + ')\\b', 'i').test(String(t));
   const TRUST_KEY = 'colton_user';
   let me = null; // logged-in username (canonical)
 
@@ -478,7 +489,8 @@
         const m = d.data();
         const other = m.from === me ? m.to : m.from;
         const t = m.createdAt ? m.createdAt.toMillis() : (m.clientTime || Date.now());
-        if (!latest[other] || t >= latest[other].t) latest[other] = { text: m.text, t };
+        const preview = m.type === 'gif' ? '🖼️ GIF' : cleanText(m.text);
+        if (!latest[other] || t >= latest[other].t) latest[other] = { text: preview, t };
       });
       renderConvList(latest);
     }, err => {
@@ -574,7 +586,7 @@
         img.src = m.text; img.alt = 'gif';
         b.appendChild(img);
       } else {
-        b.textContent = m.text;
+        b.textContent = cleanText(m.text);
       }
       b.addEventListener('contextmenu', e => { e.preventDefault(); openReactBar(e, m.id); });
       b.addEventListener('click', e => { e.stopPropagation(); openReactBar(e, m.id); });
@@ -650,8 +662,9 @@
 
   async function sendMessage() {
     const input = $('msgInput');
-    const text = input.value.trim();
-    if (!text || !currentContact) return;
+    const raw = input.value.trim();
+    if (!raw || !currentContact) return;
+    const text = cleanText(raw);
     input.value = '';
     try {
       await addDoc(collection(db, 'messages'), {
@@ -707,6 +720,7 @@
 
   async function searchGifs(q) {
     const box = $('gifResults');
+    if (hasBad(q)) { box.innerHTML = '<div class="note">Let\'s keep it clean 🐱</div>'; return; }
     box.innerHTML = '<div class="note">Loading…</div>';
     try {
       const url = `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${encodeURIComponent(q)}&limit=24&rating=g`;
