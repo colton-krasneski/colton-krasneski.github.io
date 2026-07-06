@@ -96,14 +96,15 @@
     #ahGoalBanner {
       position: absolute; inset: 0; z-index: 6; display: none;
       align-items: center; justify-content: center; pointer-events: none;
-      font-size: clamp(3rem, 16vw, 8rem); font-weight: bold; letter-spacing: 0.08em;
+      font-size: clamp(2rem, 11vw, 5rem); font-weight: bold; letter-spacing: 0.04em;
+      white-space: nowrap; text-align: center; padding: 0 0.5rem;
       color: #fff; text-shadow: 0 0 20px #00ff41, 0 0 45px #00ff41; -webkit-text-stroke: 2px #00ff41;
     }
-    #ahGoalBanner.show { display: flex; animation: goalPop 1s ease; }
+    #ahGoalBanner.show { display: flex; animation: goalPop 1.9s ease; }
     @keyframes goalPop {
       0% { transform: scale(0.3); opacity: 0; }
-      30% { transform: scale(1.15); opacity: 1; }
-      80% { opacity: 1; }
+      12% { transform: scale(1.15); opacity: 1; }
+      85% { transform: scale(1.04); opacity: 1; }
       100% { transform: scale(1); opacity: 0; }
     }
 
@@ -1216,19 +1217,30 @@
     function goalSound() {
       const c = AC();
       if (c) {
-        const buf = c.createBuffer(1, c.sampleRate * 0.6, c.sampleRate), d = buf.getChannelData(0);
-        for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 1.4);
+        const dur = 1.7;
+        const buf = c.createBuffer(1, c.sampleRate * dur, c.sampleRate), d = buf.getChannelData(0);
+        for (let i = 0; i < d.length; i++) {
+          const env = Math.min(1, i / (c.sampleRate * 0.1)) * Math.pow(1 - i / d.length, 0.7);
+          d[i] = (Math.random() * 2 - 1) * env;
+        }
         const src = c.createBufferSource(); src.buffer = buf;
-        const g = c.createGain(); g.gain.value = 0.22; src.connect(g); g.connect(c.destination); src.start();
-        blip(440, 0.15, 'square', 0.14);
-        setTimeout(() => blip(660, 0.2, 'square', 0.14), 130);
+        const g = c.createGain(); g.gain.value = 0.26; src.connect(g); g.connect(c.destination); src.start();
+        blip(440, 0.18, 'square', 0.14);
+        setTimeout(() => blip(660, 0.25, 'square', 0.14), 150);
+        setTimeout(() => blip(880, 0.3, 'square', 0.13), 340);
       }
-      try { speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance('Goal!')); } catch (e) {}
+      try {
+        speechSynthesis.cancel();
+        const u = new SpeechSynthesisUtterance('Goooooooaaaaalll!');
+        u.rate = 0.6; u.pitch = 1.2;
+        speechSynthesis.speak(u);
+      } catch (e) {}
     }
     function showGoal() {
       const b = $('ahGoalBanner');
+      b.textContent = 'GOOOOAAAALLL!!!';
       b.classList.remove('show'); void b.offsetWidth; b.classList.add('show');
-      setTimeout(() => b.classList.remove('show'), 1000);
+      setTimeout(() => b.classList.remove('show'), 1900);
     }
 
     // ---- scene helpers ----
@@ -1295,7 +1307,6 @@
       addBox(scene, crowd, sd, sh, TH + sd, -(TW / 2 + sd / 2 + 1.5), sh / 2 - 0.3, 0);
       addBox(scene, crowd, sd, sh, TH + sd, (TW / 2 + sd / 2 + 1.5), sh / 2 - 0.3, 0);
       addBox(scene, crowd, TW + sd * 2 + 3, sh, sd, 0, sh / 2 - 0.3, -(TH / 2 + sd / 2 + 1.5));
-      addBox(scene, crowd, TW + sd * 2 + 3, sh, sd, 0, sh / 2 - 0.3, (TH / 2 + sd / 2 + 1.5));
       const pr = 16 * S, kr = 13 * S;
       const youPad = paddleMesh(new THREE.MeshStandardMaterial({ color: 0x00ff41, roughness: 0.3, metalness: 0.3 }), pr);
       const oppPad = paddleMesh(new THREE.MeshStandardMaterial({ color: 0xff3b52, roughness: 0.3, metalness: 0.3 }), pr);
@@ -1370,7 +1381,7 @@
       if (g.you >= g.cfg.target || g.opp >= g.cfg.target) return endMatch(g.you > g.opp);
       g.bx = g.W / 2; g.by = g.H / 2; g.bvx = 0; g.bvy = 0;
       g.serveDir = who === 'you' ? -1 : 1;
-      g.freeze = performance.now() + 1100;
+      g.freeze = performance.now() + 1700;
     }
     function render() {
       const g = game;
