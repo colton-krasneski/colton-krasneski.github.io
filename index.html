@@ -1633,9 +1633,8 @@
 
     function applyInput(g, bottom) {
       let x = bottom ? g.px : g.ox, y = bottom ? g.py : g.oy;
-      const s = bottom ? 6 : -6;  // guest camera is flipped, so invert their keys
-      if (keyL) x -= s; if (keyR) x += s;
-      if (keyU) y -= s; if (keyD) y += s;
+      if (keyL) x -= 6; if (keyR) x += 6;
+      if (keyU) y -= 6; if (keyD) y += 6;
       if (targetX != null) { x += (targetX - x) * 0.4; y += (targetY - y) * 0.4; }
       x = clamp(x, g.pr, g.W - g.pr);
       y = bottom ? clamp(y, g.H * 0.52 + g.pr, g.H - g.pr) : clamp(y, g.pr, g.H * 0.48 - g.pr);
@@ -1657,7 +1656,7 @@
     function startNetGuest(id) {
       ahView('ahGame'); $('ahOppName').textContent = 'Duel vs ' + (netState ? netState.host : '');
       if (!three) initScene(); else applyPuckSkin();
-      setCam(true);
+      setCam(false);
       game = newNetGame(); game.mode = 'guest';
       sizeCanvas();
       $('ahYou').textContent = 0; $('ahOpp').textContent = 0;
@@ -1677,7 +1676,7 @@
         if (who) { if (who === 'you') g.hs++; else g.gs++; netGoalHost(who); }
       }
       $('ahYou').textContent = g.hs; $('ahOpp').textContent = g.gs;
-      if (now - netWriteT > 70) { netWriteT = now; try { updateDoc(doc(db, 'duels', myDuelId), { hp: { x: g.px, y: g.py }, puck: { x: g.bx, y: g.by }, hs: g.hs, gs: g.gs, serve: g.serveDir, freeze: g.freeze || 0, ts: Date.now() }); } catch (e) {} }
+      if (now - netWriteT > 70) { netWriteT = now; try { updateDoc(doc(db, 'duels', myDuelId), { hp: { x: g.px, y: g.py }, puck: { x: g.bx, y: g.by }, vx: g.bvx, vy: g.bvy, hs: g.hs, gs: g.gs, serve: g.serveDir, freeze: g.freeze || 0, ts: Date.now() }); } catch (e) {} }
       render();
       raf = requestAnimationFrame(netTickHost);
     }
@@ -1686,7 +1685,7 @@
       const g = game;
       if (g.hs >= g.cfg.target || g.gs >= g.cfg.target) { netEndHost(g.hs > g.gs); return; }
       g.bx = g.W / 2; g.by = g.H / 2; g.bvx = 0; g.bvy = 0; g.serveDir = who === 'you' ? -1 : 1; g.freeze = performance.now() + 1600;
-      try { updateDoc(doc(db, 'duels', myDuelId), { puck: { x: g.bx, y: g.by }, hs: g.hs, gs: g.gs, serve: g.serveDir, freeze: g.freeze }); } catch (e) {}
+      try { updateDoc(doc(db, 'duels', myDuelId), { puck: { x: g.bx, y: g.by }, vx: 0, vy: 0, hs: g.hs, gs: g.gs, serve: g.serveDir, freeze: g.freeze }); } catch (e) {}
     }
     function netEndHost(hostWon) {
       netEnded = true; stopGame();
@@ -1699,17 +1698,24 @@
     function netTickGuest() {
       if (!game || game.mode !== 'guest') return;
       const g = game;
-      applyInput(g, false);
+      applyInput(g, true);                       // guest plays from the bottom, normal controls
       if (netState) {
         const phs = g.hs, pgs = g.gs;
-        if (netState.hp) { g.px += (netState.hp.x - g.px) * 0.35; g.py += (netState.hp.y - g.py) * 0.35; }
-        if (netState.puck) { g.bx += (netState.puck.x - g.bx) * 0.4; g.by += (netState.puck.y - g.by) * 0.4; }
+        // host paddle → rotate 180° into guest's view (shows as the top opponent)
+        if (netState.hp) { const tx = g.W - netState.hp.x, ty = g.H - netState.hp.y; g.ox += (tx - g.ox) * 0.35; g.oy += (ty - g.oy) * 0.35; }
+        // puck: rotate + dead-reckon with velocity so it glides between updates
+        if (netState.puck) {
+          const px = g.W - netState.puck.x, py = g.H - netState.puck.y;
+          g.bvx = -(netState.vx || 0); g.bvy = -(netState.vy || 0);
+          g.bx += g.bvx; g.by += g.bvy;
+          g.bx += (px - g.bx) * 0.2; g.by += (py - g.by) * 0.2;
+        }
         g.hs = netState.hs || 0; g.gs = netState.gs || 0;
         if (g.hs !== phs || g.gs !== pgs) { showGoal(); goalSound(); }
       }
       $('ahYou').textContent = g.gs; $('ahOpp').textContent = g.hs;
       const now = performance.now();
-      if (now - netWriteT > 70) { netWriteT = now; try { updateDoc(doc(db, 'duels', myDuelId), { gp: { x: g.ox, y: g.oy }, ts: Date.now() }); } catch (e) {} }
+      if (now - netWriteT > 70) { netWriteT = now; try { updateDoc(doc(db, 'duels', myDuelId), { gp: { x: g.W - g.px, y: g.H - g.py }, ts: Date.now() }); } catch (e) {} }
       render();
       raf = requestAnimationFrame(netTickGuest);
     }
