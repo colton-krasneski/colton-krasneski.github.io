@@ -1575,7 +1575,7 @@
       if (runRAF) cancelAnimationFrame(runRAF);
       if (timerInt) clearInterval(timerInt);
       pacedTimer = nextTimer = cdTimer = runRAF = timerInt = null;
-      stopPreview(); relWake(); stopMotion(); stopCam();
+      relWake(); stopMotion(); stopCam();
       $('socBanner').classList.remove('show');
     }
     $('soccerApp').addEventListener('click', openSoccer);
