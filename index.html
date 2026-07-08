@@ -641,7 +641,8 @@
         <div class="soc-sheet">
           <div class="soc-step" id="socStepText"></div>
           <div class="soc-reps-seg" id="socReps"></div>
-          <button class="soc-btn" id="socStart" disabled>Start ▶</button>
+          <button class="soc-btn" id="socCam">📷 Enable Camera</button>
+          <button class="soc-btn" id="socStart" disabled style="display:none;">Start ▶</button>
           <button class="soc-mini" id="socPaced">No camera? Use Paced mode</button>
         </div>
       </div>
@@ -1512,13 +1513,17 @@
     function bumpStreak(s) { const today = new Date().toDateString(); if (s.lastDay !== today) { const y = new Date(Date.now() - 86400000).toDateString(); s.streak = (s.lastDay === y) ? (s.streak || 0) + 1 : 1; s.lastDay = today; } return s; }
 
     /* ---- camera ---- */
+    let camErr = null;
     async function startCam() {
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        video.srcObject = stream; await video.play();
-        if (!camCanvas) { camCanvas = document.createElement('canvas'); camCanvas.width = CW; camCanvas.height = CH; cctx = camCanvas.getContext('2d', { willReadFrequently: true }); }
-        return true;
-      } catch (e) { return false; }
+      camErr = null;
+      const get = c => navigator.mediaDevices.getUserMedia(c);
+      let s = null;
+      try { s = await get({ video: { facingMode: { ideal: 'environment' } } }); }
+      catch (e1) { try { s = await get({ video: true }); } catch (e2) { camErr = e2; return false; } }
+      stream = s; video.srcObject = s;
+      try { await video.play(); } catch (e) {}
+      if (!camCanvas) { camCanvas = document.createElement('canvas'); camCanvas.width = CW; camCanvas.height = CH; cctx = camCanvas.getContext('2d', { willReadFrequently: true }); }
+      return true;
     }
     function stopCam() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } video.srcObject = null; prevImg = null; }
     function sampleDiff(zone) {
@@ -1571,14 +1576,28 @@
     const RCOLORS = PALETTE.filter(p => p.id !== 'orange'); // red, yellow, blue, green
     let detected = [], previewInt = null;
     $('socReactBtn').addEventListener('click', openReaction);
-    async function openReaction() {
+    function openReaction() {
       soccerView('socSetup'); detected = []; $('socRings').innerHTML = ''; renderReps();
-      $('socStart').disabled = true; $('socStart').textContent = 'Start ▶'; setStep('Starting camera…');
-      const ok = await startCam();
-      rmode = ok ? 'camera' : 'paced';
-      if (ok) { setStep('Aim so all your cones are in view…'); startPreview(); }
-      else { setStep('No camera available — Paced mode calls colors on a steady beat. Run to the matching cone each time.'); $('socStart').textContent = 'Start Paced ▶'; $('socStart').disabled = false; }
+      $('socStart').style.display = 'none'; $('socStart').disabled = true; $('socStart').textContent = 'Start ▶';
+      $('socCam').style.display = ''; setStep('Tap "Enable Camera" to turn on the camera and detect your cones.');
+      attemptCam();
     }
+    async function attemptCam() {
+      setStep('Turning on the camera…');
+      const ok = await startCam();
+      if (ok) {
+        rmode = 'camera'; $('socCam').style.display = 'none';
+        $('socStart').style.display = ''; $('socStart').disabled = true;
+        setStep('Aim so all your cones are in view…'); startPreview();
+      } else { rmode = 'paced'; setStep(camMsg()); }
+    }
+    function camMsg() {
+      const n = camErr && camErr.name;
+      if (n === 'NotAllowedError' || n === 'SecurityError') return 'Camera is blocked. Tap the lock / "AA" icon next to the web address, set Camera to Allow, then tap Enable Camera. Or use Paced mode below.';
+      if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'No usable camera found. Tap Enable Camera to retry, or use Paced mode below.';
+      return 'Could not start the camera (' + (n || 'unknown') + '). Tap Enable Camera to retry, or use Paced mode below.';
+    }
+    $('socCam').addEventListener('click', attemptCam);
     function setStep(t) { $('socStepText').textContent = t; }
     function renderReps() {
       const rp = $('socReps'); rp.innerHTML = '';
