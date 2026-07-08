@@ -649,6 +649,7 @@
         <div class="soc-sheet">
           <div class="soc-step" id="socStepText"></div>
           <div class="soc-reps-seg" id="socReps"></div>
+          <button class="soc-mini" id="socBall">⚽ Ball mode: OFF</button>
           <button class="soc-btn" id="socCam">📷 Enable Camera</button>
           <button class="soc-btn" id="socStart" disabled style="display:none;">Start ▶</button>
           <button class="soc-mini" id="socPaced">No camera? Use Paced mode</button>
@@ -1577,7 +1578,7 @@
       if (runRAF) cancelAnimationFrame(runRAF);
       if (timerInt) clearInterval(timerInt);
       pacedTimer = nextTimer = cdTimer = runRAF = timerInt = null;
-      relWake(); stopMotion(); stopCam();
+      relWake(); stopMotion(); stopCam(); stopMic();
       $('socBanner').classList.remove('show');
     }
     $('soccerApp').addEventListener('click', openSoccer);
@@ -1585,8 +1586,9 @@
 
     /* ---- reaction setup (auto-detect cones by color) ---- */
     const RCOLORS = PALETTE.filter(p => p.id !== 'orange'); // red, yellow, blue, green
-    const OCC_THRESH = 85;
-    let detected = [], occ = 0;
+    const OCC_THRESH = 85, PASS_THRESH = 55, CONES_KEY = 'colton_soccer_cones';
+    let detected = [], occ = 0, ballMode = false, lastPass = false;
+    let micStream = null, analyser = null, micData = null;
     $('socReactBtn').addEventListener('click', openReaction);
     function openReaction() {
       soccerView('socSetup'); detected = []; $('socRings').innerHTML = ''; renderReps();
@@ -1598,9 +1600,15 @@
       setStep('Turning on the camera…');
       const ok = await startCam();
       if (ok) {
-        rmode = 'camera'; $('socCam').style.display = 'none';
-        $('socStart').style.display = ''; $('socStart').disabled = true;
-        setStep('Tap each cone in the camera view to register it (tap the red cone, blue cone, etc.).');
+        rmode = 'camera'; $('socCam').style.display = 'none'; $('socStart').style.display = '';
+        const saved = loadCones();
+        if (saved.length >= 2) {
+          detected = saved; setTimeout(drawMarkers, 250); $('socStart').disabled = false; $('socClear').style.display = '';
+          setStep('Remembered your cones: ' + saved.map(z => z.name).join(', ') + '. Tap Start, tap a ring to remove, or Clear to redo.');
+        } else {
+          $('socStart').disabled = true;
+          setStep('Tap each cone in the camera view to register it (tap the red cone, blue cone, etc.).');
+        }
       } else { rmode = 'paced'; setStep(camMsg()); }
     }
     function camMsg() {
@@ -1617,6 +1625,22 @@
       [20, 45, 100].forEach(n => { const c = document.createElement('span'); c.className = 'soc-seg' + (reps === n ? ' on' : ''); c.textContent = n; c.onclick = () => { reps = n; renderReps(); }; rp.appendChild(c); });
     }
     function warmSpeech() { SAC(); try { if (window.speechSynthesis) { speechSynthesis.resume(); speak('Ready'); } } catch (e) {} }
+    function saveCones() { try { localStorage.setItem(CONES_KEY, JSON.stringify(detected)); } catch (e) {} }
+    function loadCones() { try { return JSON.parse(localStorage.getItem(CONES_KEY) || '[]'); } catch (e) { return []; } }
+    function updateBallBtn() { $('socBall').textContent = '⚽ Ball mode: ' + (ballMode ? 'ON' : 'OFF'); }
+    $('socBall').addEventListener('click', () => { ballMode = !ballMode; updateBallBtn(); });
+    async function startMic() {
+      try {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return false;
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const ac = SAC(); if (!ac) return false;
+        const src = ac.createMediaStreamSource(micStream);
+        analyser = ac.createAnalyser(); analyser.fftSize = 1024; micData = new Uint8Array(analyser.fftSize);
+        src.connect(analyser); return true;
+      } catch (e) { return false; }
+    }
+    function stopMic() { if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; } analyser = null; }
+    function micPeak() { if (!analyser) return 0; analyser.getByteTimeDomainData(micData); let p = 0; for (let i = 0; i < micData.length; i++) { const v = Math.abs(micData[i] - 128); if (v > p) p = v; } return p; }
 
     /* tap-to-register cones (samples the real cone color + spot) */
     function hex2rgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
@@ -1670,7 +1694,7 @@
     function sampleConeColor(xp, yp) {
       if (!cctx || video.readyState < 2) return null;
       cctx.drawImage(video, 0, 0, CW, CH);
-      const cx = xp / 100 * CW | 0, cy = yp / 100 * CH | 0, r = 8;
+      const cx = xp / 100 * CW | 0, cy = yp / 100 * CH | 0, r = 11;
       const x0 = Math.max(0, cx - r), y0 = Math.max(0, cy - r), w = Math.min(CW, cx + r) - x0, h = Math.min(CH, cy + r) - y0;
       if (w <= 0 || h <= 0) return null;
       const d = cctx.getImageData(x0, y0, w, h).data, px = [];
@@ -1688,7 +1712,7 @@
         const d = document.createElement('div'); d.className = 'soc-marker';
         d.style.left = scr.px + 'px'; d.style.top = scr.py + 'px';
         d.style.borderColor = neon; d.style.boxShadow = '0 0 20px ' + neon + ', inset 0 0 14px ' + neon;
-        d.onclick = ev => { ev.stopPropagation(); detected.splice(idx, 1); drawMarkers(); $('socClear').style.display = detected.length ? '' : 'none'; if (detected.length < 2) $('socStart').disabled = true; setStep(detected.length ? ('Registered: ' + detected.map(z => z.name).join(', ')) : 'Tap each cone in the camera view to register it.'); };
+        d.onclick = ev => { ev.stopPropagation(); detected.splice(idx, 1); saveCones(); drawMarkers(); $('socClear').style.display = detected.length ? '' : 'none'; if (detected.length < 2) $('socStart').disabled = true; setStep(detected.length ? ('Registered: ' + detected.map(z => z.name).join(', ')) : 'Tap each cone in the camera view to register it.'); };
         box.appendChild(d);
       });
     }
@@ -1698,16 +1722,17 @@
       const f = frameFromScreen(e.clientX, e.clientY); if (!f) return;
       const rgb = sampleConeColor(f.x, f.y); if (!rgb) return;
       detected.push({ x: f.x, y: f.y, ref: rgb, name: colorName(rgb) });
-      drawMarkers();
+      saveCones(); drawMarkers();
       $('socClear').style.display = '';
       if (detected.length >= 2) $('socStart').disabled = false;
       setStep('Registered: ' + detected.map(z => z.name).join(', ') + '. Tap each cone once, then tap Start.');
     });
-    $('socClear').addEventListener('click', () => { detected = []; $('socRings').innerHTML = ''; $('socStart').disabled = true; $('socClear').style.display = 'none'; setStep('Tap each cone in the camera view to register it.'); });
-    $('socStart').addEventListener('click', () => {
+    $('socClear').addEventListener('click', () => { detected = []; saveCones(); $('socRings').innerHTML = ''; $('socStart').disabled = true; $('socClear').style.display = 'none'; setStep('Tap each cone in the camera view to register it.'); });
+    $('socStart').addEventListener('click', async () => {
       warmSpeech();
       if (rmode === 'paced') { startPaced(); return; }
       if (detected.length < 2) return;
+      if (ballMode) { const m = await startMic(); if (!m) { ballMode = false; updateBallBtn(); alert('Microphone is needed for Ball mode — starting without it.'); } }
       startRun(detected, [...new Set(detected.map(z => z.name))]);
     });
     $('socPaced').addEventListener('click', () => { warmSpeech(); rmode = 'paced'; startPaced(); });
@@ -1736,6 +1761,15 @@
     }
     function nextRep() {
       if (!running) return;
+      if (ballMode && !lastPass && Math.random() < 0.3) {
+        lastPass = true; current = { pass: true }; occ = 0;
+        $('socBanner').textContent = 'PASS'; $('socBanner').style.color = '#00ff41'; $('socBanner').classList.add('show');
+        speak('Pass'); beep(500, 0.2); vibrate([80, 60, 80]);
+        callTime = performance.now();
+        if (rmode === 'paced') pacedTimer = setTimeout(() => arrival(false), PACED_INTERVAL + 1400);
+        return;
+      }
+      lastPass = false;
       let c; do { c = colorsRef[Math.floor(Math.random() * colorsRef.length)]; } while (c === lastColor && colorsRef.length > 1);
       lastColor = c; const z = pickZone(c);
       current = { name: c, zone: z }; occ = 0;
@@ -1747,13 +1781,19 @@
     }
     function runTick() {
       if (!running) return;
-      if (rmode === 'camera' && current && current.zone.ref && video.readyState >= 2) {
-        const dt = performance.now() - callTime, cur = avgColorAt(current.zone.x, current.zone.y);
-        if (cur) {
-          const dist = cdist(cur, current.zone.base || current.zone.ref);
-          if (dt > 500 && dist > OCC_THRESH) { occ++; if (occ >= 3) arrival(false); }
-          else if (occ > 0) occ--;
-          if (dt > 8000) arrival(true);
+      if (rmode === 'camera' && current && video.readyState >= 2) {
+        const dt = performance.now() - callTime;
+        if (current.pass) {
+          if (dt > 700 && micPeak() > PASS_THRESH) arrival(false);
+          else if (dt > 12000) arrival(true);
+        } else if (current.zone && current.zone.ref) {
+          const cur = avgColorAt(current.zone.x, current.zone.y);
+          if (cur) {
+            const dist = cdist(cur, current.zone.base || current.zone.ref);
+            if (dt > 500 && dist > OCC_THRESH) { occ++; if (occ >= 3) arrival(false); }
+            else if (occ > 0) occ--;
+            if (dt > 8000) arrival(true);
+          }
         }
       }
       runRAF = requestAnimationFrame(runTick);
@@ -1774,7 +1814,7 @@
       running = false;
       [pacedTimer, nextTimer, cdTimer].forEach(t => t && clearTimeout(t));
       if (runRAF) cancelAnimationFrame(runRAF); runRAF = null;
-      relWake(); stopMotion();
+      relWake(); stopMotion(); stopMic();
       const s = loadStats(); bumpStreak(s); s.activeMinutes = (s.activeMinutes || 0) + motionActive / 60;
       let body;
       if (rmode === 'camera') {
