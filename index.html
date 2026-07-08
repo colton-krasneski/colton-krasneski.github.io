@@ -278,6 +278,34 @@
     .conv .name { color: #00ff41; font-size: 1.05rem; }
     .conv .preview { color: #00ff4188; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .empty-note { padding: 2rem 1rem; text-align: center; color: #00ff4177; font-size: 0.9rem; line-height: 1.5; }
+    .callbtn { background: none; border: none; cursor: pointer; font-size: 1.2rem; }
+    .call-overlay {
+      position: fixed; inset: 0; z-index: 60; display: none;
+      align-items: center; justify-content: center; background: rgba(0,4,1,0.9);
+    }
+    .call-overlay.show { display: flex; }
+    .call-card {
+      background: rgba(0,12,4,0.96); border: 1px solid #00ff41; border-radius: 14px;
+      padding: 2rem; text-align: center; box-shadow: 0 0 25px rgba(0,255,65,0.5);
+    }
+    .call-title { color: #00ff41; font-size: 1.35rem; margin-bottom: 1.4rem; text-shadow: 0 0 10px #00ff41; }
+    .call-actions { display: flex; gap: 1rem; }
+    .call-accept { background: #00ff41; color: #000; border: none; border-radius: 8px; padding: 0.7rem 1.4rem; font-family: inherit; font-weight: bold; cursor: pointer; }
+    .call-decline { background: #ff0033; color: #fff; border: none; border-radius: 8px; padding: 0.7rem 1.4rem; font-family: inherit; font-weight: bold; cursor: pointer; }
+    #callWidget {
+      position: fixed; top: 12px; left: 12px; z-index: 70; display: none;
+      align-items: center; gap: 8px; background: rgba(0,12,4,0.96);
+      border: 1px solid #00ff41; border-radius: 24px; padding: 6px 10px;
+      box-shadow: 0 0 18px rgba(0,255,65,0.5);
+    }
+    #callWidget.show { display: flex; animation: flyTL 0.6s ease; }
+    @keyframes flyTL {
+      0% { transform: translate(38vw, 42vh) scale(1.5); opacity: 0.4; }
+      100% { transform: translate(0, 0) scale(1); opacity: 1; }
+    }
+    #callWidget .cw-name { color: #00ff41; font-size: 0.85rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #callWidget button { background: none; border: 1px solid #00ff4155; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 0.95rem; }
+    #callWidget #hangBtn { border-color: #ff0033; }
     .thread { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
     .msg-wrap { display: flex; flex-direction: column; max-width: 100%; }
     .msg-wrap.mine { align-items: flex-end; }
@@ -421,7 +449,7 @@
         <div class="msg-top">
           <button class="back" id="chatBack">‹</button>
           <div class="heading" id="chatName">Contact</div>
-          <span style="width:34px;"></span>
+          <button class="callbtn" id="callBtn" title="Call">📞</button>
         </div>
         <div class="thread" id="thread"></div>
         <div id="gifPanel">
@@ -497,6 +525,29 @@
       </div>
       <div id="ahGoalBanner">GOAL!</div>
     </div>
+  </div>
+
+  <!-- ===== CALLS ===== -->
+  <audio id="remoteAudio" autoplay></audio>
+  <div id="incomingCall" class="call-overlay">
+    <div class="call-card">
+      <div class="call-title" id="incomingText">Incoming call…</div>
+      <div class="call-actions">
+        <button class="call-accept" id="callAccept">Answer</button>
+        <button class="call-decline" id="callDecline">Decline</button>
+      </div>
+    </div>
+  </div>
+  <div id="callingOverlay" class="call-overlay">
+    <div class="call-card">
+      <div class="call-title" id="callingText">Calling…</div>
+      <button class="call-decline" id="callCancel">Cancel</button>
+    </div>
+  </div>
+  <div id="callWidget">
+    <span class="cw-name" id="cwName"></span>
+    <button id="spkBtn" title="Speaker">🔊</button>
+    <button id="hangBtn" title="Hang up">📵</button>
   </div>
 
   <script type="module">
@@ -755,10 +806,12 @@
   function enterHome() {
     $('homeUser').textContent = me;
     showScreen('home');
+    startCallListener();
   }
 
   $('logoutBtn').addEventListener('click', () => {
     localStorage.removeItem(TRUST_KEY);
+    stopCallListener();
     me = null;
     mode = MODES.intro;
     ['login','home','messages','airhockey'].forEach(s => $(s).classList.add('inactive'));
@@ -1062,6 +1115,125 @@
   function esc(s) {
     return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
+
+  /* ===== AUDIO CALLS (WebRTC) ===== */
+  const CALL_CFG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
+  let callPc = null, callId = null, callRole = null, localStream = null, remoteStream = null;
+  let callUnsub = null, callCandUnsub = null, callInSub = null, incomingDocUnsub = null, callTimeout = null;
+  let activeCall = false, incomingId = null, ringInt = null;
+  const seenCalls = new Set();
+  let cactx = null;
+  function CAC() { if (!cactx) { try { cactx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (cactx && cactx.state === 'suspended') cactx.resume(); return cactx; }
+  function tone(freq, dur) {
+    const c = CAC(); if (!c) return;
+    const o = c.createOscillator(), g = c.createGain();
+    o.type = 'sine'; o.frequency.value = freq; o.connect(g); g.connect(c.destination);
+    const t = c.currentTime; g.gain.setValueAtTime(0.16, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.start(t); o.stop(t + dur);
+  }
+  function startRing() { stopRing(); const play = () => { tone(480, 0.4); setTimeout(() => tone(600, 0.4), 420); }; play(); ringInt = setInterval(play, 1800); }
+  function stopRing() { if (ringInt) { clearInterval(ringInt); ringInt = null; } }
+
+  function startCallListener() {
+    stopCallListener();
+    callInSub = onSnapshot(query(collection(db, 'calls'), where('callee', '==', me)), snap => {
+      snap.forEach(d => { const v = d.data(); if (v.status === 'ringing' && !seenCalls.has(d.id) && !activeCall && !callId) { seenCalls.add(d.id); showIncoming(d.id, v.caller); } });
+    });
+  }
+  function stopCallListener() { if (callInSub) { callInSub(); callInSub = null; } }
+
+  async function startCall() {
+    if (!currentContact || callId) return;
+    try { localStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { alert('Microphone permission is needed to call.'); return; }
+    callRole = 'caller';
+    const ref = doc(collection(db, 'calls')); callId = ref.id;
+    callPc = new RTCPeerConnection(CALL_CFG);
+    localStream.getTracks().forEach(t => callPc.addTrack(t, localStream));
+    callPc.ontrack = e => { remoteStream = e.streams[0]; $('remoteAudio').srcObject = remoteStream; };
+    callPc.onicecandidate = e => { if (e.candidate) addDoc(collection(db, 'calls', callId, 'callerCand'), e.candidate.toJSON()); };
+    callPc.onconnectionstatechange = () => { if (callPc && callPc.connectionState === 'connected') { stopRing(); openCallWidget(currentContact); } };
+    const offer = await callPc.createOffer(); await callPc.setLocalDescription(offer);
+    try { await setDoc(ref, { caller: me, callee: currentContact, status: 'ringing', offer: { type: offer.type, sdp: offer.sdp }, createdAt: serverTimestamp() }); } catch (e) { endCall(); return; }
+    $('callingText').textContent = 'Calling ' + currentContact + '…';
+    $('callingOverlay').classList.add('show'); startRing();
+    callUnsub = onSnapshot(ref, d => {
+      const v = d.data();
+      if (!v) { endCall(); return; }
+      if (v.status === 'declined') endCall('declined');
+      else if (v.status === 'ended') endCall();
+      else if (v.answer && callPc && !callPc.currentRemoteDescription) callPc.setRemoteDescription(new RTCSessionDescription(v.answer)).catch(() => {});
+    });
+    callCandUnsub = onSnapshot(collection(db, 'calls', callId, 'calleeCand'), s => { s.docChanges().forEach(c => { if (c.type === 'added' && callPc) callPc.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {}); }); });
+    callTimeout = setTimeout(() => { if (callPc && callPc.connectionState !== 'connected') hangUp(); }, 30000);
+  }
+
+  function showIncoming(id, caller) {
+    incomingId = id;
+    $('incomingText').textContent = caller + ' is calling…';
+    $('incomingCall').classList.add('show'); startRing();
+    incomingDocUnsub = onSnapshot(doc(db, 'calls', id), d => {
+      const v = d.data();
+      if ((!v || v.status === 'ended' || v.status === 'declined') && !activeCall) { stopRing(); $('incomingCall').classList.remove('show'); incomingId = null; if (incomingDocUnsub) { incomingDocUnsub(); incomingDocUnsub = null; } }
+    });
+  }
+  async function acceptCall() {
+    const id = incomingId; if (!id) return;
+    stopRing();
+    try { localStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch (e) { alert('Microphone permission is needed to answer.'); declineCall(); return; }
+    callRole = 'callee'; callId = id; activeCall = true;
+    const ref = doc(db, 'calls', id);
+    callPc = new RTCPeerConnection(CALL_CFG);
+    localStream.getTracks().forEach(t => callPc.addTrack(t, localStream));
+    callPc.ontrack = e => { remoteStream = e.streams[0]; $('remoteAudio').srcObject = remoteStream; };
+    callPc.onicecandidate = e => { if (e.candidate) addDoc(collection(db, 'calls', id, 'calleeCand'), e.candidate.toJSON()); };
+    let snap; try { snap = await getDoc(ref); } catch (e) { endCall(); return; }
+    const data = snap.data(); const caller = data ? data.caller : '';
+    callPc.onconnectionstatechange = () => { if (callPc && callPc.connectionState === 'connected') openCallWidget(caller); };
+    await callPc.setRemoteDescription(new RTCSessionDescription(data.offer));
+    const answer = await callPc.createAnswer(); await callPc.setLocalDescription(answer);
+    try { await updateDoc(ref, { status: 'accepted', answer: { type: answer.type, sdp: answer.sdp } }); } catch (e) {}
+    callCandUnsub = onSnapshot(collection(db, 'calls', id, 'callerCand'), s => { s.docChanges().forEach(c => { if (c.type === 'added' && callPc) callPc.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {}); }); });
+    callUnsub = onSnapshot(ref, d => { const v = d.data(); if (!v || v.status === 'ended') endCall(); });
+    if (incomingDocUnsub) { incomingDocUnsub(); incomingDocUnsub = null; }
+    $('incomingCall').classList.remove('show');
+  }
+  async function declineCall() {
+    const id = incomingId; stopRing();
+    $('incomingCall').classList.remove('show'); incomingId = null;
+    if (incomingDocUnsub) { incomingDocUnsub(); incomingDocUnsub = null; }
+    if (id) { try { await updateDoc(doc(db, 'calls', id), { status: 'declined' }); } catch (e) {} }
+  }
+  function openCallWidget(name) {
+    $('callingOverlay').classList.remove('show');
+    $('cwName').textContent = name || currentContact || '';
+    $('callWidget').classList.add('show');
+    $('remoteAudio').muted = false; $('spkBtn').textContent = '🔊';
+  }
+  async function hangUp() { if (callId) { try { await updateDoc(doc(db, 'calls', callId), { status: 'ended' }); } catch (e) {} } endCall(); }
+  function endCall() {
+    stopRing();
+    if (callTimeout) { clearTimeout(callTimeout); callTimeout = null; }
+    if (callUnsub) { callUnsub(); callUnsub = null; }
+    if (callCandUnsub) { callCandUnsub(); callCandUnsub = null; }
+    if (incomingDocUnsub) { incomingDocUnsub(); incomingDocUnsub = null; }
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; }
+    if (callPc) { try { callPc.close(); } catch (e) {} callPc = null; }
+    $('callWidget').classList.remove('show');
+    $('callingOverlay').classList.remove('show');
+    $('incomingCall').classList.remove('show');
+    $('remoteAudio').srcObject = null;
+    callId = null; callRole = null; activeCall = false; incomingId = null; remoteStream = null;
+  }
+  function toggleSpeaker() { const a = $('remoteAudio'); a.muted = !a.muted; $('spkBtn').textContent = a.muted ? '🔇' : '🔊'; }
+
+  $('callBtn').addEventListener('click', startCall);
+  $('callAccept').addEventListener('click', acceptCall);
+  $('callDecline').addEventListener('click', declineCall);
+  $('callCancel').addEventListener('click', hangUp);
+  $('hangBtn').addEventListener('click', hangUp);
+  $('spkBtn').addEventListener('click', toggleSpeaker);
 
   /* ===== BACKGROUND MENU ===== */
   const BG_KEY = 'colton_bg';
