@@ -150,12 +150,21 @@
     .soc-stat { text-align: center; border: 1px solid #00ff4133; border-radius: 10px; padding: 0.6rem 0.9rem; min-width: 78px; }
     .soc-stat .v { color: #00ff41; font-size: 1.3rem; text-shadow: 0 0 8px #00ff41; }
     .soc-stat .k { color: #00ff4188; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; }
-    /* setup panel over camera */
-    #socSetup { justify-content: flex-end; }
-    .soc-setup-panel {
-      width: 100%; background: rgba(0, 8, 3, 0.82); border: 1px solid #00ff4144;
-      border-radius: 12px; padding: 0.9rem; backdrop-filter: blur(2px);
+    /* setup sheet over camera */
+    #socSetup { justify-content: flex-end; padding: 0; }
+    .soc-sheet {
+      width: 100%; background: rgba(0, 8, 3, 0.92); border-top: 1px solid #00ff4144;
+      border-radius: 16px 16px 0 0; padding: 1.1rem 1rem calc(1.1rem + env(safe-area-inset-bottom));
+      display: flex; flex-direction: column; align-items: center; gap: 0.8rem;
     }
+    .soc-step { color: #baffcf; font-size: 0.95rem; text-align: center; line-height: 1.45; }
+    .soc-reps-seg { display: flex; border: 1px solid #00ff4155; border-radius: 10px; overflow: hidden; }
+    .soc-seg { padding: 0.5rem 1.2rem; color: #baffcf; cursor: pointer; font-size: 0.95rem; border-right: 1px solid #00ff4155; }
+    .soc-seg:last-child { border-right: none; }
+    .soc-seg.on { background: #00ff41; color: #000; font-weight: bold; }
+    .soc-sheet .soc-btn { width: 100%; }
+    .soc-mini { background: none; border: none; color: #00ff4188; font-family: inherit; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
+    .soc-marker { position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 50%; border: 2px solid #fff; }
     .soc-label { color: #00ff41cc; font-size: 0.78rem; letter-spacing: 0.08em; margin: 0.4rem 0 0.35rem; }
     .soc-hint { color: #00ff4177; font-size: 0.7rem; text-transform: none; letter-spacing: 0; }
     .soc-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
@@ -628,14 +637,12 @@
       </div>
 
       <div class="soc-view" id="socSetup" style="display:none;">
-        <div class="soc-setup-panel">
-          <div class="soc-label">Cone colors <span class="soc-hint">(tap a green ring to assign)</span></div>
-          <div class="soc-chips" id="socColors"></div>
-          <div class="soc-label">Reps</div>
-          <div class="soc-chips" id="socReps"></div>
-          <div class="soc-label">Mode</div>
-          <div class="soc-chips" id="socMode"></div>
-          <button class="soc-btn" id="socStart">Start</button>
+        <div class="soc-sheet">
+          <div class="soc-step" id="socStepText"></div>
+          <div class="soc-reps-seg" id="socReps"></div>
+          <button class="soc-btn" id="socDetect">Detect Cones</button>
+          <button class="soc-btn ghost" id="socRescan" style="display:none;">Re-scan</button>
+          <button class="soc-mini" id="socPaced">No camera? Use Paced mode</button>
         </div>
       </div>
 
@@ -1560,47 +1567,69 @@
     $('soccerApp').addEventListener('click', openSoccer);
     $('socBack').addEventListener('click', () => { if (currentView === 'socMenu') exitSoccer(); else { abortAll(); soccerView('socMenu'); renderStats(); } });
 
-    /* ---- reaction setup ---- */
-    $('socReactBtn').addEventListener('click', async () => {
+    /* ---- reaction setup (auto-detect cones by color) ---- */
+    const RCOLORS = PALETTE.filter(p => p.id !== 'orange'); // red, yellow, blue, green
+    let detected = [], setupPhase = 'aim';
+    $('socReactBtn').addEventListener('click', openReaction);
+    async function openReaction() {
       soccerView('socSetup');
+      detected = []; setupPhase = 'aim'; $('socRings').innerHTML = ''; $('socRescan').style.display = 'none';
+      renderReps();
       const ok = await startCam();
       rmode = ok ? 'camera' : 'paced';
-      renderColors(); renderRings(); renderChoices();
-    });
-    function renderColors() {
-      const box = $('socColors'); box.innerHTML = '';
-      PALETTE.forEach(p => {
-        const c = document.createElement('span'); c.className = 'soc-chip' + (paint === p.id ? ' on' : '');
-        c.innerHTML = `<span class="dot" style="background:${p.css}"></span>${p.name}`;
-        c.onclick = () => { paint = p.id; renderColors(); }; box.appendChild(c);
-      });
-      const er = document.createElement('span'); er.className = 'soc-chip' + (paint === 'erase' ? ' on' : ''); er.textContent = '✕ Erase';
-      er.onclick = () => { paint = 'erase'; renderColors(); }; box.appendChild(er);
+      if (ok) { setStep('Place your 4 colored cones, aim the phone so it sees all of them, then tap Detect Cones.'); $('socDetect').textContent = 'Detect Cones'; $('socPaced').style.display = ''; }
+      else { setStep('No camera available. Paced mode calls colors at a steady beat — run to the matching cone each time.'); $('socDetect').textContent = 'Start Paced'; $('socPaced').style.display = 'none'; }
     }
-    function renderRings() {
-      const box = $('socRings'); box.innerHTML = '';
-      ringsState.forEach(r => {
-        const d = document.createElement('div'); d.className = 'soc-ring';
-        d.style.left = r.x + '%'; d.style.top = r.y + '%';
-        if (r.color) { const p = PALETTE.find(x => x.id === r.color); d.style.borderColor = p.css; d.style.boxShadow = '0 0 14px ' + p.css; d.style.background = p.css + '55'; d.textContent = ''; }
-        else d.textContent = '+';
-        d.onclick = () => { r.color = (paint === 'erase' ? null : paint); renderRings(); };
-        box.appendChild(d);
-      });
-    }
-    function renderChoices() {
+    function setStep(t) { $('socStepText').textContent = t; }
+    function renderReps() {
       const rp = $('socReps'); rp.innerHTML = '';
-      [20, 45, 100].forEach(n => { const c = document.createElement('span'); c.className = 'soc-chip' + (reps === n ? ' on' : ''); c.textContent = n + ' reps'; c.onclick = () => { reps = n; renderChoices(); }; rp.appendChild(c); });
-      const md = $('socMode'); md.innerHTML = '';
-      [['camera', 'Camera'], ['paced', 'Paced']].forEach(([id, lbl]) => { const c = document.createElement('span'); c.className = 'soc-chip' + (rmode === id ? ' on' : ''); c.textContent = lbl; c.onclick = () => { rmode = id; renderChoices(); }; md.appendChild(c); });
+      [20, 45, 100].forEach(n => { const c = document.createElement('span'); c.className = 'soc-seg' + (reps === n ? ' on' : ''); c.textContent = n; c.onclick = () => { reps = n; renderReps(); }; rp.appendChild(c); });
     }
-    $('socStart').addEventListener('click', () => {
-      const zones = ringsState.filter(r => r.color);
-      const colors = [...new Set(zones.map(z => z.color))];
-      if (zones.length < 2 || colors.length < 2) { alert('Assign at least 2 cones of 2 different colors — tap the green rings on the camera view.'); return; }
-      if (rmode === 'camera' && !stream) { rmode = 'paced'; }
-      startRun(zones, colors);
+    $('socDetect').addEventListener('click', () => {
+      if (rmode === 'paced') { startPaced(); return; }
+      if (setupPhase === 'aim') {
+        const found = detectCones();
+        if (found.length < 2) { setStep('Only found ' + found.length + ' cone(s). Make sure they are bright, spread apart, and well lit (avoid a green cone on grass), then tap Detect Cones again.'); return; }
+        detected = found; drawMarkers(found); setupPhase = 'ready';
+        setStep('Found ' + found.length + ' cones: ' + found.map(f => PALETTE.find(p => p.id === f.color).name).join(', ') + '. Keep the phone still and tap Start!');
+        $('socDetect').textContent = 'Start ▶'; $('socRescan').style.display = '';
+      } else { startRun(detected, [...new Set(detected.map(z => z.color))]); }
     });
+    $('socRescan').addEventListener('click', () => {
+      setupPhase = 'aim'; detected = []; $('socRings').innerHTML = '';
+      $('socDetect').textContent = 'Detect Cones'; $('socRescan').style.display = 'none';
+      setStep('Aim the phone so it sees all your cones, then tap Detect Cones.');
+    });
+    $('socPaced').addEventListener('click', startPaced);
+    function startPaced() { rmode = 'paced'; startRun(RCOLORS.map((p, i) => ({ color: p.id, x: 20 + i * 20, y: 50 })), RCOLORS.map(p => p.id)); }
+    function drawMarkers(list) {
+      const box = $('socRings'); box.innerHTML = '';
+      list.forEach(z => { const p = PALETTE.find(x => x.id === z.color); const d = document.createElement('div'); d.className = 'soc-marker'; d.style.left = z.x + '%'; d.style.top = z.y + '%'; d.style.background = p.css; d.style.boxShadow = '0 0 14px ' + p.css; box.appendChild(d); });
+    }
+    function classify(r, g, b) {
+      const max = Math.max(r, g, b), min = Math.min(r, g, b), v = max / 255, s = max ? (max - min) / max : 0;
+      if (v < 0.28 || s < 0.45) return null;
+      let h, d = max - min || 1;
+      if (max === r) h = ((g - b) / d) % 6; else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
+      h *= 60; if (h < 0) h += 360;
+      if (h < 20 || h >= 340) return 'red';
+      if (h >= 40 && h < 75) return 'yellow';
+      if (h >= 90 && h < 170) return 'green';
+      if (h >= 195 && h < 255) return 'blue';
+      return null;
+    }
+    function detectCones() {
+      if (!cctx || video.readyState < 2) return [];
+      cctx.drawImage(video, 0, 0, CW, CH);
+      const px = cctx.getImageData(0, 0, CW, CH).data, acc = {};
+      for (let y = 0; y < CH; y += 2) for (let x = 0; x < CW; x += 2) {
+        const i = (y * CW + x) * 4, col = classify(px[i], px[i + 1], px[i + 2]);
+        if (col) { const a = acc[col] || (acc[col] = { sx: 0, sy: 0, n: 0 }); a.sx += x; a.sy += y; a.n++; }
+      }
+      const out = [];
+      Object.keys(acc).forEach(col => { const a = acc[col]; if (a.n >= 15) out.push({ color: col, x: (a.sx / a.n) / CW * 100, y: (a.sy / a.n) / CH * 100 }); });
+      return out;
+    }
 
     /* ---- reaction run ---- */
     let zonesRef = [], colorsRef = [];
