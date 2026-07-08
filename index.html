@@ -84,6 +84,10 @@
     .ah-opp-name { font-size: 0.85rem; color: #00ff41aa; margin-bottom: 0.3rem; }
     #ahCanvas { background: #001206; border: 1px solid #00ff4155; border-radius: 10px; touch-action: none; max-width: 100%; }
     .ah-hint { font-size: 0.72rem; color: #00ff4188; margin-top: 0.5rem; text-align: center; }
+    .players { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; max-width: 340px; overflow-y: auto; }
+    .player-row { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.8rem; border: 1px solid #00ff4133; border-radius: 8px; color: #baffcf; }
+    .duel-btn { background: #00ff41; color: #000; border: none; border-radius: 6px; padding: 0.4rem 0.8rem; font-family: inherit; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+    .duel-btn:hover { box-shadow: 0 0 10px #00ff41; }
     .bracket { display: flex; flex-direction: column; gap: 0.4rem; width: 100%; max-width: 320px; overflow-y: auto; }
     .match { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.4rem 0.7rem; border: 1px solid #00ff4133; border-radius: 6px; font-size: 0.85rem; color: #baffcf; }
     .match.done { opacity: 0.5; }
@@ -190,6 +194,14 @@
       outline: none;
     }
     .field:focus { box-shadow: 0 0 12px #ff0033; }
+    .pass-wrap { position: relative; }
+    .pass-wrap .field { margin-bottom: 1rem; padding-right: 2.8rem; }
+    .eye-btn {
+      position: absolute; right: 0.6rem; top: 0.65rem;
+      background: none; border: none; cursor: pointer; font-size: 1.1rem;
+      opacity: 0.7; padding: 0.2rem; line-height: 1;
+    }
+    .eye-btn:hover { opacity: 1; }
     .trust {
       display: flex; align-items: center; gap: 0.5rem;
       font-size: 0.85rem; color: #ff6677;
@@ -365,7 +377,10 @@
     <div class="login-box">
       <h2>Access</h2>
       <input class="field" id="loginUser" type="text" placeholder="username" autocomplete="username">
-      <input class="field" id="loginPass" type="password" placeholder="password" autocomplete="current-password">
+      <div class="pass-wrap">
+        <input class="field" id="loginPass" type="password" placeholder="password" autocomplete="current-password">
+        <button type="button" class="eye-btn" id="eyeBtn" aria-label="Show password">👁️</button>
+      </div>
       <label class="trust">
         <input type="checkbox" id="trustDevice"> Always trust this device with logins
       </label>
@@ -434,8 +449,15 @@
 
       <div class="ah-view" id="ahMenu">
         <button class="ah-btn" id="ahPlay">Quick Play</button>
+        <button class="ah-btn" id="ahOnlineBtn">Online Duel</button>
         <button class="ah-btn" id="ahTourBtn">Tournament</button>
         <button class="ah-btn" id="ahShopBtn">Shop</button>
+      </div>
+
+      <div class="ah-view" id="ahOnline" style="display:none;">
+        <div class="ah-sub">Online Players</div>
+        <div class="players" id="ahPlayers"></div>
+        <button class="ah-btn ghost" id="ahOnlineBack">Back</button>
       </div>
 
       <div class="ah-view" id="ahShop" style="display:none;">
@@ -462,6 +484,17 @@
         <div class="ah-result-text" id="ahResultText"></div>
         <button class="ah-btn" id="ahResultBtn">Continue</button>
       </div>
+      <div class="ah-result" id="ahNet" style="display:none;">
+        <div class="ah-result-text" id="ahNetText"></div>
+        <button class="ah-btn ghost" id="ahNetCancel">Cancel</button>
+      </div>
+      <div class="ah-result" id="ahInvite" style="display:none;">
+        <div class="ah-result-text" id="ahInviteText"></div>
+        <div style="display:flex;gap:0.8rem;">
+          <button class="ah-btn" id="ahInviteYes">Accept</button>
+          <button class="ah-btn ghost" id="ahInviteNo">Decline</button>
+        </div>
+      </div>
       <div id="ahGoalBanner">GOAL!</div>
     </div>
   </div>
@@ -469,7 +502,7 @@
   <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, collection, doc, getDoc, setDoc, addDoc, deleteDoc,
+    getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
     query, where, onSnapshot, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
@@ -711,6 +744,13 @@
 
   $('loginBtn').addEventListener('click', logIn);
   $('createBtn').addEventListener('click', createAccount);
+  $('eyeBtn').addEventListener('click', () => {
+    const f = $('loginPass');
+    const show = f.type === 'password';
+    f.type = show ? 'text' : 'password';
+    $('eyeBtn').textContent = show ? '🙈' : '👁️';
+    $('eyeBtn').setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+  });
 
   function enterHome() {
     $('homeUser').textContent = me;
@@ -1109,7 +1149,7 @@
     }
     function setCoins(v) { AH.coins = v; $('ahCoins').textContent = v; save(); }
     function skinObj() { return SKINS.find(s => s.id === AH.skin) || SKINS[0]; }
-    function ahView(id) { ['ahMenu','ahShop','ahTour','ahGame'].forEach(v => $(v).style.display = 'none'); $(id).style.display = 'flex'; }
+    function ahView(id) { ['ahMenu','ahShop','ahTour','ahGame','ahOnline'].forEach(v => $(v).style.display = 'none'); $(id).style.display = 'flex'; }
 
     function openAH() {
       $('menuBtn').style.display = 'none';
@@ -1117,14 +1157,17 @@
       $('ahCoins').textContent = AH.coins;
       $('ahResult').style.display = 'none';
       stopGame(); ahView('ahMenu');
+      startPresence(); startIncoming();
     }
     $('airHockeyApp').addEventListener('click', openAH);
-    $('ahBack').addEventListener('click', () => { stopGame(); $('menuBtn').style.display = ''; showScreen('home'); });
+    $('ahBack').addEventListener('click', () => { stopGame(); leaveOnline(); $('menuBtn').style.display = ''; showScreen('home'); });
     $('ahPlay').addEventListener('click', () => startMatch({ name:'Practice Bot', diff:0.6, target:7, tournament:false }));
     $('ahShopBtn').addEventListener('click', openShop);
     $('ahShopBack').addEventListener('click', () => ahView('ahMenu'));
     $('ahTourBtn').addEventListener('click', openTour);
     $('ahTourBack').addEventListener('click', () => ahView('ahMenu'));
+    $('ahOnlineBtn').addEventListener('click', openOnline);
+    $('ahOnlineBack').addEventListener('click', () => { stopLobby(); ahView('ahMenu'); });
 
     // ---- SHOP ----
     function openShop() {
@@ -1355,6 +1398,7 @@
       $('ahOppName').textContent = cfg.name;
       $('ahResult').style.display = 'none';
       if (!three) initScene(); else applyPuckSkin();
+      setCam(false);
       game = { cfg, W: FW, H: FH, you: 0, opp: 0, pr: 16, kr: 13,
         px: FW / 2, py: FH * 0.8, ox: FW / 2, oy: FH * 0.2, bx: FW / 2, by: FH / 2, bvx: 0, bvy: 0, freeze: 0, serveDir: 1 };
       sizeCanvas();
@@ -1366,6 +1410,27 @@
     function stopGame() { if (raf) { cancelAnimationFrame(raf); raf = null; } game = null; }
     function loop() { if (!game) return; update(); render(); raf = requestAnimationFrame(loop); }
 
+    function stepPuck(g, pvx, pvy, ovx, ovy) {
+      const gap = g.W * 0.30;
+      const steps = Math.max(1, Math.ceil(Math.hypot(g.bvx, g.bvy) / (g.kr * 0.7)));
+      for (let st = 0; st < steps; st++) {
+        g.bx += g.bvx / steps; g.by += g.bvy / steps;
+        if (g.bx < g.kr) { g.bx = g.kr; g.bvx = Math.abs(g.bvx); wallSound(); }
+        else if (g.bx > g.W - g.kr) { g.bx = g.W - g.kr; g.bvx = -Math.abs(g.bvx); wallSound(); }
+        if (g.by < g.kr) { if (Math.abs(g.bx - g.W / 2) < gap / 2) return 'you'; g.by = g.kr; g.bvy = Math.abs(g.bvy); wallSound(); }
+        else if (g.by > g.H - g.kr) { if (Math.abs(g.bx - g.W / 2) < gap / 2) return 'opp'; g.by = g.H - g.kr; g.bvy = -Math.abs(g.bvy); wallSound(); }
+        collide(g.px, g.py, pvx, pvy);
+        collide(g.ox, g.oy, ovx, ovy);
+      }
+      g.bvx *= 0.999; g.bvy *= 0.999;
+      const s = Math.hypot(g.bvx, g.bvy); if (s > 13) { g.bvx *= 13 / s; g.bvy *= 13 / s; }
+      return null;
+    }
+    function setCam(flip) {
+      if (!three) return;
+      if (flip) { three.camera.position.set(0, 13, -17.5); three.camera.lookAt(0, 0, 1.5); }
+      else { three.camera.position.set(0, 13, 17.5); three.camera.lookAt(0, 0, -1.5); }
+    }
     function update() {
       const g = game;
       const ppx = g.px, ppy = g.py, pox = g.ox, poy = g.oy;
@@ -1382,19 +1447,8 @@
       const pvx = g.px - ppx, pvy = g.py - ppy, ovx = g.ox - pox, ovy = g.oy - poy;
       const now = performance.now();
       if (g.freeze) { if (now < g.freeze) return; g.freeze = 0; g.bvx = (Math.random() * 2 - 1) * 2; g.bvy = g.serveDir * 3.4; }
-      const gap = g.W * 0.30;
-      const steps = Math.max(1, Math.ceil(Math.hypot(g.bvx, g.bvy) / (g.kr * 0.7)));
-      for (let st = 0; st < steps; st++) {
-        g.bx += g.bvx / steps; g.by += g.bvy / steps;
-        if (g.bx < g.kr) { g.bx = g.kr; g.bvx = Math.abs(g.bvx); wallSound(); }
-        else if (g.bx > g.W - g.kr) { g.bx = g.W - g.kr; g.bvx = -Math.abs(g.bvx); wallSound(); }
-        if (g.by < g.kr) { if (Math.abs(g.bx - g.W / 2) < gap / 2) { g.you++; return goal('you'); } g.by = g.kr; g.bvy = Math.abs(g.bvy); wallSound(); }
-        else if (g.by > g.H - g.kr) { if (Math.abs(g.bx - g.W / 2) < gap / 2) { g.opp++; return goal('opp'); } g.by = g.H - g.kr; g.bvy = -Math.abs(g.bvy); wallSound(); }
-        collide(g.px, g.py, pvx, pvy);
-        collide(g.ox, g.oy, ovx, ovy);
-      }
-      g.bvx *= 0.999; g.bvy *= 0.999;
-      const s = Math.hypot(g.bvx, g.bvy); if (s > 13) { g.bvx *= 13 / s; g.bvy *= 13 / s; }
+      const who = stepPuck(g, pvx, pvy, ovx, ovy);
+      if (who) { if (who === 'you') g.you++; else g.opp++; return goal(who); }
       $('ahYou').textContent = g.you; $('ahOpp').textContent = g.opp;
     }
     function collide(mx, my, pvx, pvy) {
@@ -1445,6 +1499,215 @@
       $('ahResultText').textContent = text;
       $('ahResult').style.display = 'flex';
       $('ahResultBtn').onclick = () => { $('ahResult').style.display = 'none'; if (cfg.tournament) openTour(); else ahView('ahMenu'); };
+    }
+
+    // ===== ONLINE DUEL =====
+    let presenceTimer = null, unsubLobby = null, unsubIncoming = null, unsubDuel = null, unsubInviteDoc = null;
+    let netState = null, netRole = null, netPhase = null, myDuelId = null, inviteTimer = null, netWriteT = 0, netEnded = false, currentInviteId = null;
+    const seenInvites = new Set();
+
+    function ding() { blip(880, 0.12, 'sine', 0.2); setTimeout(() => blip(1320, 0.18, 'sine', 0.2), 110); }
+    function buzz() { blip(120, 0.35, 'sawtooth', 0.22); }
+    function showNet(t, cancelable) { $('ahNetText').textContent = t; $('ahNetCancel').style.display = cancelable ? 'block' : 'none'; $('ahNet').style.display = 'flex'; }
+    function hideNet() { $('ahNet').style.display = 'none'; }
+
+    async function beat() { try { await setDoc(doc(db, 'presence', me), { user: me, lastSeen: serverTimestamp() }); } catch (e) {} }
+    function startPresence() { beat(); if (!presenceTimer) presenceTimer = setInterval(beat, 8000); }
+    function stopPresence() { if (presenceTimer) { clearInterval(presenceTimer); presenceTimer = null; } try { deleteDoc(doc(db, 'presence', me)); } catch (e) {} }
+
+    function startIncoming() {
+      stopIncoming();
+      const q = query(collection(db, 'duels'), where('guest', '==', me));
+      unsubIncoming = onSnapshot(q, snap => {
+        snap.forEach(d => { const v = d.data(); if (v.status === 'pending' && !seenInvites.has(d.id) && netPhase == null) { seenInvites.add(d.id); showInvite(d.id, v.host); } });
+      });
+    }
+    function stopIncoming() { if (unsubIncoming) { unsubIncoming(); unsubIncoming = null; } }
+
+    function showInvite(id, host) {
+      currentInviteId = id;
+      $('ahInviteText').textContent = host + ' challenges you to a duel!';
+      $('ahInvite').style.display = 'flex';
+      if (unsubInviteDoc) unsubInviteDoc();
+      unsubInviteDoc = onSnapshot(doc(db, 'duels', id), d => {
+        const v = d.data();
+        if ((!v || (v.status !== 'pending' && v.status !== 'accepted')) && netPhase == null) $('ahInvite').style.display = 'none';
+      });
+    }
+    $('ahInviteYes').addEventListener('click', async () => {
+      const id = currentInviteId; if (!id) return;
+      $('ahInvite').style.display = 'none';
+      try { await updateDoc(doc(db, 'duels', id), { status: 'accepted' }); } catch (e) {}
+      ding();
+      netRole = 'guest'; myDuelId = id; netPhase = 'playing'; netEnded = false;
+      listenDuel(id); startNetGuest(id);
+    });
+    $('ahInviteNo').addEventListener('click', async () => {
+      const id = currentInviteId; if (!id) return;
+      $('ahInvite').style.display = 'none';
+      try { await updateDoc(doc(db, 'duels', id), { status: 'rejected' }); } catch (e) {}
+    });
+
+    function openOnline() { startPresence(); startLobby(); ahView('ahOnline'); }
+    function startLobby() {
+      stopLobby();
+      unsubLobby = onSnapshot(collection(db, 'presence'), snap => {
+        const now = Date.now(), list = [];
+        snap.forEach(d => { const v = d.data(); const t = v.lastSeen ? v.lastSeen.toMillis() : 0; if (v.user !== me && now - t < 30000) list.push(v.user); });
+        renderPlayers(list);
+      });
+    }
+    function stopLobby() { if (unsubLobby) { unsubLobby(); unsubLobby = null; } }
+    function renderPlayers(list) {
+      const box = $('ahPlayers'); box.innerHTML = '';
+      if (!list.length) { box.innerHTML = '<div class="empty-note">No one else online right now.<br>Ask a friend to open Air Hockey → Online Duel!</div>'; return; }
+      list.forEach(u => {
+        const row = document.createElement('div'); row.className = 'player-row';
+        row.innerHTML = `<span>🟢 ${esc(u)}</span>`;
+        const btn = document.createElement('button'); btn.className = 'duel-btn'; btn.textContent = 'Duel Invite';
+        btn.addEventListener('click', () => invite(u));
+        row.appendChild(btn); box.appendChild(row);
+      });
+    }
+
+    async function invite(guest) {
+      const ref = doc(collection(db, 'duels'));
+      myDuelId = ref.id; netRole = 'host'; netPhase = 'waiting'; netEnded = false;
+      try {
+        await setDoc(ref, { host: me, guest, status: 'pending', createdAt: serverTimestamp(),
+          hp: { x: FW / 2, y: FH * 0.8 }, gp: { x: FW / 2, y: FH * 0.2 }, puck: { x: FW / 2, y: FH / 2 },
+          hs: 0, gs: 0, serve: 1, freeze: 0, ts: Date.now() });
+      } catch (e) { alert('Could not send invite: ' + e.message); return; }
+      ahView('ahGame'); showNet('Waiting for Accept…', true);
+      listenDuel(ref.id);
+      inviteTimer = setTimeout(async () => {
+        if (netPhase !== 'waiting') return;
+        try { await updateDoc(ref, { status: 'expired' }); } catch (e) {}
+        onRejected();
+      }, 20000);
+    }
+
+    function listenDuel(id) {
+      stopDuel();
+      unsubDuel = onSnapshot(doc(db, 'duels', id), d => {
+        const v = d.data(); netState = v; if (!v) return;
+        if (netPhase === 'waiting') {
+          if (v.status === 'accepted') onAccepted();
+          else if (v.status === 'rejected' || v.status === 'expired') onRejected();
+        } else if (netPhase === 'playing' && v.status === 'done' && !netEnded) {
+          onNetDone(v);
+        }
+      });
+    }
+    function stopDuel() { if (unsubDuel) { unsubDuel(); unsubDuel = null; } }
+
+    function onAccepted() {
+      if (inviteTimer) { clearTimeout(inviteTimer); inviteTimer = null; }
+      netPhase = 'playing'; ding(); showNet('Player Joined!', false);
+      setTimeout(() => { hideNet(); startNetHost(myDuelId); }, 1000);
+    }
+    function onRejected() {
+      netPhase = null; buzz(); showNet('Game Rejected… Exiting', false);
+      setTimeout(() => { hideNet(); cleanupNet(); ahView('ahOnline'); }, 1600);
+    }
+    function onNetDone(v) {
+      netEnded = true; stopGame();
+      const iWon = netRole === 'host' ? v.winner === 'host' : v.winner === 'guest';
+      setCoins(AH.coins + (iWon ? 50 : 10));
+      $('ahResultText').textContent = (iWon ? 'You win the duel! 🏆' : 'You lost the duel 😿') + '\n+' + (iWon ? 50 : 10) + ' 🪙';
+      $('ahResult').style.display = 'flex';
+      $('ahResultBtn').onclick = () => { $('ahResult').style.display = 'none'; cleanupNet(); ahView('ahOnline'); };
+    }
+    $('ahNetCancel').addEventListener('click', async () => {
+      if (myDuelId) { try { await updateDoc(doc(db, 'duels', myDuelId), { status: 'expired' }); } catch (e) {} }
+      hideNet(); cleanupNet(); ahView('ahOnline');
+    });
+    function cleanupNet() {
+      if (inviteTimer) { clearTimeout(inviteTimer); inviteTimer = null; }
+      stopDuel(); if (unsubInviteDoc) { unsubInviteDoc(); unsubInviteDoc = null; }
+      if (myDuelId && netRole === 'host') { try { deleteDoc(doc(db, 'duels', myDuelId)); } catch (e) {} }
+      myDuelId = null; netRole = null; netPhase = null; netState = null; netEnded = false; currentInviteId = null;
+    }
+    function leaveOnline() { stopLobby(); stopIncoming(); stopPresence(); if (netPhase) cleanupNet(); seenInvites.clear(); }
+
+    function applyInput(g, bottom) {
+      let x = bottom ? g.px : g.ox, y = bottom ? g.py : g.oy;
+      if (keyL) x -= 6; if (keyR) x += 6;
+      if (keyU) y -= 6; if (keyD) y += 6;
+      if (targetX != null) { x += (targetX - x) * 0.4; y += (targetY - y) * 0.4; }
+      x = clamp(x, g.pr, g.W - g.pr);
+      y = bottom ? clamp(y, g.H * 0.52 + g.pr, g.H - g.pr) : clamp(y, g.pr, g.H * 0.48 - g.pr);
+      if (bottom) { g.px = x; g.py = y; } else { g.ox = x; g.oy = y; }
+    }
+    function newNetGame() {
+      return { cfg: { target: 7 }, W: FW, H: FH, hs: 0, gs: 0, pr: 16, kr: 13,
+        px: FW / 2, py: FH * 0.8, ox: FW / 2, oy: FH * 0.2, bx: FW / 2, by: FH / 2, bvx: 0, bvy: 0, freeze: 0, serveDir: 1 };
+    }
+    function startNetHost(id) {
+      ahView('ahGame'); $('ahOppName').textContent = 'Duel vs ' + (netState ? netState.guest : '');
+      if (!three) initScene(); else applyPuckSkin();
+      setCam(false);
+      game = newNetGame(); game.mode = 'host';
+      sizeCanvas(); resetPuck(1);
+      $('ahYou').textContent = 0; $('ahOpp').textContent = 0;
+      netTickHost();
+    }
+    function startNetGuest(id) {
+      ahView('ahGame'); $('ahOppName').textContent = 'Duel vs ' + (netState ? netState.host : '');
+      if (!three) initScene(); else applyPuckSkin();
+      setCam(true);
+      game = newNetGame(); game.mode = 'guest';
+      sizeCanvas();
+      $('ahYou').textContent = 0; $('ahOpp').textContent = 0;
+      netTickGuest();
+    }
+    function netTickHost() {
+      if (!game || game.mode !== 'host') return;
+      const g = game, ppx = g.px, ppy = g.py;
+      applyInput(g, true);
+      const pvx = g.px - ppx, pvy = g.py - ppy;
+      let ovx = 0, ovy = 0;
+      if (netState && netState.gp) { const ox0 = g.ox, oy0 = g.oy; g.ox += (netState.gp.x - g.ox) * 0.5; g.oy += (netState.gp.y - g.oy) * 0.5; ovx = g.ox - ox0; ovy = g.oy - oy0; }
+      const now = performance.now();
+      if (!g.freeze || now >= g.freeze) {
+        if (g.freeze) { g.freeze = 0; g.bvx = (Math.random() * 2 - 1) * 2; g.bvy = g.serveDir * 3.4; }
+        const who = stepPuck(g, pvx, pvy, ovx, ovy);
+        if (who) { if (who === 'you') g.hs++; else g.gs++; netGoalHost(who); }
+      }
+      $('ahYou').textContent = g.hs; $('ahOpp').textContent = g.gs;
+      if (now - netWriteT > 90) { netWriteT = now; try { updateDoc(doc(db, 'duels', myDuelId), { hp: { x: g.px, y: g.py }, puck: { x: g.bx, y: g.by }, hs: g.hs, gs: g.gs, serve: g.serveDir, freeze: g.freeze || 0, ts: Date.now() }); } catch (e) {} }
+      render();
+      raf = requestAnimationFrame(netTickHost);
+    }
+    function netGoalHost(who) {
+      showGoal(); goalSound();
+      const g = game;
+      if (g.hs >= g.cfg.target || g.gs >= g.cfg.target) { netEndHost(g.hs > g.gs); return; }
+      g.bx = g.W / 2; g.by = g.H / 2; g.bvx = 0; g.bvy = 0; g.serveDir = who === 'you' ? -1 : 1; g.freeze = performance.now() + 1600;
+      try { updateDoc(doc(db, 'duels', myDuelId), { puck: { x: g.bx, y: g.by }, hs: g.hs, gs: g.gs, serve: g.serveDir, freeze: g.freeze }); } catch (e) {}
+    }
+    function netEndHost(hostWon) {
+      netEnded = true; stopGame();
+      try { updateDoc(doc(db, 'duels', myDuelId), { status: 'done', winner: hostWon ? 'host' : 'guest' }); } catch (e) {}
+      setCoins(AH.coins + (hostWon ? 50 : 10));
+      $('ahResultText').textContent = (hostWon ? 'You win the duel! 🏆' : 'You lost the duel 😿') + '\n+' + (hostWon ? 50 : 10) + ' 🪙';
+      $('ahResult').style.display = 'flex';
+      $('ahResultBtn').onclick = () => { $('ahResult').style.display = 'none'; cleanupNet(); ahView('ahOnline'); };
+    }
+    function netTickGuest() {
+      if (!game || game.mode !== 'guest') return;
+      const g = game;
+      applyInput(g, false);
+      if (netState) {
+        if (netState.hp) { g.px = netState.hp.x; g.py = netState.hp.y; }
+        if (netState.puck) { g.bx = netState.puck.x; g.by = netState.puck.y; }
+        g.hs = netState.hs || 0; g.gs = netState.gs || 0;
+      }
+      $('ahYou').textContent = g.gs; $('ahOpp').textContent = g.hs;
+      const now = performance.now();
+      if (now - netWriteT > 90) { netWriteT = now; try { updateDoc(doc(db, 'duels', myDuelId), { gp: { x: g.ox, y: g.oy }, ts: Date.now() }); } catch (e) {} }
+      render();
+      raf = requestAnimationFrame(netTickGuest);
     }
 
     // ---- INPUT ----
