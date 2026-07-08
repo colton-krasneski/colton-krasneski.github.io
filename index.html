@@ -306,6 +306,7 @@
     #callWidget .cw-name { color: #00ff41; font-size: 0.85rem; max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #callWidget button { background: none; border: 1px solid #00ff4155; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 0.95rem; }
     #callWidget #hangBtn { border-color: #ff0033; }
+    .mic-help-text { color: #baffcf; font-size: 0.9rem; max-width: 280px; margin-bottom: 1.2rem; line-height: 1.5; }
     .thread { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
     .msg-wrap { display: flex; flex-direction: column; max-width: 100%; }
     .msg-wrap.mine { align-items: flex-end; }
@@ -542,6 +543,16 @@
     <div class="call-card">
       <div class="call-title" id="callingText">Calling…</div>
       <button class="call-decline" id="callCancel">Cancel</button>
+    </div>
+  </div>
+  <div id="micHelp" class="call-overlay">
+    <div class="call-card">
+      <div class="call-title">Microphone is blocked</div>
+      <div class="mic-help-text">Tap the 🔒 or camera icon in your browser's address bar, set <b>Microphone</b> to <b>Allow</b>, then Try Again.</div>
+      <div class="call-actions">
+        <button class="call-accept" id="micRetry">Try Again</button>
+        <button class="call-decline" id="micCancel">Cancel</button>
+      </div>
     </div>
   </div>
   <div id="callWidget">
@@ -1118,6 +1129,9 @@
 
   /* ===== AUDIO CALLS (WebRTC) ===== */
   const CALL_CFG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
+  const isChromebook = /CrOS/i.test(navigator.userAgent);
+  let micRetry = null;
+  function showMicHelp(fn) { micRetry = fn; $('micHelp').classList.add('show'); }
   let callPc = null, callId = null, callRole = null, localStream = null, remoteStream = null;
   let callUnsub = null, callCandUnsub = null, callInSub = null, incomingDocUnsub = null, callTimeout = null;
   let activeCall = false, incomingId = null, ringInt = null;
@@ -1135,6 +1149,7 @@
   function stopRing() { if (ringInt) { clearInterval(ringInt); ringInt = null; } }
 
   function startCallListener() {
+    if (isChromebook) return;
     stopCallListener();
     callInSub = onSnapshot(query(collection(db, 'calls'), where('callee', '==', me)), snap => {
       snap.forEach(d => { const v = d.data(); if (v.status === 'ringing' && !seenCalls.has(d.id) && !activeCall && !callId) { seenCalls.add(d.id); showIncoming(d.id, v.caller); } });
@@ -1143,9 +1158,9 @@
   function stopCallListener() { if (callInSub) { callInSub(); callInSub = null; } }
 
   async function startCall() {
-    if (!currentContact || callId) return;
+    if (isChromebook || !currentContact || callId) return;
     try { localStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-    catch (e) { alert('Microphone permission is needed to call.'); return; }
+    catch (e) { showMicHelp(startCall); return; }
     callRole = 'caller';
     const ref = doc(collection(db, 'calls')); callId = ref.id;
     callPc = new RTCPeerConnection(CALL_CFG);
@@ -1181,7 +1196,7 @@
     const id = incomingId; if (!id) return;
     stopRing();
     try { localStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-    catch (e) { alert('Microphone permission is needed to answer.'); declineCall(); return; }
+    catch (e) { showMicHelp(acceptCall); return; }
     callRole = 'callee'; callId = id; activeCall = true;
     const ref = doc(db, 'calls', id);
     callPc = new RTCPeerConnection(CALL_CFG);
@@ -1234,6 +1249,9 @@
   $('callCancel').addEventListener('click', hangUp);
   $('hangBtn').addEventListener('click', hangUp);
   $('spkBtn').addEventListener('click', toggleSpeaker);
+  $('micRetry').addEventListener('click', () => { $('micHelp').classList.remove('show'); const f = micRetry; micRetry = null; if (f) f(); });
+  $('micCancel').addEventListener('click', () => { $('micHelp').classList.remove('show'); micRetry = null; if (incomingId && !activeCall) declineCall(); else endCall(); });
+  if (isChromebook) $('callBtn').style.display = 'none';
 
   /* ===== BACKGROUND MENU ===== */
   const BG_KEY = 'colton_bg';
