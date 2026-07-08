@@ -129,6 +129,12 @@
       text-transform: uppercase; color: #fff; text-shadow: 0 0 30px rgba(0,0,0,0.6);
     }
     #socBanner.show { display: flex; }
+    #socFlip {
+      position: absolute; top: calc(0.8rem + env(safe-area-inset-top)); right: 0.8rem; z-index: 5;
+      display: none; width: 42px; height: 42px; border-radius: 50%;
+      background: rgba(0,10,3,0.6); border: 1px solid #00ff4166; color: #00ff41;
+      font-size: 1.1rem; cursor: pointer; align-items: center; justify-content: center;
+    }
     .soc-wrap { position: relative; z-index: 2; width: min(100%, 500px); height: 100%; margin: 0 auto; display: flex; flex-direction: column; }
     .soc-top {
       display: flex; align-items: center; gap: 0.8rem; padding: 1rem;
@@ -624,6 +630,7 @@
     <video id="socVideo" playsinline muted></video>
     <div id="socRings"></div>
     <div id="socBanner"></div>
+    <button id="socFlip" title="Flip camera">🔄</button>
     <div class="soc-wrap">
       <div class="soc-top">
         <button class="back" id="socBack">‹</button>
@@ -1513,13 +1520,13 @@
     function bumpStreak(s) { const today = new Date().toDateString(); if (s.lastDay !== today) { const y = new Date(Date.now() - 86400000).toDateString(); s.streak = (s.lastDay === y) ? (s.streak || 0) + 1 : 1; s.lastDay = today; } return s; }
 
     /* ---- camera ---- */
-    let camErr = null;
+    let camErr = null, facing = 'environment';
     async function startCam() {
       camErr = null;
       if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { camErr = { name: 'InsecureContext' }; return false; }
       const get = c => navigator.mediaDevices.getUserMedia(c);
       let s = null;
-      try { s = await get({ video: { facingMode: { ideal: 'environment' } } }); }
+      try { s = await get({ video: { facingMode: { ideal: facing } } }); }
       catch (e1) { try { s = await get({ video: true }); } catch (e2) { camErr = e2; return false; } }
       stream = s; video.srcObject = s;
       try { await video.play(); } catch (e) {}
@@ -1547,6 +1554,7 @@
       $(id).style.display = 'flex';
       const cam = (id === 'socSetup' || id === 'socRun');
       video.style.display = cam ? 'block' : 'none';
+      $('socFlip').style.display = cam ? 'flex' : 'none';
       $('socRings').classList.toggle('show', id === 'socSetup');
       if (id !== 'socRun') $('socBanner').classList.remove('show');
     }
@@ -1632,25 +1640,41 @@
       for (let i = 0; i < d.length; i += 4) { R += d[i]; G += d[i + 1]; B += d[i + 2]; n++; }
       return n ? [R / n, G / n, B / n] : null;
     }
-    function nearestName(rgb) { let best = 'red', bd = 1e9; PALETTE.forEach(p => { const dd = cdist(rgb, hex2rgb(p.css)); if (dd < bd) { bd = dd; best = p.id; } }); return best; }
+    function colorName(rgb) {
+      const [r, g, b] = rgb, max = Math.max(r, g, b), min = Math.min(r, g, b), v = max / 255, s = max ? (max - min) / max : 0;
+      if (v < 0.2) return 'Black';
+      if (s < 0.2) return v > 0.75 ? 'White' : 'Gray';
+      let h, d = max - min || 1;
+      if (max === r) h = ((g - b) / d) % 6; else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
+      h *= 60; if (h < 0) h += 360;
+      if (h < 15 || h >= 345) return 'Red';
+      if (h < 40) return 'Orange';
+      if (h < 70) return 'Yellow';
+      if (h < 170) return 'Green';
+      if (h < 200) return 'Cyan';
+      if (h < 255) return 'Blue';
+      if (h < 290) return 'Purple';
+      return 'Pink';
+    }
+    $('socFlip').addEventListener('click', async () => { facing = facing === 'environment' ? 'user' : 'environment'; stopCam(); const ok = await startCam(); if (!ok) { rmode = 'paced'; setStep(camMsg()); } else if (detected.length) drawMarkers(detected); });
     $('socSetup').addEventListener('click', e => {
       if (rmode !== 'camera') return;
-      if (e.target.closest('.soc-sheet') || e.target.closest('.soc-marker')) return;
+      if (e.target.closest('.soc-sheet') || e.target.closest('.soc-marker') || e.target.closest('#socFlip')) return;
       const f = frameFromScreen(e.clientX, e.clientY); if (!f) return;
       const rgb = avgColorAt(f.x, f.y); if (!rgb) return;
-      detected.push({ x: f.x, y: f.y, ref: rgb, color: nearestName(rgb) });
+      detected.push({ x: f.x, y: f.y, ref: rgb, name: colorName(rgb) });
       drawMarkers(detected);
       if (detected.length >= 2) $('socStart').disabled = false;
-      setStep('Registered ' + detected.length + ' cone(s). Tap more cones, or tap Start. (tap a dot to remove it)');
+      setStep('Registered ' + detected.length + ' cone(s): ' + detected.map(z => z.name).join(', ') + '. Tap more, or tap Start. (tap a dot to remove)');
     });
     function drawMarkers(list) {
       const box = $('socRings'); box.innerHTML = '';
       list.forEach((z, idx) => {
         const scr = screenFromFrame(z); if (!scr) return;
-        const p = PALETTE.find(x => x.id === z.color);
+        const rgb = 'rgb(' + z.ref.map(v => v | 0).join(',') + ')';
         const d = document.createElement('div'); d.className = 'soc-marker';
         d.style.left = scr.px + 'px'; d.style.top = scr.py + 'px';
-        d.style.background = 'rgb(' + z.ref.map(v => v | 0).join(',') + ')'; d.style.boxShadow = '0 0 12px ' + (p ? p.css : '#fff');
+        d.style.background = rgb; d.style.boxShadow = '0 0 12px ' + rgb;
         d.onclick = ev => { ev.stopPropagation(); list.splice(idx, 1); drawMarkers(list); if (list.length < 2) $('socStart').disabled = true; setStep('Removed. ' + list.length + ' cone(s) registered.'); };
         box.appendChild(d);
       });
@@ -1662,11 +1686,11 @@
       startRun(detected, [...new Set(detected.map(z => z.color))]);
     });
     $('socPaced').addEventListener('click', () => { warmSpeech(); rmode = 'paced'; startPaced(); });
-    function startPaced() { rmode = 'paced'; startRun(RCOLORS.map((p, i) => ({ color: p.id, x: 20 + i * 20, y: 50 })), RCOLORS.map(p => p.id)); }
+    function startPaced() { rmode = 'paced'; const zs = RCOLORS.map(p => ({ name: p.name, ref: hex2rgb(p.css), x: 50, y: 50 })); startRun(zs, zs.map(z => z.name)); }
 
     /* ---- reaction run ---- */
     let zonesRef = [], colorsRef = [];
-    function pickZone(c) { const z = zonesRef.filter(x => x.color === c); return z[Math.floor(Math.random() * z.length)]; }
+    function pickZone(c) { const z = zonesRef.filter(x => x.name === c); return z[Math.floor(Math.random() * z.length)]; }
     function startRun(zones, colors) {
       zonesRef = zones; colorsRef = colors;
       running = true; repsDone = 0; lastColor = null; splits = []; missCount = 0; prevImg = null;
@@ -1687,10 +1711,11 @@
     function nextRep() {
       if (!running) return;
       let c; do { c = colorsRef[Math.floor(Math.random() * colorsRef.length)]; } while (c === lastColor && colorsRef.length > 1);
-      lastColor = c; const pal = PALETTE.find(p => p.id === c);
-      current = { color: c, zone: pickZone(c) }; occ = 0;
-      $('socBanner').textContent = pal.name; $('socBanner').style.color = pal.css; $('socBanner').classList.add('show');
-      speak(pal.name); beep(660, 0.15); vibrate(120);
+      lastColor = c; const z = pickZone(c);
+      current = { name: c, zone: z }; occ = 0;
+      const flash = z && z.ref ? 'rgb(' + z.ref.map(v => v | 0).join(',') + ')' : '#00ff41';
+      $('socBanner').textContent = c; $('socBanner').style.color = flash; $('socBanner').classList.add('show');
+      speak(c); beep(660, 0.15); vibrate(120);
       callTime = performance.now();
       if (rmode === 'paced') pacedTimer = setTimeout(() => arrival(false), PACED_INTERVAL);
     }
