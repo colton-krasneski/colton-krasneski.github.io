@@ -1266,6 +1266,7 @@
     function AC() { if (!actx) { try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } return actx; }
     function blip(freq, dur, type, vol) {
       const c = AC(); if (!c) return;
+      if (c.state === 'suspended') c.resume();
       const o = c.createOscillator(), g = c.createGain();
       o.type = type || 'square'; o.frequency.value = freq;
       o.connect(g); g.connect(c.destination);
@@ -1632,8 +1633,9 @@
 
     function applyInput(g, bottom) {
       let x = bottom ? g.px : g.ox, y = bottom ? g.py : g.oy;
-      if (keyL) x -= 6; if (keyR) x += 6;
-      if (keyU) y -= 6; if (keyD) y += 6;
+      const s = bottom ? 6 : -6;  // guest camera is flipped, so invert their keys
+      if (keyL) x -= s; if (keyR) x += s;
+      if (keyU) y -= s; if (keyD) y += s;
       if (targetX != null) { x += (targetX - x) * 0.4; y += (targetY - y) * 0.4; }
       x = clamp(x, g.pr, g.W - g.pr);
       y = bottom ? clamp(y, g.H * 0.52 + g.pr, g.H - g.pr) : clamp(y, g.pr, g.H * 0.48 - g.pr);
@@ -1675,7 +1677,7 @@
         if (who) { if (who === 'you') g.hs++; else g.gs++; netGoalHost(who); }
       }
       $('ahYou').textContent = g.hs; $('ahOpp').textContent = g.gs;
-      if (now - netWriteT > 90) { netWriteT = now; try { updateDoc(doc(db, 'duels', myDuelId), { hp: { x: g.px, y: g.py }, puck: { x: g.bx, y: g.by }, hs: g.hs, gs: g.gs, serve: g.serveDir, freeze: g.freeze || 0, ts: Date.now() }); } catch (e) {} }
+      if (now - netWriteT > 70) { netWriteT = now; try { updateDoc(doc(db, 'duels', myDuelId), { hp: { x: g.px, y: g.py }, puck: { x: g.bx, y: g.by }, hs: g.hs, gs: g.gs, serve: g.serveDir, freeze: g.freeze || 0, ts: Date.now() }); } catch (e) {} }
       render();
       raf = requestAnimationFrame(netTickHost);
     }
@@ -1699,13 +1701,15 @@
       const g = game;
       applyInput(g, false);
       if (netState) {
-        if (netState.hp) { g.px = netState.hp.x; g.py = netState.hp.y; }
-        if (netState.puck) { g.bx = netState.puck.x; g.by = netState.puck.y; }
+        const phs = g.hs, pgs = g.gs;
+        if (netState.hp) { g.px += (netState.hp.x - g.px) * 0.35; g.py += (netState.hp.y - g.py) * 0.35; }
+        if (netState.puck) { g.bx += (netState.puck.x - g.bx) * 0.4; g.by += (netState.puck.y - g.by) * 0.4; }
         g.hs = netState.hs || 0; g.gs = netState.gs || 0;
+        if (g.hs !== phs || g.gs !== pgs) { showGoal(); goalSound(); }
       }
       $('ahYou').textContent = g.gs; $('ahOpp').textContent = g.hs;
       const now = performance.now();
-      if (now - netWriteT > 90) { netWriteT = now; try { updateDoc(doc(db, 'duels', myDuelId), { gp: { x: g.ox, y: g.oy }, ts: Date.now() }); } catch (e) {} }
+      if (now - netWriteT > 70) { netWriteT = now; try { updateDoc(doc(db, 'duels', myDuelId), { gp: { x: g.ox, y: g.oy }, ts: Date.now() }); } catch (e) {} }
       render();
       raf = requestAnimationFrame(netTickGuest);
     }
@@ -1743,6 +1747,9 @@
     cvs.addEventListener('mousemove', e => { if (e.buttons) setTarget(e.clientX, e.clientY); });
     window.addEventListener('mouseup', () => { targetX = null; targetY = null; });
     window.addEventListener('resize', () => { if (three) sizeCanvas(); });
+    const unlockAudio = () => { const c = AC(); if (c && c.state === 'suspended') c.resume(); };
+    window.addEventListener('pointerdown', unlockAudio, { passive: true });
+    window.addEventListener('keydown', unlockAudio);
   })();
   </script>
 </body>
