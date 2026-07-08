@@ -1516,6 +1516,7 @@
     let camErr = null;
     async function startCam() {
       camErr = null;
+      if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { camErr = { name: 'InsecureContext' }; return false; }
       const get = c => navigator.mediaDevices.getUserMedia(c);
       let s = null;
       try { s = await get({ video: { facingMode: { ideal: 'environment' } } }); }
@@ -1593,6 +1594,7 @@
     }
     function camMsg() {
       const n = camErr && camErr.name;
+      if (n === 'InsecureContext') return 'The camera needs a secure https:// connection, which this address does not have yet. Open the site as https://colton.krasneski.com once HTTPS is turned on. For now, use Paced mode below.';
       if (n === 'NotAllowedError' || n === 'SecurityError') return 'Camera is blocked. Tap the lock / "AA" icon next to the web address, set Camera to Allow, then tap Enable Camera. Or use Paced mode below.';
       if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'No usable camera found. Tap Enable Camera to retry, or use Paced mode below.';
       return 'Could not start the camera (' + (n || 'unknown') + '). Tap Enable Camera to retry, or use Paced mode below.';
