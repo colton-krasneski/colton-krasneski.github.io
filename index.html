@@ -112,6 +112,86 @@
       100% { transform: scale(1); opacity: 0; }
     }
 
+    /* ---- Soccer Trainer ---- */
+    #socVideo { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; display: none; background: #000; }
+    #socRings { position: absolute; inset: 0; z-index: 1; display: none; }
+    #socRings.show { display: block; }
+    .soc-ring {
+      position: absolute; width: 58px; height: 58px; margin: -29px 0 0 -29px;
+      border-radius: 50%; border: 3px solid #00ff41; box-shadow: 0 0 14px #00ff41;
+      display: flex; align-items: center; justify-content: center; cursor: pointer;
+      font-size: 0.7rem; color: #fff; background: rgba(0,255,65,0.12);
+    }
+    #socBanner {
+      position: absolute; inset: 0; z-index: 3; display: none;
+      align-items: center; justify-content: center; pointer-events: none;
+      font-size: clamp(2.5rem, 14vw, 7rem); font-weight: bold; letter-spacing: 0.05em;
+      text-transform: uppercase; color: #fff; text-shadow: 0 0 30px rgba(0,0,0,0.6);
+    }
+    #socBanner.show { display: flex; }
+    .soc-wrap { position: relative; z-index: 2; width: min(100%, 500px); height: 100%; margin: 0 auto; display: flex; flex-direction: column; }
+    .soc-top {
+      display: flex; align-items: center; gap: 0.8rem; padding: 1rem;
+      padding-top: calc(1rem + env(safe-area-inset-top)); border-bottom: 1px solid #00ff4133;
+    }
+    .soc-top .back { cursor: pointer; font-size: 1.3rem; color: #00ff41; background: none; border: none; font-family: inherit; }
+    .soc-title { color: #00ff41; letter-spacing: 0.12em; text-shadow: 0 0 10px #00ff41; }
+    .soc-streak { margin-left: auto; color: #ffd24a; font-size: 0.85rem; }
+    .soc-view { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.9rem; padding: 1rem; overflow-y: auto; }
+    .soc-btn {
+      width: min(85%, 300px); padding: 0.9rem; font-family: inherit; font-size: 1.1rem;
+      font-weight: bold; letter-spacing: 0.08em; color: #00ff41; background: rgba(0,0,0,0.45);
+      border: 2px solid #00ff41; border-radius: 8px; cursor: pointer; box-shadow: 0 0 10px rgba(0,255,65,0.3);
+    }
+    .soc-btn:hover { background: #00ff41; color: #000; }
+    .soc-btn.ghost { border-color: #00ff4177; color: #00ff41aa; box-shadow: none; }
+    .soc-sub { color: #00ff41; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.95rem; }
+    .soc-stats { display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-bottom: 0.6rem; }
+    .soc-stat { text-align: center; border: 1px solid #00ff4133; border-radius: 10px; padding: 0.6rem 0.9rem; min-width: 78px; }
+    .soc-stat .v { color: #00ff41; font-size: 1.3rem; text-shadow: 0 0 8px #00ff41; }
+    .soc-stat .k { color: #00ff4188; font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    /* setup panel over camera */
+    #socSetup { justify-content: flex-end; }
+    .soc-setup-panel {
+      width: 100%; background: rgba(0, 8, 3, 0.82); border: 1px solid #00ff4144;
+      border-radius: 12px; padding: 0.9rem; backdrop-filter: blur(2px);
+    }
+    .soc-label { color: #00ff41cc; font-size: 0.78rem; letter-spacing: 0.08em; margin: 0.4rem 0 0.35rem; }
+    .soc-hint { color: #00ff4177; font-size: 0.7rem; text-transform: none; letter-spacing: 0; }
+    .soc-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .soc-chip {
+      cursor: pointer; padding: 0.4rem 0.7rem; border-radius: 16px; border: 1px solid #00ff4155;
+      background: rgba(0,0,0,0.4); color: #baffcf; font-size: 0.85rem; font-family: inherit; user-select: none;
+    }
+    .soc-chip.on { background: #00ff41; color: #000; border-color: #00ff41; }
+    .soc-chip .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+    .soc-setup-panel .soc-btn { width: 100%; margin-top: 0.8rem; }
+    /* run */
+    #socRun { justify-content: space-between; }
+    .soc-run-hud { width: 100%; display: flex; justify-content: space-between; font-size: 1.1rem; color: #00ff41; text-shadow: 0 0 10px #00ff41; }
+    .soc-stop { width: min(60%, 200px); }
+    /* summary */
+    .soc-summary { text-align: center; color: #baffcf; line-height: 1.9; font-size: 1rem; }
+    .soc-summary b { color: #00ff41; }
+    /* drills */
+    .soc-cats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem; width: 100%; max-width: 380px; }
+    .soc-cat { border: 1px solid #00ff4144; border-radius: 12px; padding: 1.2rem 0.6rem; text-align: center; cursor: pointer; background: rgba(0,0,0,0.4); }
+    .soc-cat:hover { border-color: #00ff41; box-shadow: 0 0 12px rgba(0,255,65,0.4); }
+    .soc-cat .ci { font-size: 2rem; } .soc-cat .cn { color: #baffcf; font-size: 0.85rem; margin-top: 0.3rem; }
+    .soc-drills { display: flex; flex-direction: column; gap: 0.5rem; width: 100%; max-width: 400px; overflow-y: auto; }
+    .soc-drill-row { padding: 0.7rem 0.9rem; border: 1px solid #00ff4133; border-radius: 8px; color: #baffcf; cursor: pointer; }
+    .soc-drill-row:hover { background: rgba(0,255,65,0.06); }
+    .soc-drill-detail { width: 100%; max-width: 420px; color: #baffcf; overflow-y: auto; }
+    .soc-drill-detail h3 { color: #00ff41; text-shadow: 0 0 8px #00ff41; margin-bottom: 0.6rem; }
+    .soc-drill-detail .sec { margin: 0.7rem 0; }
+    .soc-drill-detail .sec b { color: #00ff41aa; display: block; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.2rem; }
+    .soc-drill-detail ul { padding-left: 1.1rem; line-height: 1.5; }
+    .soc-diagram { width: 100%; background: rgba(0,20,8,0.5); border: 1px solid #00ff4133; border-radius: 10px; margin: 0.6rem 0; }
+    .soc-timer-row { display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.6rem; }
+    .soc-timer-clock { font-size: 4rem; color: #00ff41; text-shadow: 0 0 20px #00ff41; font-variant-numeric: tabular-nums; }
+    .soc-timer-name { color: #00ff41; font-size: 1.1rem; letter-spacing: 0.1em; }
+    .soc-timer-active { color: #ffd24a; font-size: 0.9rem; }
+
     /* ---- Screen system ---- */
     .screen {
       position: fixed;
@@ -430,7 +510,8 @@
       <div class="dock">
         <div class="app" id="airHockeyApp">🏒<span class="label">Air Hockey</span></div>
         <div class="app" id="messagesApp">💬<span class="label">Messages</span></div>
-        <div class="app locked" title="Coming soon">?</div>
+        <div class="app" id="soccerApp" style="display:none;">⚽<span class="label">Soccer Trainer</span></div>
+        <div class="app locked" id="lockedApp" title="Coming soon">?</div>
       </div>
     </div>
   </div>
@@ -525,6 +606,71 @@
         </div>
       </div>
       <div id="ahGoalBanner">GOAL!</div>
+    </div>
+  </div>
+
+  <!-- ===== SOCCER TRAINER ===== -->
+  <div class="screen inactive" id="soccer">
+    <video id="socVideo" playsinline muted></video>
+    <div id="socRings"></div>
+    <div id="socBanner"></div>
+    <div class="soc-wrap">
+      <div class="soc-top">
+        <button class="back" id="socBack">‹</button>
+        <div class="soc-title" id="socTitle">Soccer Trainer</div>
+        <div class="soc-streak" id="socStreak"></div>
+      </div>
+
+      <div class="soc-view" id="socMenu">
+        <div class="soc-stats" id="socStats"></div>
+        <button class="soc-btn" id="socReactBtn">⚡ Reaction Trainer</button>
+        <button class="soc-btn" id="socDrillsBtn">📋 Drills</button>
+      </div>
+
+      <div class="soc-view" id="socSetup" style="display:none;">
+        <div class="soc-setup-panel">
+          <div class="soc-label">Cone colors <span class="soc-hint">(tap a green ring to assign)</span></div>
+          <div class="soc-chips" id="socColors"></div>
+          <div class="soc-label">Reps</div>
+          <div class="soc-chips" id="socReps"></div>
+          <div class="soc-label">Mode</div>
+          <div class="soc-chips" id="socMode"></div>
+          <button class="soc-btn" id="socStart">Start</button>
+        </div>
+      </div>
+
+      <div class="soc-view" id="socRun" style="display:none;">
+        <div class="soc-run-hud"><span id="socRep">0/0</span><span id="socSplit"></span></div>
+        <button class="soc-btn ghost soc-stop" id="socRunStop">Stop</button>
+      </div>
+
+      <div class="soc-view" id="socSummary" style="display:none;">
+        <div class="soc-sub">Session Complete</div>
+        <div class="soc-summary" id="socSummaryBody"></div>
+        <button class="soc-btn" id="socDone">Done</button>
+      </div>
+
+      <div class="soc-view" id="socCats" style="display:none;">
+        <div class="soc-sub">Drill Categories</div>
+        <div class="soc-cats" id="socCatList"></div>
+      </div>
+
+      <div class="soc-view" id="socList" style="display:none;">
+        <div class="soc-sub" id="socListTitle"></div>
+        <div class="soc-drills" id="socDrillList"></div>
+        <button class="soc-btn ghost" id="socListBack">Back</button>
+      </div>
+
+      <div class="soc-view" id="socDrill" style="display:none;">
+        <div class="soc-drill-detail" id="socDrillBody"></div>
+      </div>
+
+      <div class="soc-view" id="socTimer" style="display:none;">
+        <div class="soc-timer-name" id="socTimerName"></div>
+        <div class="soc-timer-clock" id="socTimerClock">0:00</div>
+        <div class="soc-timer-active" id="socTimerActive"></div>
+        <button class="soc-btn ghost" id="socTimerStop">Stop</button>
+      </div>
     </div>
   </div>
 
@@ -747,7 +893,7 @@
   let me = null; // logged-in username (canonical)
 
   function showScreen(id) {
-    ['login','home','messages','airhockey'].forEach(s => $(s).classList.add('inactive'));
+    ['login','home','messages','airhockey','soccer'].forEach(s => $(s).classList.add('inactive'));
     $(id).classList.remove('inactive');
   }
 
@@ -818,6 +964,9 @@
     $('homeUser').textContent = me;
     showScreen('home');
     startCallListener();
+    const soccer = $('soccerApp'), locked = $('lockedApp');
+    if (me === 'colton_mobile') { soccer.style.display = ''; locked.style.display = 'none'; }
+    else { soccer.style.display = 'none'; locked.style.display = ''; }
   }
 
   $('logoutBtn').addEventListener('click', () => {
@@ -825,7 +974,7 @@
     stopCallListener();
     me = null;
     mode = MODES.intro;
-    ['login','home','messages','airhockey'].forEach(s => $(s).classList.add('inactive'));
+    ['login','home','messages','airhockey','soccer'].forEach(s => $(s).classList.add('inactive'));
     $('intro').classList.remove('hidden-up');
   });
 
@@ -1302,6 +1451,359 @@
     if (!saved) return;
     if (['matrix', 'spiral', 'pong', 'foosball'].includes(saved.mode)) setAnim(saved.mode);
     else if ((saved.mode === 'image' || saved.mode === 'cats') && saved.data) setImage(saved.data);
+  })();
+
+  /* ===== SOCCER TRAINER ===== */
+  (function () {
+    const PALETTE = [
+      { id: 'red', name: 'Red', css: '#ff3b3b' },
+      { id: 'yellow', name: 'Yellow', css: '#ffd24a' },
+      { id: 'blue', name: 'Blue', css: '#3aa0ff' },
+      { id: 'green', name: 'Green', css: '#33d17a' },
+      { id: 'orange', name: 'Orange', css: '#ff8c1a' }
+    ];
+    const RING_POS = [[20, 34], [50, 24], [80, 34], [26, 68], [50, 58], [74, 68]];
+    const VIEWS = ['socMenu', 'socSetup', 'socRun', 'socSummary', 'socCats', 'socList', 'socDrill', 'socTimer'];
+    const SKEY = 'colton_soccer';
+    const DETECT_THRESH = 15, CW = 128, CH = 96, PACED_INTERVAL = 1600;
+
+    const video = $('socVideo');
+    let currentView = 'socMenu';
+    let stream = null, camCanvas = null, cctx = null, prevImg = null;
+    let running = false, current = null, callTime = 0, reps = 20, rmode = 'camera';
+    let repsDone = 0, lastColor = null, splits = [], missCount = 0, paint = PALETTE[0].id;
+    let ringsState = RING_POS.map(p => ({ x: p[0], y: p[1], color: null }));
+    let runRAF = null, pacedTimer = null, nextTimer = null, cdTimer = null, timerInt = null, timerRemain = 0;
+    let wake = null, motionHandler = null, motionActive = 0, lastMotionT = 0;
+
+    /* ---- helpers ---- */
+    let sctx = null;
+    function SAC() { if (!sctx) { try { sctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (sctx && sctx.state === 'suspended') sctx.resume(); return sctx; }
+    function beep(f, d) { const c = SAC(); if (!c) return; const o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.value = f; o.connect(g); g.connect(c.destination); const t = c.currentTime; g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + d); o.start(t); o.stop(t + d); }
+    function speak(txt) { try { speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(txt)); } catch (e) {} }
+    function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
+    async function reqWake() { try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {} }
+    function relWake() { try { if (wake) wake.release(); } catch (e) {} wake = null; }
+    function startMotion() {
+      motionActive = 0; lastMotionT = performance.now();
+      if (typeof DeviceMotionEvent === 'undefined') return;
+      const begin = () => {
+        motionHandler = e => {
+          const a = e.accelerationIncludingGravity || e.acceleration; if (!a) return;
+          const m = Math.hypot(a.x || 0, a.y || 0, a.z || 0), now = performance.now();
+          if (m > 13) motionActive += Math.min(now - lastMotionT, 300) / 1000;
+          lastMotionT = now;
+        };
+        window.addEventListener('devicemotion', motionHandler);
+      };
+      if (DeviceMotionEvent.requestPermission) DeviceMotionEvent.requestPermission().then(s => { if (s === 'granted') begin(); }).catch(() => {});
+      else begin();
+    }
+    function stopMotion() { if (motionHandler) { window.removeEventListener('devicemotion', motionHandler); motionHandler = null; } }
+    function loadStats() { try { return JSON.parse(localStorage.getItem(SKEY) || '{}'); } catch (e) { return {}; } }
+    function saveStats(s) { try { localStorage.setItem(SKEY, JSON.stringify(s)); } catch (e) {} }
+    function bumpStreak(s) { const today = new Date().toDateString(); if (s.lastDay !== today) { const y = new Date(Date.now() - 86400000).toDateString(); s.streak = (s.lastDay === y) ? (s.streak || 0) + 1 : 1; s.lastDay = today; } return s; }
+
+    /* ---- camera ---- */
+    async function startCam() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+        video.srcObject = stream; await video.play();
+        if (!camCanvas) { camCanvas = document.createElement('canvas'); camCanvas.width = CW; camCanvas.height = CH; cctx = camCanvas.getContext('2d', { willReadFrequently: true }); }
+        return true;
+      } catch (e) { return false; }
+    }
+    function stopCam() { if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } video.srcObject = null; prevImg = null; }
+    function sampleDiff(zone) {
+      if (!cctx || video.readyState < 2) return 0;
+      cctx.drawImage(video, 0, 0, CW, CH);
+      const cur = cctx.getImageData(0, 0, CW, CH).data;
+      if (!prevImg) { prevImg = cur.slice(); return 0; }
+      const cx = zone.x / 100 * CW, cy = zone.y / 100 * CH, r = CW * 0.13;
+      const x0 = Math.max(0, cx - r | 0), x1 = Math.min(CW, cx + r | 0), y0 = Math.max(0, cy - r | 0), y1 = Math.min(CH, cy + r | 0);
+      let sum = 0, n = 0;
+      for (let y = y0; y < y1; y += 2) for (let x = x0; x < x1; x += 2) { const i = (y * CW + x) * 4; sum += Math.abs(cur[i] - prevImg[i]) + Math.abs(cur[i + 1] - prevImg[i + 1]) + Math.abs(cur[i + 2] - prevImg[i + 2]); n++; }
+      prevImg.set(cur);
+      return n ? sum / (n * 3) : 0;
+    }
+
+    /* ---- view mgmt ---- */
+    function soccerView(id) {
+      currentView = id;
+      VIEWS.forEach(v => $(v).style.display = 'none');
+      $(id).style.display = 'flex';
+      const cam = (id === 'socSetup' || id === 'socRun');
+      video.style.display = cam ? 'block' : 'none';
+      $('socRings').classList.toggle('show', id === 'socSetup');
+      if (id !== 'socRun') $('socBanner').classList.remove('show');
+    }
+    function renderStats() {
+      const s = loadStats();
+      $('socStreak').textContent = '🔥 ' + (s.streak || 0);
+      $('socStats').innerHTML =
+        `<div class="soc-stat"><div class="v">${s.streak || 0}</div><div class="k">Streak</div></div>` +
+        `<div class="soc-stat"><div class="v">${s.bestReaction ? s.bestReaction.toFixed(2) + 's' : '—'}</div><div class="k">Best RXN</div></div>` +
+        `<div class="soc-stat"><div class="v">${Math.round(s.activeMinutes || 0)}</div><div class="k">Active min</div></div>`;
+    }
+
+    function openSoccer() { $('menuBtn').style.display = 'none'; showScreen('soccer'); renderStats(); soccerView('socMenu'); }
+    function exitSoccer() { abortAll(); $('menuBtn').style.display = ''; showScreen('home'); }
+    function abortAll() {
+      running = false;
+      [pacedTimer, nextTimer, cdTimer].forEach(t => t && clearTimeout(t));
+      if (runRAF) cancelAnimationFrame(runRAF);
+      if (timerInt) clearInterval(timerInt);
+      pacedTimer = nextTimer = cdTimer = runRAF = timerInt = null;
+      relWake(); stopMotion(); stopCam();
+      $('socBanner').classList.remove('show');
+    }
+    $('soccerApp').addEventListener('click', openSoccer);
+    $('socBack').addEventListener('click', () => { if (currentView === 'socMenu') exitSoccer(); else { abortAll(); soccerView('socMenu'); renderStats(); } });
+
+    /* ---- reaction setup ---- */
+    $('socReactBtn').addEventListener('click', async () => {
+      soccerView('socSetup');
+      const ok = await startCam();
+      rmode = ok ? 'camera' : 'paced';
+      renderColors(); renderRings(); renderChoices();
+    });
+    function renderColors() {
+      const box = $('socColors'); box.innerHTML = '';
+      PALETTE.forEach(p => {
+        const c = document.createElement('span'); c.className = 'soc-chip' + (paint === p.id ? ' on' : '');
+        c.innerHTML = `<span class="dot" style="background:${p.css}"></span>${p.name}`;
+        c.onclick = () => { paint = p.id; renderColors(); }; box.appendChild(c);
+      });
+      const er = document.createElement('span'); er.className = 'soc-chip' + (paint === 'erase' ? ' on' : ''); er.textContent = '✕ Erase';
+      er.onclick = () => { paint = 'erase'; renderColors(); }; box.appendChild(er);
+    }
+    function renderRings() {
+      const box = $('socRings'); box.innerHTML = '';
+      ringsState.forEach(r => {
+        const d = document.createElement('div'); d.className = 'soc-ring';
+        d.style.left = r.x + '%'; d.style.top = r.y + '%';
+        if (r.color) { const p = PALETTE.find(x => x.id === r.color); d.style.borderColor = p.css; d.style.boxShadow = '0 0 14px ' + p.css; d.style.background = p.css + '55'; d.textContent = ''; }
+        else d.textContent = '+';
+        d.onclick = () => { r.color = (paint === 'erase' ? null : paint); renderRings(); };
+        box.appendChild(d);
+      });
+    }
+    function renderChoices() {
+      const rp = $('socReps'); rp.innerHTML = '';
+      [20, 45, 100].forEach(n => { const c = document.createElement('span'); c.className = 'soc-chip' + (reps === n ? ' on' : ''); c.textContent = n + ' reps'; c.onclick = () => { reps = n; renderChoices(); }; rp.appendChild(c); });
+      const md = $('socMode'); md.innerHTML = '';
+      [['camera', 'Camera'], ['paced', 'Paced']].forEach(([id, lbl]) => { const c = document.createElement('span'); c.className = 'soc-chip' + (rmode === id ? ' on' : ''); c.textContent = lbl; c.onclick = () => { rmode = id; renderChoices(); }; md.appendChild(c); });
+    }
+    $('socStart').addEventListener('click', () => {
+      const zones = ringsState.filter(r => r.color);
+      const colors = [...new Set(zones.map(z => z.color))];
+      if (zones.length < 2 || colors.length < 2) { alert('Assign at least 2 cones of 2 different colors — tap the green rings on the camera view.'); return; }
+      if (rmode === 'camera' && !stream) { rmode = 'paced'; }
+      startRun(zones, colors);
+    });
+
+    /* ---- reaction run ---- */
+    let zonesRef = [], colorsRef = [];
+    function pickZone(c) { const z = zonesRef.filter(x => x.color === c); return z[Math.floor(Math.random() * z.length)]; }
+    function startRun(zones, colors) {
+      zonesRef = zones; colorsRef = colors;
+      running = true; repsDone = 0; lastColor = null; splits = []; missCount = 0; prevImg = null;
+      $('socRep').textContent = '0/' + reps; $('socSplit').textContent = '';
+      soccerView('socRun'); reqWake(); startMotion();
+      if (rmode === 'camera') runRAF = requestAnimationFrame(runTick);
+      countdown(3, nextRep);
+    }
+    function countdown(n, cb) {
+      $('socBanner').style.color = '#00ff41';
+      const step = () => {
+        if (!running) return;
+        if (n > 0) { $('socBanner').textContent = n; $('socBanner').classList.add('show'); beep(600, 0.12); n--; cdTimer = setTimeout(step, 700); }
+        else { $('socBanner').textContent = 'GO'; beep(900, 0.2); cdTimer = setTimeout(() => { $('socBanner').classList.remove('show'); cb(); }, 500); }
+      };
+      step();
+    }
+    function nextRep() {
+      if (!running) return;
+      let c; do { c = colorsRef[Math.floor(Math.random() * colorsRef.length)]; } while (c === lastColor && colorsRef.length > 1);
+      lastColor = c; const pal = PALETTE.find(p => p.id === c);
+      current = { color: c, zone: pickZone(c) };
+      $('socBanner').textContent = pal.name; $('socBanner').style.color = pal.css; $('socBanner').classList.add('show');
+      speak(pal.name); beep(660, 0.15); vibrate(120);
+      callTime = performance.now();
+      if (rmode === 'paced') pacedTimer = setTimeout(() => arrival(false), PACED_INTERVAL);
+    }
+    function runTick() {
+      if (!running) return;
+      if (rmode === 'camera') {
+        if (current) {
+          const dt = performance.now() - callTime, d = sampleDiff(current.zone);
+          if (dt > 350 && d > DETECT_THRESH) arrival(false);
+          else if (dt > 6000) arrival(true);
+        } else sampleDiff({ x: 50, y: 50 });
+      }
+      runRAF = requestAnimationFrame(runTick);
+    }
+    function arrival(timeout) {
+      if (!running || !current) return;
+      const dt = performance.now() - callTime;
+      splits.push(dt); if (timeout) missCount++;
+      repsDone++;
+      $('socRep').textContent = repsDone + '/' + reps;
+      $('socSplit').textContent = (rmode === 'camera' && !timeout) ? (dt / 1000).toFixed(2) + 's' : (timeout ? 'miss' : '');
+      beep(880, 0.08);
+      current = null; $('socBanner').classList.remove('show');
+      if (repsDone >= reps) endRun();
+      else nextTimer = setTimeout(nextRep, 400);
+    }
+    function endRun() {
+      running = false;
+      [pacedTimer, nextTimer, cdTimer].forEach(t => t && clearTimeout(t));
+      if (runRAF) cancelAnimationFrame(runRAF); runRAF = null;
+      relWake(); stopMotion();
+      const s = loadStats(); bumpStreak(s); s.activeMinutes = (s.activeMinutes || 0) + motionActive / 60;
+      let body;
+      if (rmode === 'camera') {
+        const avg = splits.reduce((a, b) => a + b, 0) / splits.length / 1000;
+        const best = Math.min(...splits) / 1000, worst = Math.max(...splits) / 1000;
+        if (!s.bestReaction || best < s.bestReaction) s.bestReaction = best;
+        (s.sessions = s.sessions || []).push({ t: Date.now(), reps: repsDone, avg, best });
+        body = `<div>Reps: <b>${repsDone}</b></div><div>Avg reaction: <b>${avg.toFixed(2)}s</b></div><div>Best: <b>${best.toFixed(2)}s</b></div><div>Worst: <b>${worst.toFixed(2)}s</b></div><div>Misses: <b>${missCount}</b></div><div>Active: <b>${Math.round(motionActive)}s</b></div>`;
+      } else {
+        const total = splits.reduce((a, b) => a + b, 0) / 1000;
+        (s.sessions = s.sessions || []).push({ t: Date.now(), reps: repsDone, paced: true });
+        body = `<div>Reps: <b>${repsDone}</b></div><div>Total: <b>${total.toFixed(0)}s</b></div><div>Active: <b>${Math.round(motionActive)}s</b></div>`;
+      }
+      saveStats(s);
+      $('socSummaryBody').innerHTML = body; soccerView('socSummary'); speak('Session complete');
+    }
+    $('socRunStop').addEventListener('click', () => { abortAll(); soccerView('socMenu'); renderStats(); });
+    $('socDone').addEventListener('click', () => { stopCam(); soccerView('socMenu'); renderStats(); });
+
+    /* ---- drills ---- */
+    const CATS = [
+      { id: 'fundamentals', name: 'Fundamentals', icon: '⚽' },
+      { id: 'passing', name: 'Passing', icon: '🎯' },
+      { id: 'juggling', name: 'Juggling', icon: '🤹' },
+      { id: 'dribbling', name: 'Dribbling', icon: '🌀' }
+    ];
+    const DRILLS = {
+      fundamentals: [
+        { name: 'Toe Taps', equipment: ['1 ball'], setup: 'Ball still in front of you.', steps: ['Lightly tap the top of the ball with alternating feet', 'Stay on your toes, quick light touches', 'Build speed as you warm up'], focus: 'Touch & rhythm', diagram: 'player' },
+        { name: 'Inside-Inside Touches', equipment: ['1 ball'], setup: 'Ball in front, feet shoulder width.', steps: ['Push ball side to side using inside of each foot', 'Keep it tight and controlled', 'Quicken the tempo over time'], focus: 'Close control', diagram: 'player' },
+        { name: 'Sole Rolls', equipment: ['1 ball'], setup: 'Ball in front of you.', steps: ['Roll ball left to right using the sole of your foot', 'Switch feet each rep', 'Keep head up'], focus: 'Foot feel', diagram: 'player' },
+        { name: 'Cone Weave Walk', equipment: ['4-6 cones', '1 ball'], setup: 'Cones in a line ~1m apart.', steps: ['Walk the ball through the cones with small touches', 'Use both feet', 'Focus on control over speed'], focus: 'Control', diagram: 'zigzag' },
+        { name: 'Wall Passes', equipment: ['1 ball', 'a wall'], setup: 'Stand 2-3m from a wall.', steps: ['Pass into the wall, receive, repeat', 'Alternate feet', 'First touch away from your body'], focus: 'First touch', diagram: 'wall' },
+        { name: 'Box Steps', equipment: ['1 ball'], setup: 'Ball still.', steps: ['Step on top of the ball, pull back, push forward', 'Trace a box shape with your touches', 'Keep it smooth'], focus: 'Sole control', diagram: 'box' },
+        { name: 'Sprint & Settle', equipment: ['2 cones', '1 ball'], setup: 'Cones 10m apart, ball at one.', steps: ['Sprint to the ball', 'Settle it with one touch', 'Jog back and repeat'], focus: 'First touch under fatigue', diagram: 'line' },
+        { name: 'Two-Touch Control', equipment: ['1 ball', 'a wall'], setup: '3m from wall.', steps: ['One touch to control, one to pass', 'Keep a steady rhythm', 'Use both feet'], focus: 'Rhythm', diagram: 'wall' },
+        { name: 'Cone Gates Sprint', equipment: ['4 cones'], setup: 'Two gates 8m apart.', steps: ['Sprint through a gate', 'Decelerate, cut, sprint back', 'Stay low on the turn'], focus: 'Acceleration', diagram: 'gates' },
+        { name: 'Turn & Go', equipment: ['1 cone', '1 ball'], setup: 'Cone as a marker.', steps: ['Dribble to the cone', 'Perform a turn (inside/outside)', 'Accelerate away'], focus: 'Turning', diagram: 'triangle' }
+      ],
+      passing: [
+        { name: 'Wall Pass Reps', equipment: ['1 ball', 'a wall'], setup: '3m from wall.', steps: ['Pass firmly with the inside of the foot', 'Receive across your body', 'Count clean reps'], focus: 'Passing accuracy', diagram: 'wall' },
+        { name: 'Gate Passing', equipment: ['2 cones', '1 ball', 'partner or wall'], setup: 'Cones form a small gate 1m wide.', steps: ['Pass the ball through the gate', 'Aim for the center', 'Move back to widen the challenge'], focus: 'Precision', diagram: 'gates' },
+        { name: 'One-Touch Wall', equipment: ['1 ball', 'a wall'], setup: '2m from wall.', steps: ['Return every ball first-time', 'Keep passes low and firm', 'Stay balanced'], focus: 'Quick passing', diagram: 'wall' },
+        { name: 'Triangle Passing', equipment: ['3 cones', '1 ball'], setup: 'Cones in a triangle 3m apart.', steps: ['Pass and follow to the next cone', 'Keep first touch tidy', 'Both feet'], focus: 'Movement + pass', diagram: 'triangle' },
+        { name: 'Long-Short Combo', equipment: ['1 ball', 'a wall'], setup: 'Vary distance from wall.', steps: ['Alternate a short pass and a driven pass', 'Control each return', 'Reset feet each time'], focus: 'Weight of pass', diagram: 'wall' },
+        { name: 'Weak Foot Passing', equipment: ['1 ball', 'a wall'], setup: '3m from wall.', steps: ['Only use your weaker foot', 'Focus on clean contact', 'Build up pace'], focus: 'Weak foot', diagram: 'wall' },
+        { name: 'Pass & Move Box', equipment: ['4 cones', '1 ball'], setup: 'Cones in a 4m box.', steps: ['Pass to a cone side, sprint to another corner', 'Receive and repeat', 'Head up between passes'], focus: 'Pass under movement', diagram: 'box' },
+        { name: 'First-Time Angles', equipment: ['2 cones', '1 ball', 'a wall'], setup: 'Stand at an angle to the wall.', steps: ['Play the ball at angles', 'Open your body to receive', 'Redirect first time'], focus: 'Receiving angles', diagram: 'wall' },
+        { name: 'Driven Pass Target', equipment: ['2 cones', '1 ball'], setup: 'Target gate 12m away.', steps: ['Strike a driven pass to the gate', 'Follow through low', 'Reset and repeat'], focus: 'Long passing', diagram: 'gates' },
+        { name: 'Receive & Turn', equipment: ['1 ball', 'a wall'], setup: '3m from wall.', steps: ['Receive with the back foot', 'Turn out of your feet', 'Play back and repeat'], focus: 'Receiving to turn', diagram: 'wall' }
+      ],
+      juggling: [
+        { name: 'Thigh Catches', equipment: ['1 ball'], setup: 'Ball in hands.', steps: ['Drop and pop the ball up with your thigh', 'Catch it', 'Alternate legs'], focus: 'Thigh control', diagram: 'player' },
+        { name: 'Foot Pops', equipment: ['1 ball'], setup: 'Ball in hands.', steps: ['Drop, one touch with the laces, catch', 'Keep ankle locked', 'Both feet'], focus: 'Laces contact', diagram: 'player' },
+        { name: 'Two-Touch Juggle', equipment: ['1 ball'], setup: 'Standing.', steps: ['Two touches then catch', 'Build to more before catching', 'Small controlled taps'], focus: 'Consistency', diagram: 'player' },
+        { name: 'Weak Foot Juggle', equipment: ['1 ball'], setup: 'Standing.', steps: ['Juggle only with weaker foot', 'Catch and reset as needed', 'Count your best streak'], focus: 'Weak foot', diagram: 'player' },
+        { name: 'Alternating Feet', equipment: ['1 ball'], setup: 'Standing.', steps: ['Left, right, left, right', 'Keep the ball waist high', 'Stay relaxed'], focus: 'Balance', diagram: 'player' },
+        { name: 'Thigh + Foot Combo', equipment: ['1 ball'], setup: 'Standing.', steps: ['Foot up to thigh, back to foot', 'Keep a steady rhythm', 'Both sides'], focus: 'Combos', diagram: 'player' },
+        { name: 'Around the World Attempt', equipment: ['1 ball'], setup: 'Standing.', steps: ['Pop the ball up, circle your foot around it', 'Catch on the laces', 'Take it slow'], focus: 'Coordination', diagram: 'player' },
+        { name: 'Juggle Walk', equipment: ['1 ball', 'open space'], setup: 'Open area.', steps: ['Juggle while walking forward slowly', 'Control the direction', 'Keep touches soft'], focus: 'Moving control', diagram: 'player' },
+        { name: 'Head Juggles', equipment: ['1 ball'], setup: 'Standing.', steps: ['Pop the ball to your forehead', 'Small controlled headers', 'Eyes on the ball'], focus: 'Heading touch', diagram: 'player' },
+        { name: 'Max Streak Challenge', equipment: ['1 ball'], setup: 'Standing.', steps: ['Juggle as long as possible', 'Any surface allowed', 'Beat your record'], focus: 'Endurance', diagram: 'player' }
+      ],
+      dribbling: [
+        { name: 'Cone Slalom', equipment: ['5-6 cones', '1 ball'], setup: 'Cones in a line ~1m apart.', steps: ['Weave through with small touches', 'Use both feet', 'Head up between cones'], focus: 'Close control', diagram: 'zigzag' },
+        { name: 'Speed Dribble', equipment: ['2 cones', '1 ball'], setup: 'Cones 15m apart.', steps: ['Dribble at pace between cones', 'Big touches into space', 'Control at the far cone'], focus: 'Dribbling at speed', diagram: 'line' },
+        { name: 'Box Turns', equipment: ['4 cones', '1 ball'], setup: '4m box.', steps: ['Dribble to a corner and turn', 'Different turn at each corner', 'Accelerate out'], focus: 'Turning', diagram: 'box' },
+        { name: 'Triangle Cuts', equipment: ['3 cones', '1 ball'], setup: 'Triangle 3m apart.', steps: ['Dribble edge to edge', 'Sharp cut at each cone', 'Stay low'], focus: 'Change of direction', diagram: 'triangle' },
+        { name: 'Gate Dribble', equipment: ['6 cones', '1 ball'], setup: 'Three gates spread out.', steps: ['Dribble through as many gates as you can', 'Change direction between gates', 'Head up'], focus: 'Scanning', diagram: 'gates' },
+        { name: 'Step-Over Slalom', equipment: ['5 cones', '1 ball'], setup: 'Cones in a line.', steps: ['Step-over at each cone', 'Accelerate after the move', 'Both feet'], focus: 'Moves', diagram: 'zigzag' },
+        { name: 'Inside-Out Weave', equipment: ['5 cones', '1 ball'], setup: 'Cones in a line.', steps: ['Use inside then outside of the same foot', 'Keep the ball close', 'Switch feet each run'], focus: 'Foot control', diagram: 'zigzag' },
+        { name: 'Shielding Circle', equipment: ['4 cones', '1 ball'], setup: 'Cones in a small circle.', steps: ['Dribble around inside the circle', 'Shield with your body', 'Keep the ball on the far foot'], focus: 'Shielding', diagram: 'circle' },
+        { name: 'Acceleration Cuts', equipment: ['3 cones', '1 ball'], setup: 'Cones in a zigzag.', steps: ['Explode after each cut', 'Slow-fast rhythm', 'Low centre of gravity'], focus: 'Explosiveness', diagram: 'zigzag' },
+        { name: '1v1 Attack Move', equipment: ['1 cone', '1 ball'], setup: 'Cone = defender.', steps: ['Attack the cone', 'Perform a move to beat it', 'Accelerate past'], focus: '1v1 moves', diagram: 'triangle' }
+      ]
+    };
+    $('socDrillsBtn').addEventListener('click', () => { renderCats(); soccerView('socCats'); });
+    function renderCats() {
+      const box = $('socCatList'); box.innerHTML = '';
+      CATS.forEach(cat => { const d = document.createElement('div'); d.className = 'soc-cat'; d.innerHTML = `<div class="ci">${cat.icon}</div><div class="cn">${cat.name}</div>`; d.onclick = () => openCat(cat); box.appendChild(d); });
+    }
+    function openCat(cat) {
+      $('socListTitle').textContent = cat.name;
+      const box = $('socDrillList'); box.innerHTML = '';
+      DRILLS[cat.id].forEach((dr, i) => { const r = document.createElement('div'); r.className = 'soc-drill-row'; r.textContent = (i + 1) + '. ' + dr.name; r.onclick = () => openDrill(dr); box.appendChild(r); });
+      soccerView('socList');
+    }
+    $('socListBack').addEventListener('click', () => { renderCats(); soccerView('socCats'); });
+    function openDrill(dr) {
+      $('socDrillBody').innerHTML =
+        `<h3>${esc(dr.name)}</h3>` + diagramSVG(dr.diagram) +
+        `<div class="sec"><b>Equipment</b>${dr.equipment.map(e => '• ' + esc(e)).join('<br>')}</div>` +
+        `<div class="sec"><b>Set up</b>${esc(dr.setup)}</div>` +
+        `<div class="sec"><b>How to</b><ul>${dr.steps.map(s => '<li>' + esc(s) + '</li>').join('')}</ul></div>` +
+        `<div class="sec"><b>Focus</b>${esc(dr.focus)}</div>` +
+        `<div class="soc-label">Timer</div><div class="soc-timer-row">` +
+        `<button class="soc-chip" data-m="3">3 min</button><button class="soc-chip" data-m="5">5 min</button><button class="soc-chip" data-m="10">10 min</button></div>` +
+        `<button class="soc-btn ghost" id="socDrillBack" style="margin-top:0.8rem;">Back</button>`;
+      $('socDrillBody').querySelectorAll('[data-m]').forEach(b => b.onclick = () => startTimer(+b.dataset.m, dr.name));
+      $('socDrillBack').onclick = () => soccerView('socList');
+      soccerView('socDrill');
+    }
+
+    /* ---- SVG diagrams ---- */
+    function cone(x, y) { return `<polygon points="${x},${y - 7} ${x - 5},${y + 4} ${x + 5},${y + 4}" fill="#ff8c1a"/>`; }
+    function dot(x, y) { return `<circle cx="${x}" cy="${y}" r="6" fill="#33d17a"/>`; }
+    function arrow(x1, y1, x2, y2) { return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#00ff41" stroke-width="2" marker-end="url(#ah)"/>`; }
+    function diagramSVG(type) {
+      let g = '';
+      if (type === 'line') g = cone(50, 90) + cone(270, 90) + arrow(60, 90, 260, 90) + dot(40, 90);
+      else if (type === 'zigzag') g = [50, 100, 150, 200, 250].map((x, i) => cone(x, i % 2 ? 60 : 120)).join('') + arrow(40, 120, 90, 60) + arrow(90, 60, 140, 120) + arrow(140, 120, 190, 60) + arrow(190, 60, 240, 120);
+      else if (type === 'box') g = cone(80, 50) + cone(240, 50) + cone(80, 130) + cone(240, 130) + dot(160, 90) + arrow(90, 55, 230, 55) + arrow(235, 60, 235, 125) + arrow(230, 130, 90, 130) + arrow(85, 125, 85, 60);
+      else if (type === 'triangle') g = cone(160, 40) + cone(70, 140) + cone(250, 140) + arrow(160, 48, 78, 135) + arrow(80, 140, 242, 140) + arrow(245, 132, 165, 48);
+      else if (type === 'gates') g = cone(60, 50) + cone(60, 90) + cone(200, 100) + cone(200, 140) + cone(120, 40) + cone(120, 80) + arrow(70, 70, 200, 120);
+      else if (type === 'circle') { for (let i = 0; i < 6; i++) { const a = i / 6 * 6.283; g += cone(160 + Math.cos(a) * 70, 90 + Math.sin(a) * 55); } g += dot(160, 90); }
+      else if (type === 'wall') g = `<rect x="20" y="30" width="12" height="120" fill="#0a3d24" stroke="#00ff41"/>` + dot(230, 90) + arrow(220, 90, 40, 90) + arrow(40, 100, 220, 100);
+      else g = dot(160, 90); // player
+      return `<svg class="soc-diagram" viewBox="0 0 320 180"><defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#00ff41"/></marker></defs><rect x="4" y="4" width="312" height="172" rx="8" fill="#04180c" stroke="#00ff4133"/>${g}</svg>`;
+    }
+
+    /* ---- drill timer ---- */
+    function startTimer(mins, name) {
+      soccerView('socTimer'); $('socTimerName').textContent = name;
+      timerRemain = mins * 60; reqWake(); startMotion(); beep(700, 0.15); vibrate(120); updateClock();
+      const half = Math.floor(mins * 60 / 2);
+      timerInt = setInterval(() => {
+        timerRemain--; updateClock();
+        if (timerRemain === half) { beep(600, 0.1); }
+        if (timerRemain <= 3 && timerRemain > 0) beep(500, 0.1);
+        if (timerRemain <= 0) stopTimer(true);
+      }, 1000);
+    }
+    function updateClock() {
+      const m = Math.floor(timerRemain / 60), s = timerRemain % 60;
+      $('socTimerClock').textContent = m + ':' + String(s).padStart(2, '0');
+      $('socTimerActive').textContent = 'Active: ' + Math.round(motionActive) + 's';
+    }
+    function stopTimer(done) {
+      if (timerInt) { clearInterval(timerInt); timerInt = null; }
+      relWake(); stopMotion();
+      if (done) { beep(950, 0.35); vibrate([120, 80, 120]); speak('Time'); const s = loadStats(); bumpStreak(s); s.activeMinutes = (s.activeMinutes || 0) + motionActive / 60; saveStats(s); }
+      soccerView('socDrill');
+    }
+    $('socTimerStop').addEventListener('click', () => stopTimer(false));
   })();
 
   /* ===== AIR HOCKEY ===== */
