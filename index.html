@@ -145,6 +145,7 @@
     }
     .soc-btn:hover { background: #00ff41; color: #000; }
     .soc-btn.ghost { border-color: #00ff4177; color: #00ff41aa; box-shadow: none; }
+    .soc-btn:disabled { opacity: 0.4; cursor: default; box-shadow: none; }
     .soc-sub { color: #00ff41; letter-spacing: 0.14em; text-transform: uppercase; font-size: 0.95rem; }
     .soc-stats { display: flex; gap: 0.8rem; flex-wrap: wrap; justify-content: center; margin-bottom: 0.6rem; }
     .soc-stat { text-align: center; border: 1px solid #00ff4133; border-radius: 10px; padding: 0.6rem 0.9rem; min-width: 78px; }
@@ -640,8 +641,7 @@
         <div class="soc-sheet">
           <div class="soc-step" id="socStepText"></div>
           <div class="soc-reps-seg" id="socReps"></div>
-          <button class="soc-btn" id="socDetect">Detect Cones</button>
-          <button class="soc-btn ghost" id="socRescan" style="display:none;">Re-scan</button>
+          <button class="soc-btn" id="socStart" disabled>Start ▶</button>
           <button class="soc-mini" id="socPaced">No camera? Use Paced mode</button>
         </div>
       </div>
@@ -1561,7 +1561,7 @@
       if (runRAF) cancelAnimationFrame(runRAF);
       if (timerInt) clearInterval(timerInt);
       pacedTimer = nextTimer = cdTimer = runRAF = timerInt = null;
-      relWake(); stopMotion(); stopCam();
+      stopPreview(); relWake(); stopMotion(); stopCam();
       $('socBanner').classList.remove('show');
     }
     $('soccerApp').addEventListener('click', openSoccer);
@@ -1569,38 +1569,40 @@
 
     /* ---- reaction setup (auto-detect cones by color) ---- */
     const RCOLORS = PALETTE.filter(p => p.id !== 'orange'); // red, yellow, blue, green
-    let detected = [], setupPhase = 'aim';
+    let detected = [], previewInt = null;
     $('socReactBtn').addEventListener('click', openReaction);
     async function openReaction() {
-      soccerView('socSetup');
-      detected = []; setupPhase = 'aim'; $('socRings').innerHTML = ''; $('socRescan').style.display = 'none';
-      renderReps();
+      soccerView('socSetup'); detected = []; $('socRings').innerHTML = ''; renderReps();
+      $('socStart').disabled = true; $('socStart').textContent = 'Start ▶'; setStep('Starting camera…');
       const ok = await startCam();
       rmode = ok ? 'camera' : 'paced';
-      if (ok) { setStep('Place your 4 colored cones, aim the phone so it sees all of them, then tap Detect Cones.'); $('socDetect').textContent = 'Detect Cones'; $('socPaced').style.display = ''; }
-      else { setStep('No camera available. Paced mode calls colors at a steady beat — run to the matching cone each time.'); $('socDetect').textContent = 'Start Paced'; $('socPaced').style.display = 'none'; }
+      if (ok) { setStep('Aim so all your cones are in view…'); startPreview(); }
+      else { setStep('No camera available — Paced mode calls colors on a steady beat. Run to the matching cone each time.'); $('socStart').textContent = 'Start Paced ▶'; $('socStart').disabled = false; }
     }
     function setStep(t) { $('socStepText').textContent = t; }
     function renderReps() {
       const rp = $('socReps'); rp.innerHTML = '';
       [20, 45, 100].forEach(n => { const c = document.createElement('span'); c.className = 'soc-seg' + (reps === n ? ' on' : ''); c.textContent = n; c.onclick = () => { reps = n; renderReps(); }; rp.appendChild(c); });
     }
-    $('socDetect').addEventListener('click', () => {
-      if (rmode === 'paced') { startPaced(); return; }
-      if (setupPhase === 'aim') {
-        const found = detectCones();
-        if (found.length < 2) { setStep('Only found ' + found.length + ' cone(s). Make sure they are bright, spread apart, and well lit (avoid a green cone on grass), then tap Detect Cones again.'); return; }
-        detected = found; drawMarkers(found); setupPhase = 'ready';
-        setStep('Found ' + found.length + ' cones: ' + found.map(f => PALETTE.find(p => p.id === f.color).name).join(', ') + '. Keep the phone still and tap Start!');
-        $('socDetect').textContent = 'Start ▶'; $('socRescan').style.display = '';
-      } else { startRun(detected, [...new Set(detected.map(z => z.color))]); }
+    function startPreview() {
+      stopPreview();
+      previewInt = setInterval(() => {
+        const found = detectCones(); detected = found; drawMarkers(found);
+        const names = found.map(f => PALETTE.find(p => p.id === f.color).name);
+        if (found.length >= 2) { setStep('Seeing: ' + names.join(', ') + '. Tap Start when every cone has a dot on it.'); $('socStart').disabled = false; }
+        else { setStep('Aim so your cones are in view — bright & spread out (seeing ' + found.length + ').'); $('socStart').disabled = true; }
+      }, 500);
+    }
+    function stopPreview() { if (previewInt) { clearInterval(previewInt); previewInt = null; } }
+    function warmSpeech() { try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} SAC(); }
+    $('socStart').addEventListener('click', () => {
+      warmSpeech();
+      if (rmode === 'paced') { stopPreview(); startPaced(); return; }
+      if (detected.length < 2) return;
+      stopPreview();
+      startRun(detected, [...new Set(detected.map(z => z.color))]);
     });
-    $('socRescan').addEventListener('click', () => {
-      setupPhase = 'aim'; detected = []; $('socRings').innerHTML = '';
-      $('socDetect').textContent = 'Detect Cones'; $('socRescan').style.display = 'none';
-      setStep('Aim the phone so it sees all your cones, then tap Detect Cones.');
-    });
-    $('socPaced').addEventListener('click', startPaced);
+    $('socPaced').addEventListener('click', () => { warmSpeech(); rmode = 'paced'; stopPreview(); startPaced(); });
     function startPaced() { rmode = 'paced'; startRun(RCOLORS.map((p, i) => ({ color: p.id, x: 20 + i * 20, y: 50 })), RCOLORS.map(p => p.id)); }
     function drawMarkers(list) {
       const box = $('socRings'); box.innerHTML = '';
