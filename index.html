@@ -172,7 +172,8 @@
     .soc-seg.on { background: #00ff41; color: #000; font-weight: bold; }
     .soc-sheet .soc-btn { width: 100%; }
     .soc-mini { background: none; border: none; color: #00ff4188; font-family: inherit; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
-    .soc-marker { position: absolute; width: 30px; height: 30px; margin: -15px 0 0 -15px; border-radius: 50%; border: 3px solid #fff; pointer-events: auto; cursor: pointer; }
+    .soc-marker { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 3px solid #fff; pointer-events: none; animation: socFlash 0.8s ease forwards; }
+    @keyframes socFlash { 0% { transform: scale(0.4); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
     .soc-label { color: #00ff41cc; font-size: 0.78rem; letter-spacing: 0.08em; margin: 0.4rem 0 0.35rem; }
     .soc-hint { color: #00ff4177; font-size: 0.7rem; text-transform: none; letter-spacing: 0; }
     .soc-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
@@ -652,6 +653,7 @@
           <button class="soc-btn" id="socCam">📷 Enable Camera</button>
           <button class="soc-btn" id="socStart" disabled style="display:none;">Start ▶</button>
           <button class="soc-mini" id="socPaced">No camera? Use Paced mode</button>
+          <button class="soc-mini" id="socClear" style="display:none;">Clear cones</button>
         </div>
       </div>
 
@@ -1590,7 +1592,7 @@
     function openReaction() {
       soccerView('socSetup'); detected = []; $('socRings').innerHTML = ''; renderReps();
       $('socStart').style.display = 'none'; $('socStart').disabled = true; $('socStart').textContent = 'Start ▶';
-      $('socCam').style.display = ''; setStep('Tap "Enable Camera" to begin.');
+      $('socCam').style.display = ''; $('socClear').style.display = 'none'; setStep('Tap "Enable Camera" to begin.');
       attemptCam();
     }
     async function attemptCam() {
@@ -1657,34 +1659,33 @@
       if (h < 290) return 'Purple';
       return 'Pink';
     }
-    $('socFlip').addEventListener('click', async () => { facing = facing === 'environment' ? 'user' : 'environment'; stopCam(); const ok = await startCam(); if (!ok) { rmode = 'paced'; setStep(camMsg()); } else if (detected.length) drawMarkers(detected); });
+    $('socFlip').addEventListener('click', async () => { facing = facing === 'environment' ? 'user' : 'environment'; stopCam(); const ok = await startCam(); if (!ok) { rmode = 'paced'; setStep(camMsg()); } });
+    function flashMarker(z) {
+      const scr = screenFromFrame(z); if (!scr) return;
+      const rgb = 'rgb(' + z.ref.map(v => v | 0).join(',') + ')';
+      const d = document.createElement('div'); d.className = 'soc-marker';
+      d.style.left = scr.px + 'px'; d.style.top = scr.py + 'px';
+      d.style.background = rgb; d.style.boxShadow = '0 0 16px ' + rgb;
+      $('socRings').appendChild(d);
+      setTimeout(() => d.remove(), 800);
+    }
     $('socSetup').addEventListener('click', e => {
       if (rmode !== 'camera') return;
-      if (e.target.closest('.soc-sheet') || e.target.closest('.soc-marker') || e.target.closest('#socFlip')) return;
+      if (e.target.closest('.soc-sheet') || e.target.closest('#socFlip')) return;
       const f = frameFromScreen(e.clientX, e.clientY); if (!f) return;
       const rgb = avgColorAt(f.x, f.y); if (!rgb) return;
-      detected.push({ x: f.x, y: f.y, ref: rgb, name: colorName(rgb) });
-      drawMarkers(detected);
+      const z = { x: f.x, y: f.y, ref: rgb, name: colorName(rgb) };
+      detected.push(z); flashMarker(z);
+      $('socClear').style.display = '';
       if (detected.length >= 2) $('socStart').disabled = false;
-      setStep('Registered ' + detected.length + ' cone(s): ' + detected.map(z => z.name).join(', ') + '. Tap more, or tap Start. (tap a dot to remove)');
+      setStep('Registered: ' + detected.map(z => z.name).join(', ') + '. Tap each cone once, then tap Start.');
     });
-    function drawMarkers(list) {
-      const box = $('socRings'); box.innerHTML = '';
-      list.forEach((z, idx) => {
-        const scr = screenFromFrame(z); if (!scr) return;
-        const rgb = 'rgb(' + z.ref.map(v => v | 0).join(',') + ')';
-        const d = document.createElement('div'); d.className = 'soc-marker';
-        d.style.left = scr.px + 'px'; d.style.top = scr.py + 'px';
-        d.style.background = rgb; d.style.boxShadow = '0 0 12px ' + rgb;
-        d.onclick = ev => { ev.stopPropagation(); list.splice(idx, 1); drawMarkers(list); if (list.length < 2) $('socStart').disabled = true; setStep('Removed. ' + list.length + ' cone(s) registered.'); };
-        box.appendChild(d);
-      });
-    }
+    $('socClear').addEventListener('click', () => { detected = []; $('socRings').innerHTML = ''; $('socStart').disabled = true; $('socClear').style.display = 'none'; setStep('Tap each cone in the camera view to register it.'); });
     $('socStart').addEventListener('click', () => {
       warmSpeech();
       if (rmode === 'paced') { startPaced(); return; }
       if (detected.length < 2) return;
-      startRun(detected, [...new Set(detected.map(z => z.color))]);
+      startRun(detected, [...new Set(detected.map(z => z.name))]);
     });
     $('socPaced').addEventListener('click', () => { warmSpeech(); rmode = 'paced'; startPaced(); });
     function startPaced() { rmode = 'paced'; const zs = RCOLORS.map(p => ({ name: p.name, ref: hex2rgb(p.css), x: 50, y: 50 })); startRun(zs, zs.map(z => z.name)); }
