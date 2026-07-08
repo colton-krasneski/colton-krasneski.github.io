@@ -172,8 +172,7 @@
     .soc-seg.on { background: #00ff41; color: #000; font-weight: bold; }
     .soc-sheet .soc-btn { width: 100%; }
     .soc-mini { background: none; border: none; color: #00ff4188; font-family: inherit; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
-    .soc-marker { position: absolute; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 3px solid #fff; pointer-events: none; animation: socFlash 0.8s ease forwards; }
-    @keyframes socFlash { 0% { transform: scale(0.4); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
+    .soc-marker { position: absolute; width: 42px; height: 42px; margin: -21px 0 0 -21px; border-radius: 50%; border: 4px solid #fff; background: transparent; pointer-events: auto; cursor: pointer; }
     .soc-label { color: #00ff41cc; font-size: 0.78rem; letter-spacing: 0.08em; margin: 0.4rem 0 0.35rem; }
     .soc-hint { color: #00ff4177; font-size: 0.7rem; text-transform: none; letter-spacing: 0; }
     .soc-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
@@ -1659,23 +1658,47 @@
       if (h < 290) return 'Purple';
       return 'Pink';
     }
-    $('socFlip').addEventListener('click', async () => { facing = facing === 'environment' ? 'user' : 'environment'; stopCam(); const ok = await startCam(); if (!ok) { rmode = 'paced'; setStep(camMsg()); } });
-    function flashMarker(z) {
-      const scr = screenFromFrame(z); if (!scr) return;
-      const rgb = 'rgb(' + z.ref.map(v => v | 0).join(',') + ')';
-      const d = document.createElement('div'); d.className = 'soc-marker';
-      d.style.left = scr.px + 'px'; d.style.top = scr.py + 'px';
-      d.style.background = rgb; d.style.boxShadow = '0 0 16px ' + rgb;
-      $('socRings').appendChild(d);
-      setTimeout(() => d.remove(), 800);
+    $('socFlip').addEventListener('click', async () => { facing = facing === 'environment' ? 'user' : 'environment'; stopCam(); const ok = await startCam(); if (!ok) { rmode = 'paced'; setStep(camMsg()); } else drawMarkers(); });
+    function neonCss(rgb) {
+      const r = rgb[0], g = rgb[1], b = rgb[2], max = Math.max(r, g, b), min = Math.min(r, g, b);
+      if (max - min < 12) return 'hsl(0,0%,82%)';
+      let h, d = max - min;
+      if (max === r) h = ((g - b) / d) % 6; else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
+      h = Math.round(h * 60); if (h < 0) h += 360;
+      return 'hsl(' + h + ',100%,55%)';
+    }
+    function sampleConeColor(xp, yp) {
+      if (!cctx || video.readyState < 2) return null;
+      cctx.drawImage(video, 0, 0, CW, CH);
+      const cx = xp / 100 * CW | 0, cy = yp / 100 * CH | 0, r = 8;
+      const x0 = Math.max(0, cx - r), y0 = Math.max(0, cy - r), w = Math.min(CW, cx + r) - x0, h = Math.min(CH, cy + r) - y0;
+      if (w <= 0 || h <= 0) return null;
+      const d = cctx.getImageData(x0, y0, w, h).data, px = [];
+      for (let i = 0; i < d.length; i += 4) { const R = d[i], G = d[i + 1], B = d[i + 2], mx = Math.max(R, G, B), mn = Math.min(R, G, B); px.push([R, G, B, mx ? (mx - mn) / mx : 0]); }
+      px.sort((a, b) => b[3] - a[3]);
+      const top = px.slice(0, Math.max(1, Math.floor(px.length * 0.35)));
+      let R = 0, G = 0, B = 0; top.forEach(p => { R += p[0]; G += p[1]; B += p[2]; });
+      return [R / top.length, G / top.length, B / top.length];
+    }
+    function drawMarkers() {
+      const box = $('socRings'); box.innerHTML = '';
+      detected.forEach((z, idx) => {
+        const scr = screenFromFrame(z); if (!scr) return;
+        const neon = neonCss(z.ref);
+        const d = document.createElement('div'); d.className = 'soc-marker';
+        d.style.left = scr.px + 'px'; d.style.top = scr.py + 'px';
+        d.style.borderColor = neon; d.style.boxShadow = '0 0 20px ' + neon + ', inset 0 0 14px ' + neon;
+        d.onclick = ev => { ev.stopPropagation(); detected.splice(idx, 1); drawMarkers(); $('socClear').style.display = detected.length ? '' : 'none'; if (detected.length < 2) $('socStart').disabled = true; setStep(detected.length ? ('Registered: ' + detected.map(z => z.name).join(', ')) : 'Tap each cone in the camera view to register it.'); };
+        box.appendChild(d);
+      });
     }
     $('socSetup').addEventListener('click', e => {
       if (rmode !== 'camera') return;
-      if (e.target.closest('.soc-sheet') || e.target.closest('#socFlip')) return;
+      if (e.target.closest('.soc-sheet') || e.target.closest('.soc-marker') || e.target.closest('#socFlip')) return;
       const f = frameFromScreen(e.clientX, e.clientY); if (!f) return;
-      const rgb = avgColorAt(f.x, f.y); if (!rgb) return;
-      const z = { x: f.x, y: f.y, ref: rgb, name: colorName(rgb) };
-      detected.push(z); flashMarker(z);
+      const rgb = sampleConeColor(f.x, f.y); if (!rgb) return;
+      detected.push({ x: f.x, y: f.y, ref: rgb, name: colorName(rgb) });
+      drawMarkers();
       $('socClear').style.display = '';
       if (detected.length >= 2) $('socStart').disabled = false;
       setStep('Registered: ' + detected.map(z => z.name).join(', ') + '. Tap each cone once, then tap Start.');
@@ -1695,6 +1718,7 @@
     function pickZone(c) { const z = zonesRef.filter(x => x.name === c); return z[Math.floor(Math.random() * z.length)]; }
     function startRun(zones, colors) {
       zonesRef = zones; colorsRef = colors;
+      if (rmode === 'camera') zones.forEach(z => { z.base = avgColorAt(z.x, z.y) || z.ref; });
       running = true; repsDone = 0; lastColor = null; splits = []; missCount = 0; prevImg = null;
       $('socRep').textContent = '0/' + reps; $('socSplit').textContent = '';
       soccerView('socRun'); reqWake(); startMotion();
@@ -1726,7 +1750,7 @@
       if (rmode === 'camera' && current && current.zone.ref && video.readyState >= 2) {
         const dt = performance.now() - callTime, cur = avgColorAt(current.zone.x, current.zone.y);
         if (cur) {
-          const dist = cdist(cur, current.zone.ref);
+          const dist = cdist(cur, current.zone.base || current.zone.ref);
           if (dt > 500 && dist > OCC_THRESH) { occ++; if (occ >= 3) arrival(false); }
           else if (occ > 0) occ--;
           if (dt > 8000) arrival(true);
