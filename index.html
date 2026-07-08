@@ -123,10 +123,11 @@
       font-size: 0.7rem; color: #fff; background: rgba(0,255,65,0.12);
     }
     #socBanner {
-      position: absolute; inset: 0; z-index: 3; display: none;
+      position: absolute; inset: 0; z-index: 6; display: none;
       align-items: center; justify-content: center; pointer-events: none;
       font-size: clamp(2.5rem, 14vw, 7rem); font-weight: bold; letter-spacing: 0.05em;
-      text-transform: uppercase; color: #fff; text-shadow: 0 0 30px rgba(0,0,0,0.6);
+      text-transform: uppercase; color: #fff;
+      text-shadow: 0 2px 8px #000, 0 0 30px rgba(0,0,0,0.85); -webkit-text-stroke: 2px rgba(0,0,0,0.7);
     }
     #socBanner.show { display: flex; }
     #socFlip {
@@ -1495,7 +1496,7 @@
     let sctx = null;
     function SAC() { if (!sctx) { try { sctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } if (sctx && sctx.state === 'suspended') sctx.resume(); return sctx; }
     function beep(f, d) { const c = SAC(); if (!c) return; const o = c.createOscillator(), g = c.createGain(); o.type = 'square'; o.frequency.value = f; o.connect(g); g.connect(c.destination); const t = c.currentTime; g.gain.setValueAtTime(0.2, t); g.gain.exponentialRampToValueAtTime(0.001, t + d); o.start(t); o.stop(t + d); }
-    function speak(txt) { try { speechSynthesis.cancel(); speechSynthesis.speak(new SpeechSynthesisUtterance(txt)); } catch (e) {} }
+    function speak(txt) { try { if (!window.speechSynthesis) return; const u = new SpeechSynthesisUtterance(String(txt)); u.rate = 1; u.volume = 1; speechSynthesis.resume(); speechSynthesis.speak(u); } catch (e) {} }
     function vibrate(p) { try { if (navigator.vibrate) navigator.vibrate(p); } catch (e) {} }
     async function reqWake() { try { if (navigator.wakeLock) wake = await navigator.wakeLock.request('screen'); } catch (e) {} }
     function relWake() { try { if (wake) wake.release(); } catch (e) {} wake = null; }
@@ -1614,7 +1615,7 @@
       const rp = $('socReps'); rp.innerHTML = '';
       [20, 45, 100].forEach(n => { const c = document.createElement('span'); c.className = 'soc-seg' + (reps === n ? ' on' : ''); c.textContent = n; c.onclick = () => { reps = n; renderReps(); }; rp.appendChild(c); });
     }
-    function warmSpeech() { try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; speechSynthesis.speak(u); } catch (e) {} SAC(); }
+    function warmSpeech() { SAC(); try { if (window.speechSynthesis) { speechSynthesis.resume(); speak('Ready'); } } catch (e) {} }
 
     /* tap-to-register cones (samples the real cone color + spot) */
     function hex2rgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
