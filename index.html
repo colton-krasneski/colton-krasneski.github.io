@@ -1506,6 +1506,9 @@
     let presenceTimer = null, unsubLobby = null, unsubIncoming = null, unsubDuel = null, unsubInviteDoc = null;
     let netState = null, netRole = null, netPhase = null, myDuelId = null, inviteTimer = null, netWriteT = 0, netEnded = false, currentInviteId = null;
     const seenInvites = new Set();
+    const RTC_CFG = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun1.l.google.com:19302' }] };
+    let pc = null, dc = null, dcOpen = false, remoteGuest = null, remoteState = null, connectTimer = null;
+    const rtcUnsubs = [];
 
     function ding() { blip(880, 0.12, 'sine', 0.2); setTimeout(() => blip(1320, 0.18, 'sine', 0.2), 110); }
     function buzz() { blip(120, 0.35, 'sawtooth', 0.22); }
@@ -1541,7 +1544,8 @@
       try { await updateDoc(doc(db, 'duels', id), { status: 'accepted' }); } catch (e) {}
       ding();
       netRole = 'guest'; myDuelId = id; netPhase = 'playing'; netEnded = false;
-      listenDuel(id); startNetGuest(id);
+      ahView('ahGame'); showNet('Connecting…', false);
+      listenDuel(id); waitOffer(id); startConnectTimeout();
     });
     $('ahInviteNo').addEventListener('click', async () => {
       const id = currentInviteId; if (!id) return;
@@ -1605,7 +1609,7 @@
     function onAccepted() {
       if (inviteTimer) { clearTimeout(inviteTimer); inviteTimer = null; }
       netPhase = 'playing'; ding(); showNet('Player Joined!', false);
-      setTimeout(() => { hideNet(); startNetHost(myDuelId); }, 1000);
+      setTimeout(() => { showNet('Connecting…', false); rtcHost(myDuelId); startConnectTimeout(); }, 900);
     }
     function onRejected() {
       netPhase = null; buzz(); showNet('Game Rejected… Exiting', false);
@@ -1625,11 +1629,76 @@
     });
     function cleanupNet() {
       if (inviteTimer) { clearTimeout(inviteTimer); inviteTimer = null; }
+      if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; }
       stopDuel(); if (unsubInviteDoc) { unsubInviteDoc(); unsubInviteDoc = null; }
+      rtcUnsubs.forEach(u => { try { u(); } catch (e) {} }); rtcUnsubs.length = 0;
+      dcOpen = false; if (dc) { try { dc.close(); } catch (e) {} dc = null; }
+      if (pc) { try { pc.close(); } catch (e) {} pc = null; }
+      remoteGuest = null; remoteState = null;
       if (myDuelId && netRole === 'host') { try { deleteDoc(doc(db, 'duels', myDuelId)); } catch (e) {} }
       myDuelId = null; netRole = null; netPhase = null; netState = null; netEnded = false; currentInviteId = null;
     }
     function leaveOnline() { stopLobby(); stopIncoming(); stopPresence(); if (netPhase) cleanupNet(); seenInvites.clear(); }
+
+    // ---- WebRTC peer-to-peer (Firebase only used for the handshake) ----
+    function sendDC(o) { try { if (dc && dc.readyState === 'open') dc.send(JSON.stringify(o)); } catch (e) {} }
+    function startConnectTimeout() {
+      if (connectTimer) clearTimeout(connectTimer);
+      connectTimer = setTimeout(() => {
+        if (!dcOpen) { buzz(); showNet('Connection failed… Exiting', false); setTimeout(() => { hideNet(); cleanupNet(); ahView('ahOnline'); }, 1700); }
+      }, 12000);
+    }
+    function setupDC() {
+      dc.onopen = () => { dcOpen = true; if (connectTimer) { clearTimeout(connectTimer); connectTimer = null; } hideNet(); if (netRole === 'host') startNetHost(myDuelId); else startNetGuest(myDuelId); };
+      dc.onclose = () => { dcOpen = false; };
+      dc.onmessage = e => {
+        let m; try { m = JSON.parse(e.data); } catch (x) { return; }
+        if (netRole === 'host') { if (m.gp) remoteGuest = m.gp; }
+        else { if (m.done) onNetDone({ winner: m.winner }); else remoteState = m; }
+      };
+    }
+    async function rtcHost(id) {
+      pc = new RTCPeerConnection(RTC_CFG);
+      dc = pc.createDataChannel('game'); setupDC();
+      const hc = collection(db, 'duels', id, 'hostCand');
+      pc.onicecandidate = e => { if (e.candidate) addDoc(hc, e.candidate.toJSON()); };
+      const offer = await pc.createOffer(); await pc.setLocalDescription(offer);
+      try { await updateDoc(doc(db, 'duels', id), { offer: { type: offer.type, sdp: offer.sdp } }); } catch (e) {}
+      rtcUnsubs.push(onSnapshot(doc(db, 'duels', id), d => {
+        const v = d.data(); if (v && v.answer && pc && !pc.currentRemoteDescription) pc.setRemoteDescription(new RTCSessionDescription(v.answer)).catch(() => {});
+      }));
+      rtcUnsubs.push(onSnapshot(collection(db, 'duels', id, 'guestCand'), s => {
+        s.docChanges().forEach(c => { if (c.type === 'added' && pc) pc.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {}); });
+      }));
+    }
+    async function rtcGuest(id) {
+      pc = new RTCPeerConnection(RTC_CFG);
+      pc.ondatachannel = e => { dc = e.channel; setupDC(); };
+      const gc = collection(db, 'duels', id, 'guestCand');
+      pc.onicecandidate = e => { if (e.candidate) addDoc(gc, e.candidate.toJSON()); };
+      const dref = doc(db, 'duels', id);
+      let snap; try { snap = await getDoc(dref); } catch (e) { return; }
+      const offer = snap.data() && snap.data().offer; if (!offer) return;
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer(); await pc.setLocalDescription(answer);
+      try { await updateDoc(dref, { answer: { type: answer.type, sdp: answer.sdp } }); } catch (e) {}
+      rtcUnsubs.push(onSnapshot(collection(db, 'duels', id, 'hostCand'), s => {
+        s.docChanges().forEach(c => { if (c.type === 'added' && pc) pc.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {}); });
+      }));
+    }
+    function waitOffer(id) {
+      const un = onSnapshot(doc(db, 'duels', id), async d => {
+        const v = d.data(); if (v && v.offer && !pc) { un(); await rtcGuest(id); }
+      });
+      rtcUnsubs.push(un);
+    }
+    function localPuckHit(g) {
+      const dx = g.bx - g.px, dy = g.by - g.py, d = Math.hypot(dx, dy), min = g.kr + g.pr;
+      if (d < min && d > 0) {
+        const nx = dx / d, ny = dy / d, vn = g.bvx * nx + g.bvy * ny;
+        if (vn < 0) { g.bx = g.px + nx * min; g.by = g.py + ny * min; g.bvx -= 2 * vn * nx; g.bvy -= 2 * vn * ny; hitSound(); }
+      }
+    }
 
     function applyInput(g, bottom) {
       let x = bottom ? g.px : g.ox, y = bottom ? g.py : g.oy;
@@ -1668,7 +1737,7 @@
       applyInput(g, true);
       const pvx = g.px - ppx, pvy = g.py - ppy;
       let ovx = 0, ovy = 0;
-      if (netState && netState.gp) { const ox0 = g.ox, oy0 = g.oy; g.ox += (netState.gp.x - g.ox) * 0.5; g.oy += (netState.gp.y - g.oy) * 0.5; ovx = g.ox - ox0; ovy = g.oy - oy0; }
+      if (remoteGuest) { const ox0 = g.ox, oy0 = g.oy; g.ox += (remoteGuest.x - g.ox) * 0.6; g.oy += (remoteGuest.y - g.oy) * 0.6; ovx = g.ox - ox0; ovy = g.oy - oy0; }
       const now = performance.now();
       if (!g.freeze || now >= g.freeze) {
         if (g.freeze) { g.freeze = 0; g.bvx = (Math.random() * 2 - 1) * 2; g.bvy = g.serveDir * 3.4; }
@@ -1676,7 +1745,7 @@
         if (who) { if (who === 'you') g.hs++; else g.gs++; netGoalHost(who); }
       }
       $('ahYou').textContent = g.hs; $('ahOpp').textContent = g.gs;
-      if (now - netWriteT > 70) { netWriteT = now; try { updateDoc(doc(db, 'duels', myDuelId), { hp: { x: g.px, y: g.py }, puck: { x: g.bx, y: g.by }, vx: g.bvx, vy: g.bvy, hs: g.hs, gs: g.gs, serve: g.serveDir, freeze: g.freeze || 0, ts: Date.now() }); } catch (e) {} }
+      if (now - netWriteT > 33) { netWriteT = now; sendDC({ hp: { x: g.px, y: g.py }, puck: { x: g.bx, y: g.by }, vx: g.bvx, vy: g.bvy, hs: g.hs, gs: g.gs, freeze: g.freeze || 0 }); }
       render();
       raf = requestAnimationFrame(netTickHost);
     }
@@ -1685,10 +1754,10 @@
       const g = game;
       if (g.hs >= g.cfg.target || g.gs >= g.cfg.target) { netEndHost(g.hs > g.gs); return; }
       g.bx = g.W / 2; g.by = g.H / 2; g.bvx = 0; g.bvy = 0; g.serveDir = who === 'you' ? -1 : 1; g.freeze = performance.now() + 1600;
-      try { updateDoc(doc(db, 'duels', myDuelId), { puck: { x: g.bx, y: g.by }, vx: 0, vy: 0, hs: g.hs, gs: g.gs, serve: g.serveDir, freeze: g.freeze }); } catch (e) {}
+      sendDC({ hp: { x: g.px, y: g.py }, puck: { x: g.bx, y: g.by }, vx: 0, vy: 0, hs: g.hs, gs: g.gs, freeze: g.freeze });
     }
     function netEndHost(hostWon) {
-      netEnded = true; stopGame();
+      netEnded = true; sendDC({ done: true, winner: hostWon ? 'host' : 'guest' }); stopGame();
       try { updateDoc(doc(db, 'duels', myDuelId), { status: 'done', winner: hostWon ? 'host' : 'guest' }); } catch (e) {}
       setCoins(AH.coins + (hostWon ? 50 : 10));
       $('ahResultText').textContent = (hostWon ? 'You win the duel! 🏆' : 'You lost the duel 😿') + '\n+' + (hostWon ? 50 : 10) + ' 🪙';
@@ -1699,23 +1768,24 @@
       if (!game || game.mode !== 'guest') return;
       const g = game;
       applyInput(g, true);                       // guest plays from the bottom, normal controls
-      if (netState) {
+      if (remoteState) {
         const phs = g.hs, pgs = g.gs;
         // host paddle → rotate 180° into guest's view (shows as the top opponent)
-        if (netState.hp) { const tx = g.W - netState.hp.x, ty = g.H - netState.hp.y; g.ox += (tx - g.ox) * 0.35; g.oy += (ty - g.oy) * 0.35; }
+        if (remoteState.hp) { const tx = g.W - remoteState.hp.x, ty = g.H - remoteState.hp.y; g.ox += (tx - g.ox) * 0.4; g.oy += (ty - g.oy) * 0.4; }
         // puck: rotate + dead-reckon with velocity so it glides between updates
-        if (netState.puck) {
-          const px = g.W - netState.puck.x, py = g.H - netState.puck.y;
-          g.bvx = -(netState.vx || 0); g.bvy = -(netState.vy || 0);
+        if (remoteState.puck) {
+          const px = g.W - remoteState.puck.x, py = g.H - remoteState.puck.y;
+          g.bvx = -(remoteState.vx || 0); g.bvy = -(remoteState.vy || 0);
           g.bx += g.bvx; g.by += g.bvy;
-          g.bx += (px - g.bx) * 0.2; g.by += (py - g.by) * 0.2;
+          g.bx += (px - g.bx) * 0.25; g.by += (py - g.by) * 0.25;
         }
-        g.hs = netState.hs || 0; g.gs = netState.gs || 0;
+        g.hs = remoteState.hs || 0; g.gs = remoteState.gs || 0;
         if (g.hs !== phs || g.gs !== pgs) { showGoal(); goalSound(); }
       }
+      localPuckHit(g);                            // instant bounce + sound off your own mallet
       $('ahYou').textContent = g.gs; $('ahOpp').textContent = g.hs;
       const now = performance.now();
-      if (now - netWriteT > 70) { netWriteT = now; try { updateDoc(doc(db, 'duels', myDuelId), { gp: { x: g.W - g.px, y: g.H - g.py }, ts: Date.now() }); } catch (e) {} }
+      if (dcOpen && now - netWriteT > 33) { netWriteT = now; sendDC({ gp: { x: g.W - g.px, y: g.H - g.py } }); }
       render();
       raf = requestAnimationFrame(netTickGuest);
     }
