@@ -250,6 +250,7 @@
     .mf-lyrics { line-height: 2.1; font-size: 1.15rem; color: #6a8f78; text-align: center; }
     .mf-lyrics .ln { transition: color 0.2s; }
     .mf-lyrics .ln.on { color: #ffd24a; text-shadow: 0 0 12px #ffd24a; font-weight: bold; }
+    .mf-karhint { color: #00ff4188; font-size: 0.8rem; margin-bottom: 0.9rem; }
 
     /* ---- Screen system ---- */
     .screen {
@@ -1651,18 +1652,14 @@
       try { const r = await fetch('https://api.lyrics.ovh/v1/' + encodeURIComponent(current.artist) + '/' + encodeURIComponent(current.title)); const d = await r.json(); lyrics = d.lyrics; } catch (e) {}
       if (!lyrics) { $('mfLyrics').innerHTML = '<div class="mf-note">No lyrics found for this track — just vibe and sing along! 🎤</div>'; return; }
       const lines = lyrics.split(/\n/).map(s => s.trim()).filter(s => s.length);
-      $('mfLyrics').innerHTML = lines.map((l, i) => `<div class="ln" id="mfln${i}">${esc(l)}</div>`).join('');
-      if (karInt) clearInterval(karInt);
-      const per = 30 / Math.max(1, Math.min(lines.length, 24)); let idx = -1;
-      karInt = setInterval(() => {
-        if (A.paused) return;
-        const cur = Math.floor(A.currentTime / per);
-        if (cur !== idx) { const pe = document.getElementById('mfln' + idx); if (pe) pe.classList.remove('on'); idx = cur; const n = document.getElementById('mfln' + idx); if (n) { n.classList.add('on'); n.scrollIntoView({ block: 'center', behavior: 'smooth' }); } }
-        if (A.ended || A.currentTime >= 30) { clearInterval(karInt); karInt = null; }
-      }, 200);
+      $('mfLyrics').innerHTML = '<div class="mf-karhint">👆 Tap the lyrics to move the highlight in time as you sing</div>' + lines.map((l, i) => `<div class="ln" id="mfln${i}">${esc(l)}</div>`).join('');
+      let idx = 0;
+      const hi = i => { lines.forEach((_, k) => { const e = document.getElementById('mfln' + k); if (e) e.classList.toggle('on', k === i); }); const n = document.getElementById('mfln' + i); if (n) n.scrollIntoView({ block: 'center', behavior: 'smooth' }); };
+      hi(0);
+      $('mfLyrics').onclick = () => { if (idx < lines.length - 1) { idx++; hi(idx); } };
     }
     async function startKarMic() { try { if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) { mfMic = await navigator.mediaDevices.getUserMedia({ audio: true }); $('mfMic').classList.add('live'); } } catch (e) {} }
-    function stopKaraoke() { if (karInt) { clearInterval(karInt); karInt = null; } if (mfMic) { mfMic.getTracks().forEach(t => t.stop()); mfMic = null; } $('mfMic').classList.remove('live'); }
+    function stopKaraoke() { if (karInt) { clearInterval(karInt); karInt = null; } $('mfLyrics').onclick = null; if (mfMic) { mfMic.getTracks().forEach(t => t.stop()); mfMic = null; } $('mfMic').classList.remove('live'); }
     $('mfKarBack').addEventListener('click', () => { stopKaraoke(); setTab('search'); mfView('mfSearch'); });
   })();
 
