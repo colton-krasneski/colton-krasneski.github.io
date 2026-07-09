@@ -224,6 +224,9 @@
     .mf-searchbar button { padding: 0 1rem; background: #00ff41; color: #000; border: none; border-radius: 20px; cursor: pointer; font-size: 1rem; }
     .mf-list { display: flex; flex-direction: column; gap: 0.4rem; }
     .mf-note { color: #00ff4177; text-align: center; padding: 1.5rem; font-size: 0.9rem; }
+    #mfPlayerBox { padding: 0.5rem 0.8rem 0; }
+    #mfPlayerBox iframe, #mfYT iframe { width: 100%; border-radius: 10px; display: block; }
+    .mf-frown { font-size: 4.5rem; text-align: center; padding: 1.5rem 0 0.3rem; }
     .mf-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem; border: 1px solid #00ff4122; border-radius: 8px; }
     .mf-row img { width: 44px; height: 44px; border-radius: 6px; flex: 0 0 44px; background: #111; }
     .mf-row .mf-meta { flex: 1; min-width: 0; }
@@ -738,7 +741,6 @@
 
   <!-- ===== MUSICFY ===== -->
   <div class="screen inactive" id="musicfy">
-    <audio id="mfAudio"></audio>
     <div class="mf-wrap">
       <div class="mf-top">
         <button class="back" id="mfBack">‹</button>
@@ -748,6 +750,7 @@
         <button class="mf-tab on" id="mfTabSearch">Search</button>
         <button class="mf-tab" id="mfTabPlaylists">Playlists</button>
       </div>
+      <div id="mfPlayerBox" style="display:none;"><div id="mfYT"></div></div>
 
       <div class="mf-view" id="mfSearch">
         <div class="mf-searchbar"><input id="mfQuery" type="text" placeholder="Search any song or artist…"><button id="mfGo">🔍</button></div>
@@ -1558,37 +1561,50 @@
 
   /* ===== MUSICFY ===== */
   (function () {
-    const A = $('mfAudio');
+    const YT_KEY = 'AIzaSyByHOBBiCRiR4Il2OYWo0jrY-cNyPlxfi0';
     let current = null, results = [], karInt = null, mfMic = null;
+    let ytPlayer = null, ytReady = false, pendingId = null;
     function plKey() { return 'mf_pl_' + (me || 'guest'); }
     function loadPls() { try { return JSON.parse(localStorage.getItem(plKey()) || '[]'); } catch (e) { return []; } }
     function savePls(p) { try { localStorage.setItem(plKey(), JSON.stringify(p)); } catch (e) {} }
 
     function mfView(id) { ['mfSearch', 'mfPlaylists', 'mfPlaylist', 'mfKaraoke'].forEach(v => $(v).style.display = 'none'); $(id).style.display = 'block'; }
     function setTab(t) { $('mfTabSearch').classList.toggle('on', t === 'search'); $('mfTabPlaylists').classList.toggle('on', t === 'playlists'); }
-    function openMusicfy() { $('menuBtn').style.display = 'none'; showScreen('musicfy'); setTab('search'); mfView('mfSearch'); }
+    function openMusicfy() { $('menuBtn').style.display = 'none'; showScreen('musicfy'); setTab('search'); mfView('mfSearch'); loadYT(); }
     $('musicfyApp').addEventListener('click', openMusicfy);
-    $('mfBack').addEventListener('click', () => { stopKaraoke(); A.pause(); $('mfNow').style.display = 'none'; $('menuBtn').style.display = ''; showScreen('home'); });
+    $('mfBack').addEventListener('click', () => { stopKaraoke(); if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); $('menuBtn').style.display = ''; showScreen('home'); });
     $('mfTabSearch').addEventListener('click', () => { setTab('search'); mfView('mfSearch'); });
     $('mfTabPlaylists').addEventListener('click', () => { setTab('playlists'); renderPlaylists(); mfView('mfPlaylists'); });
 
-    function jsonp(url) {
-      return new Promise((res, rej) => {
-        const cb = 'mfcb' + Math.random().toString(36).slice(2);
-        const t = setTimeout(() => { cleanup(); rej(new Error('timeout')); }, 8000);
-        function cleanup() { clearTimeout(t); try { delete window[cb]; } catch (e) {} s.remove(); }
-        window[cb] = d => { cleanup(); res(d); };
-        const s = document.createElement('script');
-        s.onerror = () => { cleanup(); rej(new Error('net')); };
-        s.src = url + (url.includes('?') ? '&' : '?') + 'callback=' + cb;
-        document.body.appendChild(s);
+    /* YouTube IFrame player (full songs) */
+    function loadYT() {
+      if (window.YT && window.YT.Player) { if (!ytPlayer) initYT(); return; }
+      if (!window.__mfYT) { window.__mfYT = true; const s = document.createElement('script'); s.src = 'https://www.youtube.com/iframe_api'; document.body.appendChild(s); }
+      const prev = window.onYouTubeIframeAPIReady;
+      window.onYouTubeIframeAPIReady = function () { if (prev) prev(); initYT(); };
+    }
+    function initYT() {
+      if (ytPlayer) return;
+      ytPlayer = new YT.Player('mfYT', {
+        height: '210', width: '100%', playerVars: { playsinline: 1, rel: 0 },
+        events: {
+          onReady: () => { ytReady = true; ytPlayer.setVolume(100); if (pendingId) { ytPlayer.loadVideoById(pendingId); pendingId = null; } },
+          onStateChange: e => { if (window.YT) { if (e.data === YT.PlayerState.PAUSED) $('mfPlay').textContent = '▶️'; else if (e.data === YT.PlayerState.PLAYING) $('mfPlay').textContent = '⏸️'; } }
+        }
       });
+    }
+    function decodeHtml(s) { const t = document.createElement('textarea'); t.innerHTML = s || ''; return t.value; }
+    function quotaFace(d) {
+      const quota = /quota|dailyLimit/i.test(JSON.stringify((d && d.error) || ''));
+      $('mfResults').innerHTML = '<div class="mf-frown">😞</div><div class="mf-note">' + (quota ? 'Out of searches for today — they reset tomorrow. You can still play songs from your Playlists (free & unlimited)!' : 'Search error — try again.') + '</div>';
     }
     async function doSearch(q) {
       const box = $('mfResults'); box.innerHTML = '<div class="mf-note">Searching…</div>';
       try {
-        const d = await jsonp('https://itunes.apple.com/search?media=music&limit=25&term=' + encodeURIComponent(q));
-        results = (d.results || []).filter(r => r.previewUrl).map(r => ({ id: r.trackId, title: r.trackName, artist: r.artistName, art: (r.artworkUrl100 || '').replace('100x100', '200x200'), preview: r.previewUrl }));
+        const r = await fetch('https://www.googleapis.com/youtube/v3/search?part=snippet&type=video&maxResults=20&q=' + encodeURIComponent(q) + '&key=' + YT_KEY);
+        const d = await r.json();
+        if (d.error) return quotaFace(d);
+        results = (d.items || []).filter(it => it.id && it.id.videoId).map(it => ({ id: it.id.videoId, title: decodeHtml(it.snippet.title), artist: decodeHtml(it.snippet.channelTitle), art: it.snippet.thumbnails.default.url }));
         renderResults();
       } catch (e) { box.innerHTML = '<div class="mf-note">Search failed — check your connection and try again.</div>'; }
     }
@@ -1607,10 +1623,9 @@
     $('mfGo').addEventListener('click', () => { const q = $('mfQuery').value.trim(); if (q) doSearch(q); });
     $('mfQuery').addEventListener('keydown', e => { if (e.key === 'Enter') { const q = $('mfQuery').value.trim(); if (q) doSearch(q); } });
 
-    function playSong(song) { current = song; A.src = song.preview; A.play().catch(() => {}); showNow(); }
-    function showNow() { if (!current) return; $('mfNow').style.display = 'flex'; $('mfNowArt').src = current.art; $('mfNowTitle').textContent = current.title; $('mfNowArtist').textContent = current.artist; $('mfPlay').textContent = '⏸️'; }
-    $('mfPlay').addEventListener('click', () => { if (A.paused) { A.play().catch(() => {}); $('mfPlay').textContent = '⏸️'; } else { A.pause(); $('mfPlay').textContent = '▶️'; } });
-    A.addEventListener('ended', () => { $('mfPlay').textContent = '▶️'; });
+    function playSong(song) { current = song; showNow(); if (ytReady && ytPlayer) { ytPlayer.loadVideoById(song.id); ytPlayer.setVolume(100); } else { pendingId = song.id; loadYT(); } }
+    function showNow() { if (!current) return; $('mfPlayerBox').style.display = 'block'; $('mfNow').style.display = 'flex'; $('mfNowArt').src = current.art; $('mfNowTitle').textContent = current.title; $('mfNowArtist').textContent = current.artist; $('mfPlay').textContent = '⏸️'; }
+    $('mfPlay').addEventListener('click', () => { if (!ytPlayer) return; const st = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : -1; if (st === 1) ytPlayer.pauseVideo(); else { ytPlayer.playVideo(); ytPlayer.setVolume(100); } });
     $('mfBinge').addEventListener('click', () => { if (current) startKaraoke(); });
 
     function addToPlaylist(song) {
@@ -1642,14 +1657,20 @@
     }
     $('mfPlBack').addEventListener('click', () => { setTab('playlists'); renderPlaylists(); mfView('mfPlaylists'); });
 
+    function guessAT() {
+      let t = current.title.replace(/\(.*?\)|\[.*?\]/g, ' ').replace(/official video|official audio|lyrics|audio|video|hd|4k|mv/ig, ' ').replace(/\s+/g, ' ').trim();
+      let artist = current.artist, song = t;
+      if (t.includes(' - ')) { const p = t.split(' - '); artist = p[0].trim(); song = p.slice(1).join(' ').trim(); }
+      return { artist, song };
+    }
     async function startKaraoke() {
-      mfView('mfKaraoke'); $('mfKarTitle').textContent = current.title + ' — ' + current.artist;
+      mfView('mfKaraoke'); $('mfKarTitle').textContent = current.title;
       $('mfLyrics').innerHTML = '<div class="mf-note">Loading lyrics…</div>';
-      try { A.currentTime = 0; } catch (e) {}
-      A.play().catch(() => {}); $('mfPlay').textContent = '⏸️';
+      if (ytPlayer && ytReady) { try { ytPlayer.seekTo(0); ytPlayer.playVideo(); ytPlayer.setVolume(100); } catch (e) {} }
       startKarMic();
+      const at = guessAT();
       let lyrics = null;
-      try { const r = await fetch('https://api.lyrics.ovh/v1/' + encodeURIComponent(current.artist) + '/' + encodeURIComponent(current.title)); const d = await r.json(); lyrics = d.lyrics; } catch (e) {}
+      try { const r = await fetch('https://api.lyrics.ovh/v1/' + encodeURIComponent(at.artist) + '/' + encodeURIComponent(at.song)); const d = await r.json(); lyrics = d.lyrics; } catch (e) {}
       if (!lyrics) { $('mfLyrics').innerHTML = '<div class="mf-note">No lyrics found for this track — just vibe and sing along! 🎤</div>'; return; }
       const lines = lyrics.split(/\n/).map(s => s.trim()).filter(s => s.length);
       $('mfLyrics').innerHTML = '<div class="mf-karhint">👆 Tap the lyrics to move the highlight in time as you sing</div>' + lines.map((l, i) => `<div class="ln" id="mfln${i}">${esc(l)}</div>`).join('');
