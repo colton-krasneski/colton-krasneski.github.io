@@ -227,6 +227,26 @@
     #mfPlayerBox { padding: 0.5rem 0.8rem 0; }
     #mfPlayerBox iframe, #mfYT iframe { width: 100%; border-radius: 10px; display: block; }
     .mf-frown { font-size: 4.5rem; text-align: center; padding: 1.5rem 0 0.3rem; }
+
+    /* ---- Password Game ---- */
+    .pg-wrap { width: min(100%, 560px); height: 100%; margin: 0 auto; display: flex; flex-direction: column; }
+    .pg-top { display: flex; align-items: center; gap: 0.8rem; padding: 1rem; padding-top: calc(1rem + env(safe-area-inset-top)); border-bottom: 1px solid #00ff4133; }
+    .pg-top .back { cursor: pointer; font-size: 1.3rem; color: #00ff41; background: none; border: none; font-family: inherit; }
+    .pg-title { color: #00ff41; letter-spacing: 0.08em; text-shadow: 0 0 10px #00ff41; }
+    .pg-body { flex: 1; overflow-y: auto; padding: 1rem; }
+    .pg-head { color: #baffcf; font-size: 1.1rem; margin-bottom: 0.7rem; }
+    #pgInput { width: 100%; padding: 0.8rem 1rem; background: rgba(0,0,0,0.5); border: 2px solid #00ff41; border-radius: 8px; color: #d6ffe4; font-family: inherit; font-size: 1.1rem; outline: none; resize: none; box-shadow: 0 0 12px rgba(0,255,65,0.25); }
+    #pgInput:focus { box-shadow: 0 0 18px rgba(0,255,65,0.5); }
+    .pg-count { text-align: right; color: #00ff4188; font-size: 0.8rem; margin: 0.3rem 0 0.8rem; }
+    .pg-win { text-align: center; color: #000; background: #00ff41; border-radius: 10px; padding: 0.9rem; font-weight: bold; font-size: 1.1rem; margin-bottom: 0.8rem; box-shadow: 0 0 25px #00ff41; }
+    .pg-rules { display: flex; flex-direction: column; gap: 0.5rem; }
+    .pg-rule { padding: 0.7rem 0.9rem; border-radius: 8px; font-size: 0.95rem; line-height: 1.4; border: 1px solid; animation: pgIn 0.25s ease; }
+    .pg-rule.ok { background: rgba(0,255,65,0.1); border-color: #00ff4166; color: #baffcf; }
+    .pg-rule.bad { background: rgba(255,0,51,0.12); border-color: #ff0033; color: #ff9bb0; }
+    .pg-rule .pg-n { font-weight: bold; letter-spacing: 0.05em; margin-right: 0.4rem; }
+    .pg-rule.ok .pg-n { color: #00ff41; }
+    .pg-rule.bad .pg-n { color: #ff3355; }
+    @keyframes pgIn { 0% { transform: translateY(-8px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
     .mf-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.4rem; border: 1px solid #00ff4122; border-radius: 8px; }
     .mf-row img { width: 44px; height: 44px; border-radius: 6px; flex: 0 0 44px; background: #111; }
     .mf-row .mf-meta { flex: 1; min-width: 0; }
@@ -575,6 +595,7 @@
         <div class="app" id="messagesApp">💬<span class="label">Messages</span></div>
         <div class="app" id="soccerApp" style="display:none;">⚽<span class="label">Soccer Trainer</span></div>
         <div class="app" id="musicfyApp">🎵<span class="label">Musicfy</span></div>
+        <div class="app" id="passgameApp">🔑<span class="label">Password Game</span></div>
       </div>
     </div>
   </div>
@@ -778,6 +799,23 @@
         <div class="mf-now-meta"><div id="mfNowTitle"></div><div id="mfNowArtist"></div></div>
         <button id="mfBinge" title="Teacher Binge (sing along)">🎤</button>
         <button id="mfPlay">⏸️</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PASSWORD GAME ===== -->
+  <div class="screen inactive" id="passgame">
+    <div class="pg-wrap">
+      <div class="pg-top">
+        <button class="back" id="pgBack">‹</button>
+        <div class="pg-title">🔑 The Password Game</div>
+      </div>
+      <div class="pg-body">
+        <div class="pg-head">Please choose a password.</div>
+        <textarea id="pgInput" rows="3" placeholder="Type your password…"></textarea>
+        <div class="pg-count" id="pgCount">0 characters</div>
+        <div class="pg-win" id="pgWin" style="display:none;">🎉 YOU WIN! Your password is truly cursed.</div>
+        <div class="pg-rules" id="pgRules"></div>
       </div>
     </div>
   </div>
@@ -1001,7 +1039,7 @@
   let me = null; // logged-in username (canonical)
 
   function showScreen(id) {
-    ['login','home','messages','airhockey','soccer','musicfy'].forEach(s => $(s).classList.add('inactive'));
+    ['login','home','messages','airhockey','soccer','musicfy','passgame'].forEach(s => $(s).classList.add('inactive'));
     $(id).classList.remove('inactive');
   }
 
@@ -1080,7 +1118,7 @@
     stopCallListener();
     me = null;
     mode = MODES.intro;
-    ['login','home','messages','airhockey','soccer','musicfy'].forEach(s => $(s).classList.add('inactive'));
+    ['login','home','messages','airhockey','soccer','musicfy','passgame'].forEach(s => $(s).classList.add('inactive'));
     $('intro').classList.remove('hidden-up');
   });
 
@@ -1557,6 +1595,44 @@
     if (!saved) return;
     if (['matrix', 'spiral', 'pong', 'foosball'].includes(saved.mode)) setAnim(saved.mode);
     else if ((saved.mode === 'image' || saved.mode === 'cats') && saved.data) setImage(saved.data);
+  })();
+
+  /* ===== PASSWORD GAME ===== */
+  (function () {
+    const RULES = [
+      { t: 'Your password must be at least 6 characters.', f: p => p.length >= 6 },
+      { t: 'Your password must include a number.', f: p => /[0-9]/.test(p) },
+      { t: 'Your password must include an uppercase letter.', f: p => /[A-Z]/.test(p) },
+      { t: 'Your password must include a special character.', f: p => /[^a-zA-Z0-9]/.test(p) },
+      { t: 'The digits in your password must add up to 25.', f: p => { let s = 0; for (const c of p) if (c >= '0' && c <= '9') s += +c; return s === 25; } },
+      { t: 'Your password must include a month of the year.', f: p => /(january|february|march|april|may|june|july|august|september|october|november|december)/i.test(p) },
+      { t: 'Your password must include a Roman numeral (I V X L C D M).', f: p => /[IVXLCDM]/.test(p) },
+      { t: 'Your password must include one of our sponsors: Pepsi, Nike, or Adobe.', f: p => /(pepsi|nike|adobe)/i.test(p) },
+      { t: 'The Roman numerals in your password must add up to 25.', f: p => { const v = { I: 1, V: 5, X: 10, L: 50, C: 100, D: 500, M: 1000 }; let s = 0; for (const c of p) if (v[c]) s += v[c]; return s === 25; } },
+      { t: "Your password must include today's day of the week.", f: p => p.toLowerCase().includes(['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][new Date().getDay()]) },
+      { t: 'Your password must include an emoji.', f: p => /\p{Extended_Pictographic}/u.test(p) },
+      { t: 'The length of your password must be a prime number.', f: p => { const n = p.length; if (n < 2) return false; for (let i = 2; i * i <= n; i++) if (n % i === 0) return false; return true; } }
+    ];
+    let revealed = 1;
+    function esc2(s) { return String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c])); }
+    function render() {
+      const p = $('pgInput').value;
+      $('pgCount').textContent = p.length + ' characters';
+      let changed = true;
+      while (changed) { changed = false; if (RULES.slice(0, revealed).every(r => r.f(p)) && revealed < RULES.length) { revealed++; changed = true; } }
+      const box = $('pgRules'); box.innerHTML = '';
+      let allOk = true;
+      for (let i = revealed - 1; i >= 0; i--) {
+        const ok = RULES[i].f(p); if (!ok) allOk = false;
+        const d = document.createElement('div'); d.className = 'pg-rule ' + (ok ? 'ok' : 'bad');
+        d.innerHTML = `<span class="pg-n">Rule ${i + 1}</span>${ok ? '✅' : '❌'} ${esc2(RULES[i].t)}`;
+        box.appendChild(d);
+      }
+      $('pgWin').style.display = (revealed === RULES.length && allOk) ? 'block' : 'none';
+    }
+    $('passgameApp').addEventListener('click', () => { $('menuBtn').style.display = 'none'; showScreen('passgame'); revealed = 1; render(); setTimeout(() => $('pgInput').focus(), 100); });
+    $('pgBack').addEventListener('click', () => { $('menuBtn').style.display = ''; showScreen('home'); });
+    $('pgInput').addEventListener('input', render);
   })();
 
   /* ===== MUSICFY ===== */
