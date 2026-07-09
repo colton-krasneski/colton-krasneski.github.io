@@ -213,6 +213,16 @@
     .soc-timer-clock { font-size: 4rem; color: #00ff41; text-shadow: 0 0 20px #00ff41; font-variant-numeric: tabular-nums; }
     .soc-timer-name { color: #00ff41; font-size: 1.1rem; letter-spacing: 0.1em; }
     .soc-timer-active { color: #ffd24a; font-size: 0.9rem; }
+    /* settings + locked mode */
+    .soc-settings-note { color: #baffcf; font-size: 0.82rem; line-height: 1.5; text-align: center; max-width: 340px; }
+    .soc-settings-warn { color: #ffb84a; font-size: 0.72rem; line-height: 1.45; text-align: center; max-width: 340px; opacity: 0.9; }
+    #soccer.locked .soc-top, #soccer.locked #socFlip { display: none !important; }
+    .soc-lock { text-align: center; gap: 1.1rem; justify-content: center; }
+    .soc-lock-badge { font-size: 2.6rem; filter: drop-shadow(0 0 12px #00ff41); }
+    .soc-lock-sub { color: #00ff4199; font-size: 0.78rem; letter-spacing: 0.16em; text-transform: uppercase; }
+    .soc-lock-clock { font-size: clamp(3.5rem, 20vw, 6rem); color: #00ff41; text-shadow: 0 0 24px #00ff41; font-variant-numeric: tabular-nums; }
+    .soc-lock-drill { font-size: clamp(1.6rem, 9vw, 2.6rem); color: #fff; text-shadow: 0 0 16px #00ff41; letter-spacing: 0.05em; min-height: 2.6rem; }
+    .soc-lock-note { color: #ffd24a; font-size: 0.85rem; }
 
     /* ---- Musicfy ---- */
     .mf-wrap { width: min(100%, 500px); height: 100%; margin: 0 auto; display: flex; flex-direction: column; background: rgba(0,6,10,0.6); }
@@ -795,6 +805,7 @@
         <div class="soc-stats" id="socStats"></div>
         <button class="soc-btn" id="socReactBtn">⚡ Reaction Trainer</button>
         <button class="soc-btn" id="socDrillsBtn">📋 Drills</button>
+        <button class="soc-btn ghost" id="socSettingsBtn">⚙️ Settings</button>
       </div>
 
       <div class="soc-view" id="socSetup" style="display:none;">
@@ -841,6 +852,25 @@
         <div class="soc-timer-clock" id="socTimerClock">0:00</div>
         <div class="soc-timer-active" id="socTimerActive"></div>
         <button class="soc-btn ghost" id="socTimerStop">Stop</button>
+      </div>
+
+      <div class="soc-view" id="socSettings" style="display:none;">
+        <div class="soc-sub">Settings</div>
+        <div class="soc-label">🔒 Locked Training</div>
+        <div class="soc-settings-note">Locks you inside the trainer for the full timer — no back, no refresh, no exit. It keeps yelling out a no-cone fundamental (toe taps, sole rolls, foundations…). You're in until the clock hits zero.</div>
+        <div class="soc-label">Session length</div>
+        <div class="soc-reps-seg" id="socLockDur"></div>
+        <button class="soc-btn" id="socLockStart">🔒 Lock In &amp; Train</button>
+        <div class="soc-settings-warn">Note: a website can't disable your phone's home button or power button — but this locks the app itself as hard as the browser allows (fullscreen, blocked back, refresh warning).</div>
+        <button class="soc-btn ghost" id="socSettingsBack">Back</button>
+      </div>
+
+      <div class="soc-view soc-lock" id="socLock" style="display:none;">
+        <div class="soc-lock-badge">🔒</div>
+        <div class="soc-lock-sub">Locked — Training in progress</div>
+        <div class="soc-lock-clock" id="socLockClock">0:00</div>
+        <div class="soc-lock-drill" id="socLockDrill">Get ready…</div>
+        <div class="soc-lock-note" id="socLockNote">Keep moving until the timer ends.</div>
       </div>
     </div>
   </div>
@@ -1902,7 +1932,7 @@
       { id: 'orange', name: 'Orange', css: '#ff8c1a' }
     ];
     const RING_POS = [[20, 34], [50, 24], [80, 34], [26, 68], [50, 58], [74, 68]];
-    const VIEWS = ['socMenu', 'socSetup', 'socRun', 'socSummary', 'socCats', 'socList', 'socDrill', 'socTimer'];
+    const VIEWS = ['socMenu', 'socSetup', 'socRun', 'socSummary', 'socCats', 'socList', 'socDrill', 'socTimer', 'socSettings', 'socLock'];
     const SKEY = 'colton_soccer';
     const DETECT_THRESH = 15, CW = 128, CH = 96, PACED_INTERVAL = 1600;
 
@@ -2004,7 +2034,7 @@
       $('socBanner').classList.remove('show');
     }
     $('soccerApp').addEventListener('click', openSoccer);
-    $('socBack').addEventListener('click', () => { if (currentView === 'socMenu') exitSoccer(); else { abortAll(); soccerView('socMenu'); renderStats(); } });
+    $('socBack').addEventListener('click', () => { if (lockActive) return; if (currentView === 'socMenu') exitSoccer(); else { abortAll(); soccerView('socMenu'); renderStats(); } });
 
     /* ---- reaction setup (auto-detect cones by color) ---- */
     const RCOLORS = PALETTE.filter(p => p.id !== 'orange'); // red, yellow, blue, green
@@ -2074,58 +2104,54 @@
       const scale = Math.max(rect.width / vw, rect.height / vh), dw = vw * scale, dh = vh * scale, offx = (rect.width - dw) / 2, offy = (rect.height - dh) / 2;
       return { x: Math.max(0, Math.min(1, (cx - rect.left - offx) / dw)) * 100, y: Math.max(0, Math.min(1, (cy - rect.top - offy) / dh)) * 100 };
     }
-    function screenFromFrame(z) {
-      const rect = video.getBoundingClientRect(), vw = video.videoWidth, vh = video.videoHeight;
-      if (!vw || !vh) return null;
-      const scale = Math.max(rect.width / vw, rect.height / vh), dw = vw * scale, dh = vh * scale, offx = (rect.width - dw) / 2, offy = (rect.height - dh) / 2;
-      return { px: offx + z.x / 100 * dw, py: offy + z.y / 100 * dh };
-    }
-    function avgColorAt(xp, yp) {
-      if (!cctx || video.readyState < 2) return null;
-      cctx.drawImage(video, 0, 0, CW, CH);
-      const cx = xp / 100 * CW | 0, cy = yp / 100 * CH | 0, r = 8;
-      const d = cctx.getImageData(Math.max(0, cx - r), Math.max(0, cy - r), r * 2, r * 2).data;
-      let R = 0, G = 0, B = 0, n = 0;
-      for (let i = 0; i < d.length; i += 4) { R += d[i]; G += d[i + 1]; B += d[i + 2]; n++; }
-      return n ? [R / n, G / n, B / n] : null;
+    function rgb2hsv(r, g, b) {
+      const mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn;
+      let h = 0;
+      if (d) { if (mx === r) h = ((g - b) / d) % 6; else if (mx === g) h = (b - r) / d + 2; else h = (r - g) / d + 4; h *= 60; if (h < 0) h += 360; }
+      return [h, mx ? d / mx : 0, mx / 255];
     }
     function colorName(rgb) {
-      const [r, g, b] = rgb, max = Math.max(r, g, b), min = Math.min(r, g, b), v = max / 255, s = max ? (max - min) / max : 0;
-      if (v < 0.2) return 'Black';
-      if (s < 0.2) return v > 0.75 ? 'White' : 'Gray';
-      let h, d = max - min || 1;
-      if (max === r) h = ((g - b) / d) % 6; else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
-      h *= 60; if (h < 0) h += 360;
-      if (h < 15 || h >= 345) return 'Red';
-      if (h < 40) return 'Orange';
-      if (h < 70) return 'Yellow';
-      if (h < 170) return 'Green';
+      const [r, g, b] = rgb, [h, s, v] = rgb2hsv(r, g, b);
+      if (v < 0.18) return 'Black';
+      if (s < 0.20) return v > 0.72 ? 'White' : 'Gray';
+      if (h < 14 || h >= 344) return 'Red';
+      if (h < 75) { // orange vs yellow is the hard split: yellow's green is nearly as strong as its red
+        if (h < 42) return 'Orange';
+        if (h >= 60) return 'Yellow';
+        return (g >= r * 0.82) ? 'Yellow' : 'Orange';
+      }
+      if (h < 165) return 'Green';
       if (h < 200) return 'Cyan';
-      if (h < 255) return 'Blue';
-      if (h < 290) return 'Purple';
+      if (h < 258) return 'Blue';
+      if (h < 292) return 'Purple';
       return 'Pink';
     }
     $('socFlip').addEventListener('click', async () => { facing = facing === 'environment' ? 'user' : 'environment'; stopCam(); const ok = await startCam(); if (!ok) { rmode = 'paced'; setStep(camMsg()); } else drawMarkers(); });
     function neonCss(rgb) {
-      const r = rgb[0], g = rgb[1], b = rgb[2], max = Math.max(r, g, b), min = Math.min(r, g, b);
-      if (max - min < 12) return 'hsl(0,0%,82%)';
-      let h, d = max - min;
-      if (max === r) h = ((g - b) / d) % 6; else if (max === g) h = (b - r) / d + 2; else h = (r - g) / d + 4;
-      h = Math.round(h * 60); if (h < 0) h += 360;
-      return 'hsl(' + h + ',100%,55%)';
+      const [h, s] = rgb2hsv(rgb[0], rgb[1], rgb[2]);
+      if (s < 0.12) return 'hsl(0,0%,82%)';
+      return 'hsl(' + Math.round(h) + ',100%,55%)';
     }
+    /* sample the true cone colour: cluster the tapped patch by hue and average only the dominant hue —
+       stops bright highlights & background bleeding an orange cone toward yellow */
     function sampleConeColor(xp, yp) {
       if (!cctx || video.readyState < 2) return null;
       cctx.drawImage(video, 0, 0, CW, CH);
       const cx = xp / 100 * CW | 0, cy = yp / 100 * CH | 0, r = 11;
       const x0 = Math.max(0, cx - r), y0 = Math.max(0, cy - r), w = Math.min(CW, cx + r) - x0, h = Math.min(CH, cy + r) - y0;
       if (w <= 0 || h <= 0) return null;
-      const d = cctx.getImageData(x0, y0, w, h).data, px = [];
-      for (let i = 0; i < d.length; i += 4) { const R = d[i], G = d[i + 1], B = d[i + 2], mx = Math.max(R, G, B), mn = Math.min(R, G, B); px.push([R, G, B, mx ? (mx - mn) / mx : 0]); }
-      px.sort((a, b) => b[3] - a[3]);
-      const top = px.slice(0, Math.max(1, Math.floor(px.length * 0.35)));
-      let R = 0, G = 0, B = 0; top.forEach(p => { R += p[0]; G += p[1]; B += p[2]; });
-      return [R / top.length, G / top.length, B / top.length];
+      const d = cctx.getImageData(x0, y0, w, h).data, px = [], bins = new Float32Array(36);
+      for (let i = 0; i < d.length; i += 4) {
+        const R = d[i], G = d[i + 1], B = d[i + 2], hsv = rgb2hsv(R, G, B);
+        px.push([R, G, B, hsv[0], hsv[1]]);
+        if (hsv[1] > 0.25 && hsv[2] > 0.15 && hsv[2] < 0.97) bins[Math.floor(hsv[0] / 10) % 36] += hsv[1]; // weight by saturation
+      }
+      let best = 0, bi = -1;
+      for (let k = 0; k < 36; k++) { const sum = bins[k] + 0.5 * (bins[(k + 35) % 36] + bins[(k + 1) % 36]); if (sum > best) { best = sum; bi = k; } }
+      let R = 0, G = 0, B = 0, n = 0;
+      if (bi >= 0) { const center = bi * 10 + 5; px.forEach(p => { if (p[4] > 0.2) { let dh = Math.abs(p[3] - center); if (dh > 180) dh = 360 - dh; if (dh <= 18) { R += p[0]; G += p[1]; B += p[2]; n++; } } }); }
+      if (!n) { px.forEach(p => { R += p[0]; G += p[1]; B += p[2]; }); n = px.length; } // achromatic (white/black/gray) cone
+      return n ? [R / n, G / n, B / n] : null;
     }
     /* find the connected same-colour blob under the tap (the actual cone), returns centre + size in frame % */
     function findBlob(fx, fy, ref) {
@@ -2229,6 +2255,68 @@
     });
     $('socPaced').addEventListener('click', () => { warmSpeech(); rmode = 'paced'; startPaced(); });
     function startPaced() { rmode = 'paced'; const zs = RCOLORS.map(p => ({ name: p.name, ref: hex2rgb(p.css), x: 50, y: 50 })); startRun(zs, zs.map(z => z.name)); }
+
+    /* ===== Locked Training mode ===== */
+    const LOCK_DRILLS = ['Toe taps', 'Sole rolls', 'Foundations', 'Bell touches', 'Pull-pushes', 'Inside-inside', 'Outside touches', 'Drag backs', 'V-pulls', 'Stepovers', 'Juggle it', 'Weak-foot taps', 'Roll and tap', 'Scissors', 'Sole roll and go', 'Quick feet'];
+    let lockActive = false, lockRemain = 0, lockDur = 300, lockClock = null, lockCueT = null, lockLastDrill = null;
+    function renderLockDur() {
+      const box = $('socLockDur'); box.innerHTML = '';
+      [[300, '5m'], [600, '10m'], [1200, '20m'], [1800, '30m']].forEach(([sec, lbl]) => {
+        const c = document.createElement('span'); c.className = 'soc-seg' + (lockDur === sec ? ' on' : ''); c.textContent = lbl;
+        c.onclick = () => { lockDur = sec; renderLockDur(); }; box.appendChild(c);
+      });
+    }
+    $('socSettingsBtn').addEventListener('click', () => { renderLockDur(); soccerView('socSettings'); });
+    $('socSettingsBack').addEventListener('click', () => { if (!lockActive) soccerView('socMenu'); });
+    function tryFullscreen() { const el = $('soccer'); const fn = el.requestFullscreen || el.webkitRequestFullscreen; if (fn) { try { const r = fn.call(el); if (r && r.catch) r.catch(() => {}); } catch (e) {} } }
+    function lockTrapPush() { try { history.pushState({ socLock: 1 }, ''); } catch (e) {} }
+    function onLockPop() { if (lockActive) { lockTrapPush(); flashLock(); } }
+    function onLockBeforeUnload(e) { if (lockActive) { e.preventDefault(); e.returnValue = ''; return ''; } }
+    function onLockFsChange() { if (lockActive && !(document.fullscreenElement || document.webkitFullscreenElement)) tryFullscreen(); }
+    function flashLock() { vibrate([120, 60, 120, 60, 220]); $('socLockNote').textContent = '🔒 Locked in — finish the timer!'; setTimeout(() => { if (lockActive) $('socLockNote').textContent = 'Keep moving until the timer ends.'; }, 2500); }
+    function updateLockClock() { const m = Math.floor(lockRemain / 60), s = lockRemain % 60; $('socLockClock').textContent = m + ':' + String(s).padStart(2, '0'); }
+    function scheduleLockCue(delay) { lockCueT = setTimeout(lockCue, delay); }
+    function lockCue() {
+      if (!lockActive) return;
+      let d; do { d = LOCK_DRILLS[Math.floor(Math.random() * LOCK_DRILLS.length)]; } while (d === lockLastDrill && LOCK_DRILLS.length > 1);
+      lockLastDrill = d; $('socLockDrill').textContent = d;
+      $('socBanner').textContent = d; $('socBanner').style.color = '#00ff41'; $('socBanner').classList.add('show');
+      speak(d); beep(720, 0.18); vibrate([90, 50, 90]);
+      setTimeout(() => { if (currentView === 'socLock') $('socBanner').classList.remove('show'); }, 1500);
+      scheduleLockCue(7000 + Math.random() * 9000);
+    }
+    $('socLockStart').addEventListener('click', () => {
+      warmSpeech();
+      lockActive = true; lockRemain = lockDur; lockLastDrill = null;
+      $('socLockDrill').textContent = 'Get ready…'; $('socLockNote').textContent = 'Keep moving until the timer ends.';
+      soccerView('socLock'); $('soccer').classList.add('locked'); $('menuBtn').style.display = 'none';
+      tryFullscreen(); reqWake(); startMotion();
+      lockTrapPush(); lockTrapPush();
+      window.addEventListener('popstate', onLockPop);
+      window.addEventListener('beforeunload', onLockBeforeUnload);
+      document.addEventListener('fullscreenchange', onLockFsChange);
+      document.addEventListener('webkitfullscreenchange', onLockFsChange);
+      updateLockClock();
+      lockClock = setInterval(() => { lockRemain--; updateLockClock(); if (lockRemain <= 0) endLocked(); }, 1000);
+      speak('Locked in. Training starts now.'); vibrate([100, 60, 100]);
+      scheduleLockCue(1200);
+    });
+    function endLocked() {
+      if (!lockActive) return;
+      lockActive = false;
+      clearInterval(lockClock); clearTimeout(lockCueT); lockClock = lockCueT = null;
+      window.removeEventListener('popstate', onLockPop);
+      window.removeEventListener('beforeunload', onLockBeforeUnload);
+      document.removeEventListener('fullscreenchange', onLockFsChange);
+      document.removeEventListener('webkitfullscreenchange', onLockFsChange);
+      try { if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {}
+      $('soccer').classList.remove('locked'); $('socBanner').classList.remove('show');
+      relWake(); stopMotion();
+      const st = loadStats(); bumpStreak(st); st.activeMinutes = (st.activeMinutes || 0) + lockDur / 60; saveStats(st);
+      $('menuBtn').style.display = 'none'; // stays hidden on the soccer screen
+      speak('Training complete. You are unlocked.');
+      soccerView('socMenu'); renderStats();
+    }
 
     /* ---- reaction run ---- */
     let zonesRef = [], colorsRef = [];
