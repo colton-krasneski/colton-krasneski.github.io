@@ -173,6 +173,10 @@
     .soc-sheet .soc-btn { width: 100%; }
     .soc-mini { background: none; border: none; color: #00ff4188; font-family: inherit; font-size: 0.8rem; cursor: pointer; text-decoration: underline; }
     .soc-marker { position: absolute; width: 42px; height: 42px; margin: -21px 0 0 -21px; border-radius: 50%; border: 4px solid #fff; background: transparent; pointer-events: auto; cursor: pointer; }
+    .soc-track { position: absolute; box-sizing: border-box; border: 3px solid #fff; border-radius: 10px; background: transparent; pointer-events: none; transition: left 0.08s linear, top 0.08s linear, width 0.08s linear, height 0.08s linear; }
+    .soc-track.editable { pointer-events: auto; cursor: pointer; }
+    .soc-track.lost { border-style: dashed; opacity: 0.6; }
+    .soc-track-tag { position: absolute; top: -1.2rem; left: 0; font-size: 0.62rem; font-weight: bold; letter-spacing: 0.05em; text-shadow: 0 1px 3px #000, 0 0 6px #000; white-space: nowrap; }
     .soc-label { color: #00ff41cc; font-size: 0.78rem; letter-spacing: 0.08em; margin: 0.4rem 0 0.35rem; }
     .soc-hint { color: #00ff4177; font-size: 0.7rem; text-transform: none; letter-spacing: 0; }
     .soc-chips { display: flex; flex-wrap: wrap; gap: 0.4rem; }
@@ -538,6 +542,86 @@
     #gifResults .note { grid-column: 1 / -1; color: #00ff4188; text-align: center; padding: 1rem; font-size: 0.85rem; }
     .bubble.gif { padding: 3px; background: transparent; border: none; }
     .bubble.gif img { max-width: 200px; width: 55vw; border-radius: 10px; display: block; }
+
+    /* ---- Drive Sad ---- */
+    #drivesad { z-index: 20; }
+    .ds-wrap { width: 100%; height: 100%; margin: 0 auto; display: flex; flex-direction: column; overflow: hidden; }
+    .ds-view { width: 100%; height: 100%; display: flex; flex-direction: column; }
+    .ds-top {
+      display: flex; align-items: center; gap: 0.8rem; padding: 1rem;
+      padding-top: calc(1rem + env(safe-area-inset-top));
+    }
+    .ds-top .back { cursor: pointer; font-size: 1.4rem; color: #00ff41; background: none; border: none; font-family: inherit; }
+    .ds-title { color: #00ff41; letter-spacing: 0.1em; text-shadow: 0 0 12px #00ff41; font-size: 1.15rem; }
+    .ds-tagline { color: #9fdcb4; padding: 0 1.1rem; font-size: 0.9rem; line-height: 1.4; }
+    .ds-stats { color: #00ff41aa; padding: 0.6rem 1.1rem 0.2rem; font-size: 0.82rem; letter-spacing: 0.03em; }
+    .ds-stats span { color: #ffd24a; }
+    .ds-worlds { display: flex; gap: 0.5rem; overflow-x: auto; padding: 0.6rem 1.1rem; -webkit-overflow-scrolling: touch; }
+    .ds-world { flex: 0 0 auto; padding: 0.4rem 0.8rem; border: 1px solid #00ff4144; border-radius: 20px;
+      color: #9fdcb4; background: rgba(0,0,0,0.4); font-family: inherit; font-size: 0.8rem; cursor: pointer; white-space: nowrap; }
+    .ds-world.on { background: #00ff41; color: #000; border-color: #00ff41; font-weight: bold; }
+    .ds-grid {
+      flex: 1; overflow-y: auto; display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+      gap: 0.55rem; padding: 0.4rem 1.1rem 2rem; align-content: start;
+    }
+    .ds-cell {
+      aspect-ratio: 1; border: 1px solid #00ff4144; border-radius: 10px; background: rgba(0,10,4,0.55);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      color: #baffcf; font-family: inherit; cursor: pointer; position: relative; overflow: hidden;
+    }
+    .ds-cell .n { font-size: 1.05rem; font-weight: bold; }
+    .ds-cell .medal { position: absolute; top: 3px; right: 5px; font-size: 0.7rem; }
+    .ds-cell.done { border-color: #00ff4188; box-shadow: 0 0 10px rgba(0,255,65,0.25); }
+    .ds-cell.locked { color: #2f5a3f; cursor: default; border-color: #123020; }
+    .ds-cell.locked .n { opacity: 0.35; }
+    .ds-cell:not(.locked):hover { background: #00ff41; color: #000; }
+    #dsCanvas { flex: 1; width: 100%; display: block; background: #04120a; touch-action: none; }
+    .ds-hud {
+      position: absolute; top: 0; left: 0; right: 0; display: flex; align-items: center; justify-content: space-between;
+      padding: 0.6rem 0.8rem; padding-top: calc(0.6rem + env(safe-area-inset-top)); pointer-events: none;
+    }
+    .ds-mini {
+      pointer-events: auto; background: rgba(0,10,3,0.7); border: 1px solid #00ff4166; color: #00ff41;
+      font-family: inherit; font-size: 0.82rem; padding: 0.4rem 0.7rem; border-radius: 8px; cursor: pointer;
+    }
+    .ds-mini:hover { background: #00ff41; color: #000; }
+    .ds-hud-mid { display: flex; flex-direction: column; align-items: center; gap: 2px; text-shadow: 0 0 8px #000; }
+    .ds-lv { color: #00ff41; letter-spacing: 0.12em; font-size: 0.95rem; font-weight: bold; }
+    .ds-time { color: #ffd24a; font-size: 0.8rem; }
+    .ds-fuel {
+      position: absolute; left: 0.8rem; right: 0.8rem; top: calc(3.3rem + env(safe-area-inset-top));
+      height: 6px; background: rgba(0,0,0,0.5); border: 1px solid #00ff4133; border-radius: 4px; overflow: hidden; pointer-events: none;
+    }
+    .ds-fuel-bar { height: 100%; width: 100%; background: linear-gradient(90deg,#00ff41,#8affb4); transition: width 0.1s linear; }
+    .ds-controls {
+      position: absolute; bottom: 0; left: 0; right: 0; display: flex; gap: 0.6rem;
+      padding: 0.7rem; padding-bottom: calc(0.7rem + env(safe-area-inset-bottom));
+    }
+    .ds-pedal {
+      flex: 1; padding: 1.15rem 0; font-family: inherit; font-size: 1rem; font-weight: bold; letter-spacing: 0.08em;
+      color: #00ff41; background: rgba(0,12,4,0.72); border: 2px solid #00ff41; border-radius: 12px;
+      cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation;
+      box-shadow: 0 0 12px rgba(0,255,65,0.25);
+    }
+    .ds-pedal.gas { color: #071; background: #00ff41; }
+    .ds-pedal:active, .ds-pedal.held { transform: translateY(2px); filter: brightness(1.3); }
+    .ds-overlay {
+      position: absolute; inset: 0; background: rgba(2,10,5,0.86); display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 0.8rem; z-index: 5; text-align: center; padding: 1rem;
+    }
+    .ds-overlay-emoji { font-size: 3.4rem; animation: dsBob 1.6s ease-in-out infinite; }
+    @keyframes dsBob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+    .ds-overlay-text { color: #00ff41; font-size: 1.4rem; letter-spacing: 0.06em; text-shadow: 0 0 14px #00ff41; }
+    .ds-overlay-sub { color: #9fdcb4; font-size: 0.9rem; }
+    .ds-overlay-btns { display: flex; gap: 0.7rem; margin-top: 0.4rem; }
+    .ds-ovbtn {
+      padding: 0.75rem 1.3rem; font-family: inherit; font-size: 1rem; font-weight: bold; color: #00ff41;
+      background: rgba(0,0,0,0.4); border: 2px solid #00ff41; border-radius: 8px; cursor: pointer;
+    }
+    .ds-ovbtn.primary { background: #00ff41; color: #000; }
+    .ds-ovbtn.ghost { border-color: #00ff4166; color: #00ff41aa; font-size: 0.85rem; padding: 0.5rem 1rem; }
+    .ds-ovbtn:hover { filter: brightness(1.15); }
+    .ds-ovbtn:disabled { opacity: 0.4; cursor: default; }
   </style>
 </head>
 <body>
@@ -596,6 +680,7 @@
         <div class="app" id="soccerApp" style="display:none;">⚽<span class="label">Soccer Trainer</span></div>
         <div class="app" id="musicfyApp">🎵<span class="label">Musicfy</span></div>
         <div class="app" id="passgameApp">🔑<span class="label">Password Game</span></div>
+        <div class="app" id="drivesadApp">😔<span class="label">Drive Sad</span></div>
       </div>
     </div>
   </div>
@@ -820,6 +905,52 @@
     </div>
   </div>
 
+  <!-- ===== DRIVE SAD ===== -->
+  <div class="screen inactive" id="drivesad">
+    <div class="ds-wrap">
+      <!-- level select -->
+      <div class="ds-view" id="dsMenu">
+        <div class="ds-top">
+          <button class="back" id="dsHome">‹</button>
+          <div class="ds-title">😔 Drive Sad</div>
+        </div>
+        <div class="ds-tagline">200 levels of gloomy physics. Reach the flag without losing your head.</div>
+        <div class="ds-stats">
+          <span id="dsCleared">0</span> / 200 cleared &nbsp;·&nbsp; best streak of tears: <span id="dsStreak">0</span>
+        </div>
+        <div class="ds-worlds" id="dsWorlds"></div>
+        <div class="ds-grid" id="dsGrid"></div>
+      </div>
+      <!-- game -->
+      <div class="ds-view" id="dsGame" style="display:none;">
+        <canvas id="dsCanvas"></canvas>
+        <div class="ds-hud">
+          <button class="ds-mini" id="dsBack">‹ Levels</button>
+          <div class="ds-hud-mid">
+            <span class="ds-lv" id="dsLvNum">LV 1</span>
+            <span class="ds-time" id="dsTime">0.0s</span>
+          </div>
+          <button class="ds-mini" id="dsRestart">↻ Retry</button>
+        </div>
+        <div class="ds-fuel"><div class="ds-fuel-bar" id="dsFuelBar"></div></div>
+        <div class="ds-controls">
+          <button class="ds-pedal" id="dsBrake">◀ REVERSE</button>
+          <button class="ds-pedal gas" id="dsGas">GAS ▶</button>
+        </div>
+        <div class="ds-overlay" id="dsOverlay" style="display:none;">
+          <div class="ds-overlay-emoji" id="dsOvEmoji">😭</div>
+          <div class="ds-overlay-text" id="dsOvText">You crashed.</div>
+          <div class="ds-overlay-sub" id="dsOvSub"></div>
+          <div class="ds-overlay-btns">
+            <button class="ds-ovbtn" id="dsOvRetry">↻ Retry</button>
+            <button class="ds-ovbtn primary" id="dsOvNext">Next ▶</button>
+          </div>
+          <button class="ds-ovbtn ghost" id="dsOvMenu">Level Select</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== CALLS ===== -->
   <audio id="remoteAudio" autoplay></audio>
   <div id="incomingCall" class="call-overlay">
@@ -853,6 +984,7 @@
     <button id="hangBtn" title="Hang up">📵</button>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/matter-js@0.19.0/build/matter.min.js"></script>
   <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
@@ -1039,7 +1171,7 @@
   let me = null; // logged-in username (canonical)
 
   function showScreen(id) {
-    ['login','home','messages','airhockey','soccer','musicfy','passgame'].forEach(s => $(s).classList.add('inactive'));
+    ['login','home','messages','airhockey','soccer','musicfy','passgame','drivesad'].forEach(s => $(s).classList.add('inactive'));
     $(id).classList.remove('inactive');
   }
 
@@ -1118,7 +1250,7 @@
     stopCallListener();
     me = null;
     mode = MODES.intro;
-    ['login','home','messages','airhockey','soccer','musicfy','passgame'].forEach(s => $(s).classList.add('inactive'));
+    ['login','home','messages','airhockey','soccer','musicfy','passgame','drivesad'].forEach(s => $(s).classList.add('inactive'));
     $('intro').classList.remove('hidden-up');
   });
 
@@ -1847,7 +1979,7 @@
       const cam = (id === 'socSetup' || id === 'socRun');
       video.style.display = cam ? 'block' : 'none';
       $('socFlip').style.display = cam ? 'flex' : 'none';
-      $('socRings').classList.toggle('show', id === 'socSetup');
+      $('socRings').classList.toggle('show', id === 'socSetup' || id === 'socRun');
       if (id !== 'socRun') $('socBanner').classList.remove('show');
     }
     function renderStats() {
@@ -1867,6 +1999,7 @@
       if (runRAF) cancelAnimationFrame(runRAF);
       if (timerInt) clearInterval(timerInt);
       pacedTimer = nextTimer = cdTimer = runRAF = timerInt = null;
+      stopSetupTrack();
       relWake(); stopMotion(); stopCam(); stopMic();
       $('socBanner').classList.remove('show');
     }
@@ -1876,7 +2009,8 @@
     /* ---- reaction setup (auto-detect cones by color) ---- */
     const RCOLORS = PALETTE.filter(p => p.id !== 'orange'); // red, yellow, blue, green
     const OCC_THRESH = 55, MOTION_THRESH = 34, PASS_THRESH = 55, CONES_KEY = 'colton_soccer_cones';
-    let detected = [], occ = 0, ballMode = false, lastPass = false;
+    const BLOB_TOL = 62, TRACK_MIN = 6, COVER_FRAC = 0.45; // color-distance tolerance & tracking thresholds
+    let detected = [], occ = 0, ballMode = false, lastPass = false, setupRAF = null;
     let micStream = null, analyser = null, micData = null;
     $('socReactBtn').addEventListener('click', openReaction);
     function openReaction() {
@@ -1892,11 +2026,11 @@
         rmode = 'camera'; $('socCam').style.display = 'none'; $('socStart').style.display = '';
         const saved = loadCones();
         if (saved.length >= 2) {
-          detected = saved; setTimeout(drawMarkers, 250); $('socStart').disabled = false; $('socClear').style.display = '';
-          setStep('Remembered your cones: ' + saved.map(z => z.name).join(', ') + '. Tap Start, tap a ring to remove, or Clear to redo.');
+          detected = saved.map(z => ({ lost: false, ...z })); setTimeout(() => { drawMarkers(); startSetupTrack(); }, 250); $('socStart').disabled = false; $('socClear').style.display = '';
+          setStep('Locked back onto your cones: ' + saved.map(z => z.name).join(', ') + '. Tap Start, tap a highlight to remove, or Clear to redo.');
         } else {
           $('socStart').disabled = true;
-          setStep('Tap each cone in the camera view to register it (tap the red cone, blue cone, etc.).');
+          setStep('Tap a cone in the view to lock onto it (tap the red cone, the blue cone…). It highlights the cone and follows it — space them out.');
         }
       } else { rmode = 'paced'; setStep(camMsg()); }
     }
@@ -1993,30 +2127,99 @@
       let R = 0, G = 0, B = 0; top.forEach(p => { R += p[0]; G += p[1]; B += p[2]; });
       return [R / top.length, G / top.length, B / top.length];
     }
+    /* find the connected same-colour blob under the tap (the actual cone), returns centre + size in frame % */
+    function findBlob(fx, fy, ref) {
+      if (!cctx || video.readyState < 2) return { x: fx, y: fy, w: 8, h: 8, count: 0 };
+      cctx.drawImage(video, 0, 0, CW, CH);
+      const d = cctx.getImageData(0, 0, CW, CH).data;
+      const seedX = Math.max(0, Math.min(CW - 1, fx / 100 * CW | 0)), seedY = Math.max(0, Math.min(CH - 1, fy / 100 * CH | 0));
+      const seen = new Uint8Array(CW * CH), stack = [seedX + seedY * CW];
+      let sx = 0, sy = 0, n = 0, minx = CW, miny = CH, maxx = 0, maxy = 0, guard = 0;
+      while (stack.length && guard++ < 9000) {
+        const idx = stack.pop(); if (seen[idx]) continue; seen[idx] = 1;
+        const x = idx % CW, y = (idx / CW) | 0, i = idx * 4;
+        if (cdist([d[i], d[i + 1], d[i + 2]], ref) >= BLOB_TOL) continue;
+        sx += x; sy += y; n++;
+        if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y;
+        if (x + 1 < CW) stack.push(idx + 1); if (x > 0) stack.push(idx - 1);
+        if (y + 1 < CH) stack.push(idx + CW); if (y > 0) stack.push(idx - CW);
+      }
+      if (n < TRACK_MIN) return { x: fx, y: fy, w: 8, h: 8, count: n };
+      return { x: (sx / n) / CW * 100, y: (sy / n) / CH * 100, w: Math.max(5, (maxx - minx + 1) / CW * 100), h: Math.max(5, (maxy - miny + 1) / CH * 100), count: n };
+    }
+    /* re-locate one cone by searching a padded window around its last position — keeps its spot even after it leaves view */
+    function trackCone(z) {
+      if (!cctx || video.readyState < 2) return;
+      cctx.drawImage(video, 0, 0, CW, CH);
+      const d = cctx.getImageData(0, 0, CW, CH).data;
+      const halfW = Math.max(7, (z.w || 8) / 100 * CW * 0.9 + 6), halfH = Math.max(7, (z.h || 8) / 100 * CH * 0.9 + 6);
+      const cx = z.x / 100 * CW, cy = z.y / 100 * CH;
+      const x0 = Math.max(0, cx - halfW | 0), x1 = Math.min(CW, cx + halfW | 0), y0 = Math.max(0, cy - halfH | 0), y1 = Math.min(CH, cy + halfH | 0);
+      let sx = 0, sy = 0, n = 0, minx = CW, miny = CH, maxx = 0, maxy = 0;
+      for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
+        const i = (y * CW + x) * 4;
+        if (cdist([d[i], d[i + 1], d[i + 2]], z.ref) < BLOB_TOL) { sx += x; sy += y; n++; if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y; }
+      }
+      z.count = n;
+      if (n >= TRACK_MIN) {
+        z.x = (sx / n) / CW * 100; z.y = (sy / n) / CH * 100;
+        z.w = Math.max(5, (maxx - minx + 1) / CW * 100); z.h = Math.max(5, (maxy - miny + 1) / CH * 100);
+        z.lost = false;
+      } else { z.lost = true; } // out of frame / occluded — position is remembered
+    }
+    function frameBoxToScreen(z) {
+      const rect = video.getBoundingClientRect(), vw = video.videoWidth, vh = video.videoHeight;
+      if (!vw || !vh) return null;
+      const scale = Math.max(rect.width / vw, rect.height / vh), dw = vw * scale, dh = vh * scale, offx = (rect.width - dw) / 2, offy = (rect.height - dh) / 2;
+      const w = (z.w || 8) / 100 * dw, h = (z.h || 8) / 100 * dh;
+      return { px: offx + z.x / 100 * dw - w / 2, py: offy + z.y / 100 * dh - h / 2, w, h };
+    }
+    function removeCone(idx) {
+      detected.splice(idx, 1); saveCones(); drawMarkers();
+      $('socClear').style.display = detected.length ? '' : 'none';
+      if (detected.length < 2) $('socStart').disabled = true;
+      setStep(detected.length ? ('Locked on: ' + detected.map(z => z.name).join(', ')) : 'Tap a cone to lock onto it.');
+    }
     function drawMarkers() {
-      const box = $('socRings'); box.innerHTML = '';
+      const box = $('socRings'), editable = currentView === 'socSetup';
+      if (box.children.length !== detected.length) { // rebuild only when the set changes (keeps tap targets stable while tracking)
+        box.innerHTML = '';
+        detected.forEach(() => { const d = document.createElement('div'); d.appendChild(document.createElement('span')); box.appendChild(d); });
+      }
       detected.forEach((z, idx) => {
-        const scr = screenFromFrame(z); if (!scr) return;
-        const neon = neonCss(z.ref);
-        const d = document.createElement('div'); d.className = 'soc-marker';
-        d.style.left = scr.px + 'px'; d.style.top = scr.py + 'px';
-        d.style.borderColor = neon; d.style.boxShadow = '0 0 20px ' + neon + ', inset 0 0 14px ' + neon;
-        d.onclick = ev => { ev.stopPropagation(); detected.splice(idx, 1); saveCones(); drawMarkers(); $('socClear').style.display = detected.length ? '' : 'none'; if (detected.length < 2) $('socStart').disabled = true; setStep(detected.length ? ('Registered: ' + detected.map(z => z.name).join(', ')) : 'Tap each cone in the camera view to register it.'); };
-        box.appendChild(d);
+        const b = frameBoxToScreen(z); if (!b) return;
+        const neon = neonCss(z.ref), d = box.children[idx];
+        d.className = 'soc-track' + (z.lost ? ' lost' : '') + (editable ? ' editable' : '');
+        d.style.left = b.px + 'px'; d.style.top = b.py + 'px';
+        d.style.width = Math.max(28, b.w) + 'px'; d.style.height = Math.max(28, b.h) + 'px';
+        d.style.borderColor = neon; d.style.boxShadow = '0 0 16px ' + neon + ', inset 0 0 10px ' + neon + '66';
+        const tag = d.firstChild; tag.className = 'soc-track-tag'; tag.style.color = neon; tag.textContent = z.name + (z.lost ? ' •' : '');
+        d.onclick = editable ? (ev => { ev.stopPropagation(); removeCone(idx); }) : null;
       });
     }
+    function startSetupTrack() {
+      stopSetupTrack();
+      const tick = () => {
+        if (currentView !== 'socSetup' || rmode !== 'camera') { setupRAF = null; return; }
+        if (detected.length) { detected.forEach(trackCone); drawMarkers(); }
+        setupRAF = requestAnimationFrame(tick);
+      };
+      setupRAF = requestAnimationFrame(tick);
+    }
+    function stopSetupTrack() { if (setupRAF) cancelAnimationFrame(setupRAF); setupRAF = null; }
     $('socSetup').addEventListener('click', e => {
       if (rmode !== 'camera') return;
-      if (e.target.closest('.soc-sheet') || e.target.closest('.soc-marker') || e.target.closest('#socFlip')) return;
+      if (e.target.closest('.soc-sheet') || e.target.closest('.soc-track') || e.target.closest('#socFlip')) return;
       const f = frameFromScreen(e.clientX, e.clientY); if (!f) return;
       const rgb = sampleConeColor(f.x, f.y); if (!rgb) return;
-      detected.push({ x: f.x, y: f.y, ref: rgb, name: colorName(rgb) });
-      saveCones(); drawMarkers();
+      const blob = findBlob(f.x, f.y, rgb);
+      detected.push({ x: blob.x, y: blob.y, w: blob.w, h: blob.h, ref: rgb, name: colorName(rgb), lost: false });
+      saveCones(); drawMarkers(); startSetupTrack();
       $('socClear').style.display = '';
       if (detected.length >= 2) $('socStart').disabled = false;
-      setStep('Registered: ' + detected.map(z => z.name).join(', ') + '. Tap each cone once, then tap Start.');
+      setStep('Locked on: ' + detected.map(z => z.name).join(', ') + '. Tap each cone to lock on (space them out), then Start. Tap a highlight to remove it.');
     });
-    $('socClear').addEventListener('click', () => { detected = []; saveCones(); $('socRings').innerHTML = ''; $('socStart').disabled = true; $('socClear').style.display = 'none'; setStep('Tap each cone in the camera view to register it.'); });
+    $('socClear').addEventListener('click', () => { detected = []; saveCones(); $('socRings').innerHTML = ''; $('socStart').disabled = true; $('socClear').style.display = 'none'; setStep('Tap a cone in the view to lock onto it.'); });
     $('socStart').addEventListener('click', async () => {
       warmSpeech();
       if (rmode === 'paced') { startPaced(); return; }
@@ -2032,11 +2235,12 @@
     function pickZone(c) { const z = zonesRef.filter(x => x.name === c); return z[Math.floor(Math.random() * z.length)]; }
     function startRun(zones, colors) {
       zonesRef = zones; colorsRef = colors;
-      if (rmode === 'camera') zones.forEach(z => { z.base = avgColorAt(z.x, z.y) || z.ref; });
+      stopSetupTrack();
+      if (rmode === 'camera') zones.forEach(z => { trackCone(z); z.base = Math.max(z.count || 0, 14); }); // baseline visible colour when clear
       running = true; repsDone = 0; lastColor = null; splits = []; missCount = 0; prevImg = null;
       $('socRep').textContent = '0/' + reps; $('socSplit').textContent = '';
       soccerView('socRun'); reqWake(); startMotion();
-      if (rmode === 'camera') runRAF = requestAnimationFrame(runTick);
+      if (rmode === 'camera') { drawMarkers(); runRAF = requestAnimationFrame(runTick); }
       countdown(3, nextRep);
     }
     function countdown(n, cb) {
@@ -2053,7 +2257,7 @@
       if (ballMode && !lastPass && Math.random() < 0.3) {
         lastPass = true; current = { pass: true }; occ = 0;
         $('socBanner').textContent = 'PASS'; $('socBanner').style.color = '#00ff41'; $('socBanner').classList.add('show');
-        speak('Pass'); beep(500, 0.2); vibrate([80, 60, 80]);
+        beep(500, 0.2); vibrate([80, 60, 80]); // phone never says "pass" — it registers only when YOU yell it
         callTime = performance.now();
         if (rmode === 'paced') pacedTimer = setTimeout(() => arrival(false), PACED_INTERVAL + 1400);
         return;
@@ -2070,18 +2274,16 @@
     }
     function runTick() {
       if (!running) return;
-      if (rmode === 'camera' && current && video.readyState >= 2) {
-        const dt = performance.now() - callTime;
-        if (current.pass) {
-          if (dt > 700 && micPeak() > PASS_THRESH) arrival(false);
-          else if (dt > 12000) arrival(true);
-        } else if (current.zone && current.zone.ref) {
-          const cur = avgColorAt(current.zone.x, current.zone.y);
-          if (cur) {
-            const dist = cdist(cur, current.zone.base || current.zone.ref);
-            const motion = current.zone.prev ? cdist(cur, current.zone.prev) : 0;
-            current.zone.prev = cur;
-            if (dt > 450 && (dist > OCC_THRESH || motion > MOTION_THRESH)) { occ++; if (occ >= 2) arrival(false); }
+      if (rmode === 'camera' && video.readyState >= 2) {
+        detected.forEach(trackCone); drawMarkers(); // keep every cone tracked & highlighted, even out of frame
+        if (current) {
+          const dt = performance.now() - callTime;
+          if (current.pass) {
+            if (dt > 700 && micPeak() > PASS_THRESH) arrival(false); // completes only when you yell "PASS"
+            else if (dt > 12000) arrival(true);
+          } else if (current.zone) {
+            const z = current.zone, covered = z.count < Math.max(6, (z.base || 20) * COVER_FRAC); // ball/foot hides the cone's colour
+            if (dt > 450 && covered) { occ++; if (occ >= 2) arrival(false); }
             else if (occ > 0) occ--;
             if (dt > 8000) arrival(true);
           }
@@ -2974,6 +3176,595 @@
     const unlockAudio = () => { const c = AC(); if (c && c.state === 'suspended') c.resume(); };
     window.addEventListener('pointerdown', unlockAudio, { passive: true });
     window.addEventListener('keydown', unlockAudio);
+  })();
+
+  /* ===== DRIVE SAD ===== */
+  (function () {
+    const M = window.Matter;
+    if (!M) { return; }
+    const { Engine, Bodies, Body, Composite, Constraint, Events } = M;
+
+    // ---- config ----
+    const BASE = 380, THICK = 90, LEVELS = 200, PER_WORLD = 20;
+    const CAR_W = 64, CAR_H = 16, WHEEL_R = 17, WBX = 34, WBY = 18;
+    const MAXW = 0.72;            // top wheel spin
+    const AIR_SPIN = 0.05;        // gentle air rotation control
+    const ACC = 0.03;             // wheel spin-up rate (feathered, prevents wheelies)
+    let world = 0;               // selected world in level select
+
+    // ---- seeded rng ----
+    function rngFor(n) {
+      let a = (n * 2654435761 ^ 0x9e3779b9) >>> 0;
+      return function () {
+        a |= 0; a = (a + 0x6D2B79F5) | 0;
+        let t = Math.imul(a ^ (a >>> 15), 1 | a);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+    const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+    // ---- progress ----
+    function pkey() { return 'ds_prog_' + (me || 'guest'); }
+    function loadProg() { try { return JSON.parse(localStorage.getItem(pkey()) || '{}'); } catch (e) { return {}; } }
+    function saveProg(p) { try { localStorage.setItem(pkey(), JSON.stringify(p)); } catch (e) {} }
+    let prog = loadProg();
+    if (!prog.cleared) prog.cleared = {};
+    if (!prog.best) prog.best = {};
+    function unlocked(n) { return n === 1 || prog.cleared[n - 1]; }
+    function clearedCount() { let c = 0; for (let i = 1; i <= LEVELS; i++) if (prog.cleared[i]) c++; return c; }
+    function bestStreak() { let s = 0, m = 0; for (let i = 1; i <= LEVELS; i++) { if (prog.cleared[i]) { s++; m = Math.max(m, s); } else s = 0; } return m; }
+
+    // ---- matter engine ----
+    const engine = Engine.create();
+    engine.gravity.y = 1;
+    engine.positionIterations = 8;
+    engine.velocityIterations = 8;
+
+    // ---- level state ----
+    let lvl = 1, dead = false, won = false, finishX = 0, startX = 0, fallY = 0;
+    let chassis = null, headB = null, wheelBack = null, wheelFront = null, carGroup = 0;
+    let spinners = [], movers = [], boosters = [], startTime = 0, elapsed = 0;
+    let running = false, raf = 0, lastGround = 0, frameN = 0, invF = 0;
+    let gasHeld = false, brakeHeld = false;
+    const cam = { x: 0, y: 0 };
+    const cvs = $('dsCanvas');
+    const ctx = cvs.getContext('2d');
+    let VW = 0, VH = 0, DPR = 1, ZOOM = 1;
+
+    // ---- terrain builder ----
+    let terrainPts = []; // for parallax silhouette
+    function addSurface(x0, h0, x1, h1, opts) {
+      opts = opts || {};
+      const dx = x1 - x0, dy = h1 - h0, len = Math.hypot(dx, dy) || 1, ang = Math.atan2(dy, dx);
+      const cx = (x0 + x1) / 2, cy = (h0 + h1) / 2;
+      // offset the slab down by half its thickness, perpendicular to the surface,
+      // so the rectangle's TOP edge sits exactly on the (x0,h0)->(x1,h1) line
+      const b = Bodies.rectangle(cx + Math.sin(ang) * (THICK / 2), cy + Math.cos(ang) * (THICK / 2), len + 2, THICK, {
+        isStatic: true, angle: ang, friction: 0.98, frictionStatic: 1
+      });
+      b.dsK = opts.kind || 'terrain';
+      Composite.add(engine.world, b);
+      terrainPts.push({ x: x0, h: h0 }, { x: x1, h: h1 });
+      return b;
+    }
+
+    function addBox(x, y, w, h, opts) {
+      opts = opts || {};
+      const b = Bodies.rectangle(x, y, w, h, {
+        isStatic: !!opts.static, friction: 0.9, frictionStatic: 1,
+        density: opts.density || 0.0012, angle: opts.angle || 0, restitution: 0.02
+      });
+      b.dsK = opts.kind || 'box';
+      Composite.add(engine.world, b); return b;
+    }
+
+    // ---- chunk generators; cursor {x,h}; returns new cursor ----
+    // Slope steepness is capped at 0.5 rise/run so terrain is always climbable;
+    // gaps are capped to jumpable widths and preceded by long runways.
+    function cFlat(c, len) { addSurface(c.x, c.h, c.x + len, c.h); return { x: c.x + len, h: c.h }; }
+    function cRamp(c, rise) { // rise > 0 climbs (h decreases)
+      const run = Math.max(130, Math.abs(rise) / 0.5);
+      const nh = clamp(c.h - rise, BASE - 300, BASE + 150);
+      addSurface(c.x, c.h, c.x + run, nh); return { x: c.x + run, h: nh };
+    }
+    function cBumps(c, k, amp, rng) {
+      let cur = c; amp = Math.min(amp, 24);
+      for (let i = 0; i < k; i++) {
+        const w = 46 + rng() * 24;
+        let nh = clamp(cur.h - amp, BASE - 300, BASE + 150);
+        addSurface(cur.x, cur.h, cur.x + w, nh); cur = { x: cur.x + w, h: nh };
+        nh = clamp(cur.h + amp, BASE - 300, BASE + 150);
+        addSurface(cur.x, cur.h, cur.x + w, nh); cur = { x: cur.x + w, h: nh };
+      }
+      return cur;
+    }
+    function cGap(c, w) { return { x: c.x + w, h: c.h }; }
+    function cFlatGap(c, w, rng) {
+      w = Math.min(w, 110);
+      let cur = cFlat(c, 300);                       // long runway
+      cur = cGap(cur, w);
+      return cFlat({ x: cur.x, h: clamp(cur.h + rng() * 70, BASE - 260, BASE + 150) }, 140);
+    }
+    function cJump(c, rng) {
+      const rise = 40 + rng() * 35;
+      let cur = cRamp(cFlat(c, 240), rise);          // runway + ramp
+      cur = cGap(cur, Math.min(170, 110 + rng() * 70));
+      const drop = rng() * 0.5 * 120;
+      return cFlat({ x: cur.x, h: clamp(cur.h + drop, BASE - 260, BASE + 150) }, 190);
+    }
+    function cStairs(c, rng, dir) {
+      let cur = c;
+      const steps = 3 + (rng() * 3 | 0);
+      for (let i = 0; i < steps; i++) {
+        const rise = 16 + rng() * 4; // small, wheel-climbable steps
+        const nh = clamp(cur.h - dir * rise, BASE - 300, BASE + 150);
+        addSurface(cur.x, cur.h, cur.x + 40, nh); cur = { x: cur.x + 40, h: nh };
+        cur = cFlat(cur, 30);
+      }
+      return cur;
+    }
+    function cSeesaw(c, rng) {
+      let cur = cFlat(c, 40);
+      const gap = 150, h = cur.h;
+      const pivotX = cur.x + gap / 2, pivotY = h + 8;
+      const plank = addBox(pivotX, h - 6, gap + 30, 12, { density: 0.0009, kind: 'seesaw' });
+      plank.seesaw = true;
+      Composite.add(engine.world, Constraint.create({
+        bodyA: plank, pointA: { x: 0, y: 0 }, pointB: { x: pivotX, y: pivotY }, stiffness: 1, length: 0
+      }));
+      addBox(pivotX, pivotY + 14, 16, 28, { static: true, kind: 'terrain' }); // fulcrum
+      cur = { x: cur.x + gap, h: h };
+      return cFlat(cur, 40);
+    }
+    function cBoxes(c, rng) {
+      let cur = cFlat(c, 50);
+      const k = 3 + (rng() * 3 | 0);
+      for (let i = 0; i < k; i++) addBox(cur.x - 20 + i * 26, cur.h - 14, 20, 20, { kind: 'box' });
+      addBox(cur.x, cur.h - 40, 20, 20, { kind: 'box' });
+      return cFlat(cur, 50);
+    }
+    function cSpinner(c, rng) { // non-lethal rotating bar — a timing knock, not instant death
+      let cur = cFlat(c, 150);
+      const cx = cur.x - 75, cy = cur.h - 74;
+      const bar = addBox(cx, cy, 104, 9, { density: 0.0005, kind: 'spinner' });
+      Composite.add(engine.world, Constraint.create({
+        bodyA: bar, pointA: { x: 0, y: 0 }, pointB: { x: cx, y: cy }, stiffness: 1, length: 0
+      }));
+      spinners.push({ body: bar, sp: (rng() < 0.5 ? -1 : 1) * (0.035 + rng() * 0.03) });
+      return cur;
+    }
+    function cBooster(c, rng) {
+      let cur = cFlat(c, 220);
+      boosters.push({ x: cur.x - 110, y: cur.h - 60, w: 150, h: 60, fx: 0.02 });
+      cur = cGap(cur, Math.min(220, 160 + rng() * 80));
+      return cFlat({ x: cur.x, h: cur.h }, 180);
+    }
+    function cPlatform(c, rng) {
+      let cur = cFlat(c, 240);
+      cur = cGap(cur, Math.min(120, 100 + rng() * 30));
+      const pw = 170;
+      addSurface(cur.x, cur.h - 8, cur.x + pw, cur.h - 8, { kind: 'platform' });
+      cur = { x: cur.x + pw, h: cur.h - 8 };
+      cur = cGap(cur, Math.min(120, 100 + rng() * 30));
+      return cFlat({ x: cur.x, h: c.h }, 180);
+    }
+    function cMover(c, rng) {
+      let cur = cFlat(c, 240);
+      cur = cGap(cur, Math.min(130, 110 + rng() * 30));
+      const pw = 160, py0 = cur.h - 8, amp = 40 + rng() * 40;
+      const plat = addBox(cur.x + pw / 2, py0, pw, 16, { static: true, kind: 'platform' });
+      movers.push({ body: plat, x: cur.x + pw / 2, y0: py0, amp: amp, ph: rng() * 6.28, sp: 0.018 + rng() * 0.012 });
+      cur = { x: cur.x + pw, h: py0 };
+      return cFlat({ x: cur.x, h: c.h }, 180);
+    }
+    function cBoulder(c, rng) {
+      let cur = cRamp(c, 60 + rng() * 30);
+      const r = 24 + rng() * 6;
+      const ball = Bodies.circle(cur.x - 60, cur.h - 40, r, { density: 0.0016, friction: 0.6, restitution: 0.15 });
+      ball.dsK = 'boulder';
+      Composite.add(engine.world, ball);
+      cur = cRamp(cur, -(60 + rng() * 30));
+      return cFlat(cur, 70);
+    }
+
+    function buildLevel(n) {
+      spinners = []; movers = []; boosters = []; terrainPts = [];
+      Composite.clear(engine.world, false, true);
+      const rng = rngFor(n);
+      const band = n <= 20 ? 0 : n <= 60 ? 1 : n <= 120 ? 2 : 3;
+      let c = { x: 0, h: BASE };
+      startX = 130;
+      c = cFlat(c, 340); // starting runway
+      const nChunks = 6 + band + (rng() * 3 | 0) + Math.min(5, (n / 30) | 0);
+      // weighted feature pool, unlocking harder chunks by band
+      const pool = [['flat', 4], ['bumps', 3], ['rampU', 2], ['rampD', 2]];
+      if (band >= 1) pool.push(['flatgap', 2], ['jump', 2], ['seesaw', 2], ['boxes', 2]);
+      if (band >= 2) pool.push(['stairs', 2], ['spinner', 1], ['platform', 2], ['booster', 2], ['boulder', 1]);
+      if (band >= 3) pool.push(['mover', 2], ['jump', 2], ['spinner', 1], ['boxes', 2]);
+      const total = pool.reduce((s, p) => s + p[1], 0);
+      function pick(i) { if (i === 0) return band === 0 ? 'bumps' : 'flat'; let r = rng() * total; for (const p of pool) { r -= p[1]; if (r <= 0) return p[0]; } return 'flat'; }
+      const diff = 1 + band * 0.18 + Math.min(0.55, n / 220);
+      const bAmp = band === 0 ? (8 + rng() * 8) : (11 + rng() * 10) * diff;
+      const rBase = band === 0 ? 30 : 50;
+      for (let i = 0; i < nChunks; i++) {
+        const t = pick(i);
+        if (t === 'flat') c = cFlat(c, 90 + rng() * 90);
+        else if (t === 'bumps') c = cBumps(c, 2 + (rng() * 3 | 0), bAmp, rng);
+        else if (t === 'rampU') c = cRamp(c, (rBase + rng() * rBase) * diff * 0.7);
+        else if (t === 'rampD') c = cRamp(c, -(rBase + rng() * rBase) * diff * 0.7);
+        else if (t === 'flatgap') c = cFlatGap(c, (70 + rng() * 60) * diff, rng);
+        else if (t === 'jump') c = cJump(c, rng);
+        else if (t === 'seesaw') c = cSeesaw(c, rng);
+        else if (t === 'boxes') c = cBoxes(c, rng);
+        else if (t === 'stairs') c = cStairs(c, rng, rng() < 0.5 ? -1 : 1);
+        else if (t === 'spinner') c = cSpinner(c, rng);
+        else if (t === 'booster') c = cBooster(c, rng);
+        else if (t === 'platform') c = cPlatform(c, rng);
+        else if (t === 'mover') c = cMover(c, rng);
+        else if (t === 'boulder') c = cBoulder(c, rng);
+      }
+      c = cFlat(c, 260); // finish landing strip
+      finishX = c.x + 40;
+      fallY = BASE + 520;
+      buildCar(startX, BASE - 60);
+    }
+
+    // ---- car: light body + heavy low wheels = stable, self-righting ----
+    function buildCar(x, y) {
+      carGroup = -Math.abs(Body.nextGroup(true)) || -1; // negative group -> parts don't self-collide
+      const cf = { group: carGroup };
+      chassis = Bodies.rectangle(x, y, CAR_W, CAR_H, {
+        collisionFilter: cf, density: 0.0006, friction: 0.6, frictionAir: 0.008, chamfer: { radius: 6 }
+      });
+      chassis.dsK = 'chassis';
+      wheelBack = Bodies.circle(x - WBX, y + WBY, WHEEL_R, { collisionFilter: cf, density: 0.006, friction: 1, frictionStatic: 2 });
+      wheelFront = Bodies.circle(x + WBX, y + WBY, WHEEL_R, { collisionFilter: cf, density: 0.006, friction: 1, frictionStatic: 2 });
+      wheelBack.dsK = wheelFront.dsK = 'wheel';
+      wheelBack.dsWheel = wheelFront.dsWheel = true;
+      headB = Bodies.circle(x, y - CAR_H / 2 - 8, 7, { collisionFilter: cf, density: 0.0004 });
+      headB.dsK = 'head'; headB.dsHead = true;
+      const axleB = Constraint.create({ bodyA: wheelBack, bodyB: chassis, pointB: { x: -WBX, y: WBY }, stiffness: 1, length: 0 });
+      const axleF = Constraint.create({ bodyA: wheelFront, bodyB: chassis, pointB: { x: WBX, y: WBY }, stiffness: 1, length: 0 });
+      const neck = Constraint.create({ bodyA: headB, bodyB: chassis, pointB: { x: 0, y: -CAR_H / 2 - 8 }, stiffness: 1, length: 0 });
+      Composite.add(engine.world, [chassis, wheelBack, wheelFront, headB, axleB, axleF, neck]);
+    }
+
+    // ---- collisions: track when a wheel is touching ground (for air-control) ----
+    function groundPair(p) {
+      const a = p.bodyA, b = p.bodyB;
+      if (a.dsWheel || b.dsWheel) {
+        const other = a.dsWheel ? b : a;
+        if (other.isStatic || other.seesaw) lastGround = frameN;
+      }
+    }
+    Events.on(engine, 'collisionStart', ev => { for (const p of ev.pairs) groundPair(p); });
+    Events.on(engine, 'collisionActive', ev => { for (const p of ev.pairs) groundPair(p); });
+
+    // ---- input ----
+    function bindPedal(el, set) {
+      const on = e => { e.preventDefault(); set(true); el.classList.add('held'); };
+      const off = e => { if (e) e.preventDefault(); set(false); el.classList.remove('held'); };
+      el.addEventListener('touchstart', on, { passive: false });
+      el.addEventListener('touchend', off, { passive: false });
+      el.addEventListener('touchcancel', off, { passive: false });
+      el.addEventListener('mousedown', on);
+      el.addEventListener('mouseup', off);
+      el.addEventListener('mouseleave', off);
+    }
+    bindPedal($('dsGas'), v => gasHeld = v);
+    bindPedal($('dsBrake'), v => brakeHeld = v);
+    function keyHandler(e, down) {
+      if ($('drivesad').classList.contains('inactive')) return;
+      if ($('dsGame').style.display === 'none') return;
+      const k = e.key;
+      if (k === 'ArrowRight' || k === 'd' || k === 'D') { gasHeld = down; e.preventDefault(); }
+      else if (k === 'ArrowLeft' || k === 'a' || k === 'A') { brakeHeld = down; e.preventDefault(); }
+      else if (down && (k === 'r' || k === 'R')) startLevel(lvl);
+      else if (down && k === 'Escape') toMenu();
+    }
+    window.addEventListener('keydown', e => keyHandler(e, true));
+    window.addEventListener('keyup', e => keyHandler(e, false));
+
+    // ---- sizing ----
+    function sizeCanvas() {
+      DPR = Math.min(window.devicePixelRatio || 1, 2);
+      const r = cvs.getBoundingClientRect();
+      VW = r.width; VH = r.height;
+      cvs.width = Math.round(VW * DPR); cvs.height = Math.round(VH * DPR);
+      ZOOM = clamp(VH / 560, 0.62, 1.15);
+    }
+
+    // ---- physics tick ----
+    const approach = (cur, t, r) => cur < t ? Math.min(cur + r, t) : Math.max(cur - r, t);
+    function drive() {
+      const grounded = (frameN - lastGround) <= 5;
+      let dir = 0;
+      if (gasHeld && !brakeHeld) dir = 1;
+      else if (brakeHeld && !gasHeld) dir = -1;
+      else if (gasHeld && brakeHeld) dir = 1;
+      if (dir !== 0) {
+        const tw = dir * MAXW;
+        Body.setAngularVelocity(wheelBack, approach(wheelBack.angularVelocity, tw, ACC));
+        Body.setAngularVelocity(wheelFront, approach(wheelFront.angularVelocity, tw, ACC * 0.9));
+        if (!grounded) { // gas/brake gently rotate the car in mid-air
+          const target = -dir * AIR_SPIN;
+          Body.setAngularVelocity(chassis, chassis.angularVelocity + (target - chassis.angularVelocity) * 0.09);
+        }
+      }
+      if (grounded) Body.setAngularVelocity(chassis, chassis.angularVelocity * 0.88); // damp wheelies
+      // spinners
+      for (const s of spinners) Body.setAngularVelocity(s.body, s.sp);
+      // movers
+      for (const m of movers) {
+        m.ph += m.sp;
+        const ny = m.y0 + Math.sin(m.ph) * m.amp;
+        Body.setPosition(m.body, { x: m.x, y: ny });
+      }
+      // boosters
+      const cp = chassis.position;
+      for (const b of boosters) {
+        if (cp.x > b.x && cp.x < b.x + b.w && cp.y > b.y - 40 && cp.y < b.y + b.h + 20) {
+          Body.applyForce(chassis, cp, { x: chassis.mass * b.fx, y: -chassis.mass * 0.004 });
+        }
+      }
+    }
+
+    function step() {
+      if (!running) return;
+      frameN++;
+      if (!dead && !won) {
+        drive();
+        Engine.update(engine, 1000 / 60);
+        elapsed = performance.now() - startTime;
+        // fail on a sustained flip (roof-down) — brief bounces recover; or falling in a pit
+        let ang = chassis.angle % (2 * Math.PI);
+        if (ang > Math.PI) ang -= 2 * Math.PI; if (ang < -Math.PI) ang += 2 * Math.PI;
+        if (Math.abs(ang) > 2.5) invF++; else invF = 0;
+        if (chassis.position.y > fallY) crash('You fell into the void.');
+        else if (invF > 42) crash('You flipped. Tragic.');
+        else if (chassis.position.x >= finishX) winLevel();
+      }
+      // camera
+      const tx = chassis.position.x + 90, ty = chassis.position.y - 30;
+      cam.x += (tx - cam.x) * 0.12; cam.y += (ty - cam.y) * 0.12;
+      draw();
+      updateHud();
+      raf = requestAnimationFrame(step);
+    }
+
+    // ---- rendering ----
+    function poly(v) { ctx.beginPath(); ctx.moveTo(v[0].x, v[0].y); for (let i = 1; i < v.length; i++) ctx.lineTo(v[i].x, v[i].y); ctx.closePath(); }
+    function draw() {
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+      ctx.clearRect(0, 0, VW, VH);
+      // sky gradient
+      const g = ctx.createLinearGradient(0, 0, 0, VH);
+      g.addColorStop(0, '#05130b'); g.addColorStop(1, '#020805');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, VW, VH);
+      // parallax distant hills
+      ctx.fillStyle = 'rgba(0,255,65,0.05)';
+      const hz = VH * 0.72;
+      ctx.beginPath(); ctx.moveTo(0, VH);
+      for (let i = 0; i <= 10; i++) {
+        const px = (i / 10) * VW;
+        const hh = hz - 40 - 30 * Math.sin(i * 1.3 + cam.x * 0.0009);
+        ctx.lineTo(px, hh);
+      }
+      ctx.lineTo(VW, VH); ctx.closePath(); ctx.fill();
+      // rain
+      ctx.strokeStyle = 'rgba(120,200,150,0.12)'; ctx.lineWidth = 1;
+      const t = performance.now() * 0.5;
+      ctx.beginPath();
+      for (let i = 0; i < 60; i++) {
+        const rx = (i * 137 + t * (0.6 + (i % 5) * 0.1)) % (VW + 40) - 20;
+        const ry = (i * 91 + t * (1.6 + (i % 5) * 0.2)) % (VH + 40) - 20;
+        ctx.moveTo(rx, ry); ctx.lineTo(rx - 2, ry + 9);
+      }
+      ctx.stroke();
+
+      // world transform
+      ctx.save();
+      ctx.translate(VW / 2, VH * 0.6);
+      ctx.scale(ZOOM, ZOOM);
+      ctx.translate(-cam.x, -cam.y);
+
+      // finish flag
+      drawFlag(finishX, findGroundH(finishX));
+
+      // bodies
+      const bodies = Composite.allBodies(engine.world);
+      for (const b of bodies) {
+        if (b === chassis || b.dsHead || b.dsWheel) continue;
+        drawBody(b);
+      }
+      drawCar();
+      drawBooster();
+      ctx.restore();
+    }
+    function drawBody(b) {
+      const k = b.dsK;
+      let stroke = '#00ff41', fill = 'rgba(6,34,20,0.92)', lw = 2, glow = 6;
+      if (k === 'seesaw') { stroke = '#ffd24a'; fill = 'rgba(40,30,4,0.9)'; }
+      else if (k === 'spinner') { stroke = '#ff5a5a'; fill = 'rgba(40,8,8,0.9)'; glow = 10; }
+      else if (k === 'box') { stroke = '#7fd1ff'; fill = 'rgba(6,24,40,0.9)'; }
+      else if (k === 'boulder') { stroke = '#e0b25a'; fill = 'rgba(34,24,6,0.92)'; }
+      else if (k === 'platform') { stroke = '#8affb4'; fill = 'rgba(6,34,20,0.9)'; }
+      ctx.lineWidth = lw; ctx.strokeStyle = stroke; ctx.fillStyle = fill;
+      ctx.shadowColor = stroke; ctx.shadowBlur = glow;
+      if (b.circleRadius) {
+        ctx.beginPath(); ctx.arc(b.position.x, b.position.y, b.circleRadius, 0, 6.2832); ctx.fill(); ctx.stroke();
+        // spoke
+        ctx.beginPath(); ctx.moveTo(b.position.x, b.position.y);
+        ctx.lineTo(b.position.x + Math.cos(b.angle) * b.circleRadius, b.position.y + Math.sin(b.angle) * b.circleRadius);
+        ctx.stroke();
+      } else {
+        poly(b.vertices); ctx.fill(); ctx.stroke();
+      }
+      ctx.shadowBlur = 0;
+    }
+    function drawCar() {
+      // wheels
+      for (const w of [wheelBack, wheelFront]) {
+        ctx.lineWidth = 3; ctx.strokeStyle = '#00ff41'; ctx.fillStyle = 'rgba(2,14,7,0.95)';
+        ctx.shadowColor = '#00ff41'; ctx.shadowBlur = 8;
+        ctx.beginPath(); ctx.arc(w.position.x, w.position.y, WHEEL_R, 0, 6.2832); ctx.fill(); ctx.stroke();
+        ctx.lineWidth = 2;
+        for (let s = 0; s < 4; s++) {
+          const a = w.angle + s * Math.PI / 2;
+          ctx.beginPath(); ctx.moveTo(w.position.x, w.position.y);
+          ctx.lineTo(w.position.x + Math.cos(a) * (WHEEL_R - 3), w.position.y + Math.sin(a) * (WHEEL_R - 3)); ctx.stroke();
+        }
+      }
+      // chassis
+      ctx.save();
+      ctx.translate(chassis.position.x, chassis.position.y); ctx.rotate(chassis.angle);
+      ctx.shadowColor = '#00ff41'; ctx.shadowBlur = 12;
+      ctx.lineWidth = 3; ctx.strokeStyle = '#00ff41'; ctx.fillStyle = 'rgba(4,26,14,0.95)';
+      roundRect(-CAR_W / 2, -CAR_H / 2, CAR_W, CAR_H, 6); ctx.fill(); ctx.stroke();
+      // sad face windshield
+      ctx.shadowBlur = 0; ctx.fillStyle = '#031';
+      roundRect(-CAR_W / 2 + 8, -CAR_H / 2 + 3, 24, CAR_H - 6, 4); ctx.fill();
+      ctx.restore();
+      // sad head
+      ctx.save();
+      ctx.translate(headB.position.x, headB.position.y);
+      ctx.font = '15px serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+      ctx.fillText(dead ? '💀' : (won ? '🙂' : '😔'), 0, 1);
+      ctx.restore();
+      ctx.shadowBlur = 0;
+    }
+    function drawBooster() {
+      ctx.save();
+      ctx.strokeStyle = '#39e0ff'; ctx.lineWidth = 3; ctx.shadowColor = '#39e0ff'; ctx.shadowBlur = 8;
+      const t = (performance.now() * 0.006) % 1;
+      for (const b of boosters) {
+        for (let i = 0; i < 3; i++) {
+          const ox = b.x + ((i + t) / 3) * b.w;
+          ctx.beginPath();
+          ctx.moveTo(ox - 8, b.y + b.h - 6); ctx.lineTo(ox, b.y + b.h - 18); ctx.lineTo(ox + 8, b.y + b.h - 6);
+          ctx.stroke();
+        }
+      }
+      ctx.restore(); ctx.shadowBlur = 0;
+    }
+    function drawFlag(x, h) {
+      ctx.save();
+      ctx.strokeStyle = '#ffd24a'; ctx.fillStyle = '#ffd24a'; ctx.lineWidth = 3;
+      ctx.shadowColor = '#ffd24a'; ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.moveTo(x, h); ctx.lineTo(x, h - 90); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(x, h - 90); ctx.lineTo(x + 44, h - 78); ctx.lineTo(x, h - 62); ctx.closePath(); ctx.fill();
+      ctx.restore(); ctx.shadowBlur = 0;
+    }
+    function roundRect(x, y, w, h, r) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+    }
+    function findGroundH(x) {
+      // approximate ground height near x from terrainPts
+      let best = BASE, bestd = 1e9;
+      for (const p of terrainPts) { const d = Math.abs(p.x - x); if (d < bestd) { bestd = d; best = p.h; } }
+      return best;
+    }
+
+    // ---- hud / flow ----
+    function updateHud() {
+      $('dsTime').textContent = (elapsed / 1000).toFixed(1) + 's';
+      const prgs = clamp((chassis.position.x - startX) / (finishX - startX), 0, 1);
+      $('dsFuelBar').style.width = (prgs * 100).toFixed(1) + '%';
+    }
+    function crash(msg) {
+      if (dead || won) return;
+      dead = true;
+      $('dsOvEmoji').textContent = ['😭', '😩', '💥', '🪦', '😵'][Math.random() * 5 | 0];
+      $('dsOvText').textContent = 'You Crashed';
+      $('dsOvSub').textContent = msg;
+      $('dsOvNext').disabled = true; $('dsOvNext').style.opacity = 0.4;
+      $('dsOverlay').style.display = 'flex';
+    }
+    function winLevel() {
+      if (won || dead) return;
+      won = true;
+      const ms = Math.round(elapsed);
+      prog.cleared[lvl] = true;
+      if (!prog.best[lvl] || ms < prog.best[lvl]) prog.best[lvl] = ms;
+      saveProg(prog);
+      const rank = ms < 12000 ? '🥇 Gold' : ms < 22000 ? '🥈 Silver' : '🥉 Bronze';
+      $('dsOvEmoji').textContent = '🏁';
+      $('dsOvText').textContent = 'Level ' + lvl + ' Clear!';
+      $('dsOvSub').textContent = (elapsed / 1000).toFixed(1) + 's  ·  ' + rank + (prog.best[lvl] === ms ? '  (best!)' : '');
+      const hasNext = lvl < LEVELS;
+      $('dsOvNext').disabled = !hasNext; $('dsOvNext').style.opacity = hasNext ? 1 : 0.4;
+      $('dsOverlay').style.display = 'flex';
+    }
+    function startLevel(n) {
+      lvl = n; dead = false; won = false; invF = 0; gasHeld = brakeHeld = false;
+      $('dsGas').classList.remove('held'); $('dsBrake').classList.remove('held');
+      $('dsOverlay').style.display = 'none';
+      $('dsMenu').style.display = 'none'; $('dsGame').style.display = 'flex';
+      sizeCanvas();
+      buildLevel(n);
+      cam.x = chassis.position.x; cam.y = chassis.position.y;
+      $('dsLvNum').textContent = 'LV ' + n;
+      startTime = performance.now(); elapsed = 0; lastGround = 0; frameN = 0;
+      if (!running) { running = true; raf = requestAnimationFrame(step); }
+    }
+    function toMenu() {
+      $('dsGame').style.display = 'none'; $('dsMenu').style.display = 'flex';
+      renderMenu();
+    }
+    function stopGame() {
+      running = false; if (raf) cancelAnimationFrame(raf); raf = 0;
+      gasHeld = brakeHeld = false;
+    }
+
+    // ---- level select ----
+    function renderMenu() {
+      $('dsCleared').textContent = clearedCount();
+      $('dsStreak').textContent = bestStreak();
+      const nW = LEVELS / PER_WORLD;
+      const wc = $('dsWorlds'); wc.innerHTML = '';
+      for (let w = 0; w < nW; w++) {
+        const d = document.createElement('div');
+        d.className = 'ds-world' + (w === world ? ' on' : '');
+        d.textContent = (w * PER_WORLD + 1) + '–' + (w * PER_WORLD + PER_WORLD);
+        d.addEventListener('click', () => { world = w; renderMenu(); });
+        wc.appendChild(d);
+      }
+      const grid = $('dsGrid'); grid.innerHTML = '';
+      for (let i = 1; i <= PER_WORLD; i++) {
+        const n = world * PER_WORLD + i;
+        const cell = document.createElement('div');
+        const ok = unlocked(n), done = prog.cleared[n];
+        cell.className = 'ds-cell' + (done ? ' done' : '') + (ok ? '' : ' locked');
+        const medal = done ? (prog.best[n] < 12000 ? '🥇' : prog.best[n] < 22000 ? '🥈' : '🥉') : '';
+        cell.innerHTML = '<span class="n">' + (ok ? n : '🔒') + '</span>' + (medal ? '<span class="medal">' + medal + '</span>' : '');
+        if (ok) cell.addEventListener('click', () => startLevel(n));
+        grid.appendChild(cell);
+      }
+    }
+
+    // ---- wiring ----
+    $('drivesadApp').addEventListener('click', () => {
+      $('menuBtn').style.display = 'none';
+      showScreen('drivesad');
+      // reload progress for the now-logged-in user
+      prog = loadProg(); if (!prog.cleared) prog.cleared = {}; if (!prog.best) prog.best = {};
+      // jump to the world containing the next level to play
+      let next = 1; while (next < LEVELS && prog.cleared[next]) next++;
+      world = Math.floor((next - 1) / PER_WORLD);
+      $('dsGame').style.display = 'none'; $('dsMenu').style.display = 'flex';
+      renderMenu();
+    });
+    $('dsHome').addEventListener('click', () => { stopGame(); $('menuBtn').style.display = ''; showScreen('home'); });
+    $('dsBack').addEventListener('click', () => { toMenu(); });
+    $('dsRestart').addEventListener('click', () => startLevel(lvl));
+    $('dsOvRetry').addEventListener('click', () => startLevel(lvl));
+    $('dsOvNext').addEventListener('click', () => { if (lvl < LEVELS) startLevel(lvl + 1); });
+    $('dsOvMenu').addEventListener('click', () => toMenu());
+    window.addEventListener('resize', () => { if (running && $('dsGame').style.display !== 'none') sizeCanvas(); });
   })();
   </script>
 </body>
