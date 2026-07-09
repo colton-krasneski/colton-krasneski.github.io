@@ -204,6 +204,34 @@
     .soc-lock-clock { font-size: clamp(3.5rem, 20vw, 6rem); color: #00ff41; text-shadow: 0 0 24px #00ff41; font-variant-numeric: tabular-nums; }
     .soc-lock-drill { font-size: clamp(1.6rem, 9vw, 2.6rem); color: #fff; text-shadow: 0 0 16px #00ff41; letter-spacing: 0.05em; min-height: 2.6rem; }
     .soc-lock-note { color: #ffd24a; font-size: 0.85rem; }
+    /* menu row + socks + leaderboard + AI + ladder */
+    .soc-menu-row { display: flex; gap: 0.5rem; width: min(85%, 300px); }
+    .soc-menu-row .soc-btn { width: auto; flex: 1; padding: 0.7rem 0.4rem; font-size: 0.9rem; letter-spacing: 0.02em; }
+    .soc-ai-keystate { color: #00ff41cc; font-size: 0.78rem; min-height: 1rem; }
+    .soc-socks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.7rem; width: 100%; max-width: 380px; }
+    .soc-sock { border: 1px solid #00ff4133; border-radius: 12px; padding: 0.8rem 0.4rem; text-align: center; background: rgba(0,0,0,0.35); opacity: 0.4; filter: grayscale(1); }
+    .soc-sock.on { opacity: 1; filter: none; border-color: #00ff41; box-shadow: 0 0 12px rgba(0,255,65,0.35); }
+    .soc-sock .si { font-size: 2rem; line-height: 1.1; }
+    .soc-sock .sn { color: #baffcf; font-size: 0.7rem; margin-top: 0.25rem; }
+    .soc-sock .sr { color: #00ff4188; font-size: 0.62rem; margin-top: 0.15rem; }
+    .soc-board-tabs { display: flex; border: 1px solid #00ff4155; border-radius: 10px; overflow: hidden; }
+    .soc-board-tab { padding: 0.45rem 0.9rem; color: #baffcf; cursor: pointer; font-size: 0.82rem; border-right: 1px solid #00ff4155; }
+    .soc-board-tab:last-child { border-right: none; }
+    .soc-board-tab.on { background: #00ff41; color: #000; font-weight: bold; }
+    .soc-board { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 0.35rem; overflow-y: auto; }
+    .soc-board-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.55rem 0.8rem; border: 1px solid #00ff4126; border-radius: 8px; color: #baffcf; }
+    .soc-board-row.me { border-color: #00ff41; background: rgba(0,255,65,0.08); }
+    .soc-board-row .rk { color: #00ff41; font-weight: bold; min-width: 1.6rem; }
+    .soc-board-row .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .soc-board-row .val { color: #00ff41; font-variant-numeric: tabular-nums; }
+    .soc-board .mf-note, .soc-board-empty { color: #00ff4177; text-align: center; padding: 1rem; font-size: 0.85rem; }
+    #socAIInput { width: min(92%, 360px); padding: 0.7rem 1rem; background: rgba(0,0,0,0.5); border: 1px solid #00ff4155; border-radius: 12px; color: #d6ffe4; font-family: inherit; font-size: 16px; resize: vertical; outline: none; }
+    .soc-ai-status { color: #baffcf; font-size: 0.85rem; text-align: center; min-height: 1.1rem; max-width: 340px; }
+    .soc-ladder-live { text-align: center; }
+    .soc-ladder-level { font-size: clamp(2rem, 12vw, 3.4rem); color: #00ff41; text-shadow: 0 0 18px #00ff41; }
+    .soc-ladder-target { color: #ffd24a; font-size: 1rem; margin-top: 0.3rem; }
+    .soc-ladder-result { color: #baffcf; font-size: 1.05rem; text-align: center; line-height: 1.6; min-height: 1rem; }
+    .soc-ladder-result b { color: #00ff41; }
 
     /* ---- Musicfy ---- */
     .mf-wrap { width: min(100%, 500px); height: 100%; margin: 0 auto; display: flex; flex-direction: column; background: rgba(0,6,10,0.6); }
@@ -782,8 +810,14 @@
       <div class="soc-view" id="socMenu">
         <div class="soc-stats" id="socStats"></div>
         <button class="soc-btn" id="socReactBtn">⚡ Reaction Trainer</button>
+        <button class="soc-btn" id="socLadderBtn">🪜 Ladder Pacing</button>
         <button class="soc-btn" id="socDrillsBtn">📋 Drills</button>
-        <button class="soc-btn ghost" id="socSettingsBtn">⚙️ Settings</button>
+        <button class="soc-btn" id="socAIBtn">🤖 Soccer AI</button>
+        <div class="soc-menu-row">
+          <button class="soc-btn ghost" id="socSocksBtn">🧦 Socks</button>
+          <button class="soc-btn ghost" id="socBoardBtn">🏆 Ranks</button>
+          <button class="soc-btn ghost" id="socSettingsBtn">⚙️</button>
+        </div>
       </div>
 
       <div class="soc-view" id="socSetup" style="display:none;">
@@ -849,6 +883,21 @@
         <div class="soc-reps-seg" id="socLockDur"></div>
         <button class="soc-btn" id="socLockStart">🔒 Lock In &amp; Train</button>
         <div class="soc-settings-warn">Note: a website can't disable your phone's home button or power button — but this locks the app itself as hard as the browser allows (fullscreen, blocked back, refresh warning).</div>
+
+        <div class="soc-label" style="margin-top:1rem;">🤖 Soccer AI key</div>
+        <div class="soc-settings-note">Soccer AI uses OpenAI. Paste your own API key — it's saved <b>only on this device</b> (never uploaded), and powers the 🤖 Soccer AI screen.</div>
+        <div class="soc-color-add">
+          <input id="socAIKey" type="password" placeholder="sk-… paste your OpenAI key" autocomplete="off">
+          <button id="socAIKeySave">Save</button>
+        </div>
+        <div class="soc-ai-keystate" id="socAIKeyState"></div>
+        <button class="soc-mini" id="socAIKeyHelp">How do I get a key?</button>
+        <div class="soc-settings-note" id="socAIKeyHelpBox" style="display:none;">
+          1. Go to <b>platform.openai.com/api-keys</b> and sign in.<br>
+          2. Tap “Create new secret key”, name it, and copy it (starts with <b>sk-</b>).<br>
+          3. Add a little credit under Billing, and set a low monthly usage limit.<br>
+          4. Paste it above and Save. ⚠️ A browser-side key is visible to anyone using this device or watching network traffic — keep the limit low and rotate it if it leaks.
+        </div>
         <button class="soc-btn ghost" id="socSettingsBack">Back</button>
       </div>
 
@@ -858,6 +907,44 @@
         <div class="soc-lock-clock" id="socLockClock">0:00</div>
         <div class="soc-lock-drill" id="socLockDrill">Get ready…</div>
         <div class="soc-lock-note" id="socLockNote">Keep moving until the timer ends.</div>
+      </div>
+
+      <div class="soc-view" id="socSocks" style="display:none;">
+        <div class="soc-sub">🧦 Sock Drawer</div>
+        <div class="soc-settings-note" id="socSocksSub">Earn socks for the time you put in.</div>
+        <div class="soc-socks" id="socSocksGrid"></div>
+        <button class="soc-btn ghost" id="socSocksBack">Back</button>
+      </div>
+
+      <div class="soc-view" id="socBoard" style="display:none;">
+        <div class="soc-sub">🏆 Leaderboard</div>
+        <div class="soc-board-tabs" id="socBoardTabs"></div>
+        <div class="soc-board" id="socBoardList"></div>
+        <button class="soc-btn ghost" id="socBoardBack">Back</button>
+      </div>
+
+      <div class="soc-view" id="socAI" style="display:none;">
+        <div class="soc-sub">🤖 Soccer AI</div>
+        <div class="soc-step">Tell it your mood and what you want — it'll hand you a drill. Ask for anything, even off the list.</div>
+        <textarea id="socAIInput" rows="3" placeholder="e.g. Low energy but want to sharpen my weak foot… or: give me something fun with a wall"></textarea>
+        <button class="soc-btn" id="socAIGo">Get a drill</button>
+        <div class="soc-ai-status" id="socAIStatus"></div>
+        <button class="soc-btn ghost" id="socAIBack">Back</button>
+      </div>
+
+      <div class="soc-view" id="socLadder" style="display:none;">
+        <div class="soc-sub">🪜 Ladder Pacing</div>
+        <div class="soc-step" id="socLadderStep">Juggling ladder — the pace steps up each level. Keep up as long as you can; tap “Dropped it” when you miss.</div>
+        <div class="soc-label">Mode</div>
+        <div class="soc-reps-seg" id="socLadderMode"></div>
+        <div class="soc-ladder-live" id="socLadderLive" style="display:none;">
+          <div class="soc-ladder-level" id="socLadderLevel">Level 1</div>
+          <div class="soc-ladder-target" id="socLadderTarget"></div>
+        </div>
+        <button class="soc-btn" id="socLadderStart">Start ▶</button>
+        <button class="soc-btn" id="socLadderDrop" style="display:none;">😵 Dropped it</button>
+        <div class="soc-ladder-result" id="socLadderResult"></div>
+        <button class="soc-btn ghost" id="socLadderBack">Back</button>
       </div>
     </div>
   </div>
@@ -1259,7 +1346,7 @@
     $('homeUser').textContent = me;
     showScreen('home');
     startCallListener();
-    $('soccerApp').style.display = (me === 'colton_mobile') ? '' : 'none';
+    $('soccerApp').style.display = ''; // Soccer Trainer is open to every account now
   }
 
   $('logoutBtn').addEventListener('click', () => {
@@ -1911,14 +1998,16 @@
 
   /* ===== SOCCER TRAINER ===== */
   (function () {
-    const VIEWS = ['socMenu', 'socSetup', 'socRun', 'socSummary', 'socCats', 'socList', 'socDrill', 'socTimer', 'socSettings', 'socLock'];
-    const SKEY = 'colton_soccer', COLORS_KEY = 'colton_soccer_colors';
+    const VIEWS = ['socMenu', 'socSetup', 'socRun', 'socSummary', 'socCats', 'socList', 'socDrill', 'socTimer', 'socSettings', 'socLock', 'socSocks', 'socBoard', 'socAI', 'socLadder'];
+    const SKEY = 'colton_soccer', COLORS_KEY = 'colton_soccer_colors', AI_KEY = 'colton_openai_key';
+    const AI_MODEL = 'gpt-4o-mini';
     const COLOR_CSS = { red: '#ff3b3b', orange: '#ff8c1a', yellow: '#ffd24a', green: '#33d17a', blue: '#3aa0ff', purple: '#b06cff', pink: '#ff5ba8', white: '#f2f2f7', black: '#2a2a2a', cyan: '#3ad1c8', teal: '#2ec4b6', brown: '#a5673f', gray: '#9aa0a6', grey: '#9aa0a6', magenta: '#ff3fb0' };
     let currentView = 'socMenu';
     let running = false, current = null, callTime = 0, reps = 20;
     let repsDone = 0, lastColor = null, splits = [], missCount = 0, colors = [];
     let nextTimer = null, cdTimer = null, repTimer = null, timerInt = null, timerRemain = 0;
     let wake = null, motionHandler = null, motionActive = 0, lastMotionT = 0;
+    let activeStart = 0; // wall-clock start of the current timed activity — drives lifetime "time put in"
 
     /* ---- helpers ---- */
     let sctx = null;
@@ -1947,6 +2036,31 @@
     function loadStats() { try { return JSON.parse(localStorage.getItem(SKEY) || '{}'); } catch (e) { return {}; } }
     function saveStats(s) { try { localStorage.setItem(SKEY, JSON.stringify(s)); } catch (e) {} }
     function bumpStreak(s) { const today = new Date().toDateString(); if (s.lastDay !== today) { const y = new Date(Date.now() - 86400000).toDateString(); s.streak = (s.lastDay === y) ? (s.streak || 0) + 1 : 1; s.lastDay = today; } return s; }
+    /* ---- lifetime "time put in": real elapsed wall-clock, credited on EVERY exit (not just completion) ---- */
+    function beginActive() { activeStart = Date.now(); }
+    function creditActive() {
+      if (!activeStart) return;
+      const mins = (Date.now() - activeStart) / 60000; activeStart = 0;
+      const s = loadStats();
+      if (mins > 0 && mins < 600) s.activeMinutes = (s.activeMinutes || 0) + mins; // ignore absurd gaps (backgrounded for hours)
+      bumpStreak(s);
+      s.socks = earnedSocks(s).length;
+      saveStats(s); syncBoard(s);
+    }
+    async function syncBoard(s) {
+      try {
+        if (typeof me === 'undefined' || !me) return; // only ranked when signed in
+        await setDoc(doc(db, 'leaderboard', me), {
+          user: me,
+          activeMinutes: Math.round((s.activeMinutes || 0) * 10) / 10,
+          bestReaction: s.bestReaction || null,
+          socks: s.socks || 0,
+          ladderBest: s.ladderBest || 0,
+          streak: s.streak || 0,
+          updatedAt: serverTimestamp()
+        }, { merge: true });
+      } catch (e) {}
+    }
 
     /* ---- view mgmt ---- */
     function soccerView(id) {
@@ -1964,14 +2078,15 @@
         `<div class="soc-stat"><div class="v">${Math.round(s.activeMinutes || 0)}</div><div class="k">Active min</div></div>`;
     }
 
-    function openSoccer() { $('menuBtn').style.display = 'none'; showScreen('soccer'); renderStats(); soccerView('socMenu'); }
+    function openSoccer() { $('menuBtn').style.display = 'none'; showScreen('soccer'); renderStats(); soccerView('socMenu'); syncBoard(loadStats()); }
     function exitSoccer() { abortAll(); $('menuBtn').style.display = ''; showScreen('home'); }
     function abortAll() {
       running = false;
       [nextTimer, cdTimer, repTimer].forEach(t => t && clearTimeout(t));
       if (timerInt) clearInterval(timerInt);
       nextTimer = cdTimer = repTimer = timerInt = null;
-      stopRecog(); relWake(); stopMotion();
+      ladderRunning = false; if (ladderTimer) { clearTimeout(ladderTimer); ladderTimer = null; }
+      stopRecog(); relWake(); stopMotion(); creditActive(); // credit any in-progress activity on Back/Stop
       $('socBanner').classList.remove('show');
     }
     $('soccerApp').addEventListener('click', openSoccer);
@@ -2074,7 +2189,7 @@
         c.onclick = () => { lockDur = sec; renderLockDur(); }; box.appendChild(c);
       });
     }
-    $('socSettingsBtn').addEventListener('click', () => { renderLockDur(); soccerView('socSettings'); });
+    $('socSettingsBtn').addEventListener('click', () => { renderLockDur(); renderKeyState(); soccerView('socSettings'); });
     $('socSettingsBack').addEventListener('click', () => { if (!lockActive) soccerView('socMenu'); });
     function tryFullscreen() { const el = $('soccer'); const fn = el.requestFullscreen || el.webkitRequestFullscreen; if (fn) { try { const r = fn.call(el); if (r && r.catch) r.catch(() => {}); } catch (e) {} } }
     function lockTrapPush() { try { history.pushState({ socLock: 1 }, ''); } catch (e) {} }
@@ -2098,7 +2213,7 @@
       lockActive = true; lockRemain = lockDur; lockLastDrill = null;
       $('socLockDrill').textContent = 'Get ready…'; $('socLockNote').textContent = 'Keep moving until the timer ends.';
       soccerView('socLock'); $('soccer').classList.add('locked'); $('menuBtn').style.display = 'none';
-      tryFullscreen(); reqWake(); startMotion();
+      tryFullscreen(); reqWake(); startMotion(); beginActive();
       lockTrapPush(); lockTrapPush();
       window.addEventListener('popstate', onLockPop);
       window.addEventListener('beforeunload', onLockBeforeUnload);
@@ -2119,8 +2234,7 @@
       document.removeEventListener('webkitfullscreenchange', onLockFsChange);
       try { if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document); } catch (e) {}
       $('soccer').classList.remove('locked'); $('socBanner').classList.remove('show');
-      relWake(); stopMotion();
-      const st = loadStats(); bumpStreak(st); st.activeMinutes = (st.activeMinutes || 0) + lockDur / 60; saveStats(st);
+      relWake(); stopMotion(); creditActive(); // credits elapsed locked time + streak + socks
       $('menuBtn').style.display = 'none'; // stays hidden on the soccer screen
       speak('Training complete. You are unlocked.');
       soccerView('socMenu'); renderStats();
@@ -2131,7 +2245,7 @@
       running = true; repsDone = 0; lastColor = null; splits = []; missCount = 0;
       $('socRep').textContent = '0/' + reps; $('socSplit').textContent = '';
       $('socMicStatus').textContent = recogAvail ? '🎤 Listening — say “done” after each cone' : '🔇 Voice unavailable — tap ✓ Done each time';
-      soccerView('socRun'); reqWake(); startMotion(); startRecog();
+      soccerView('socRun'); reqWake(); startMotion(); startRecog(); beginActive();
       countdown(3, nextRep);
     }
     function countdown(n, cb) {
@@ -2169,19 +2283,19 @@
     function endRun() {
       running = false;
       [nextTimer, cdTimer, repTimer].forEach(t => t && clearTimeout(t)); nextTimer = cdTimer = repTimer = null;
-      stopRecog(); relWake(); stopMotion();
-      const s = loadStats(); bumpStreak(s); s.activeMinutes = (s.activeMinutes || 0) + motionActive / 60;
+      stopRecog(); relWake(); stopMotion(); creditActive(); // time put in + streak + socks
+      const s = loadStats();
       let body;
       if (splits.length) {
         const avg = splits.reduce((a, b) => a + b, 0) / splits.length / 1000;
         const best = Math.min(...splits) / 1000, worst = Math.max(...splits) / 1000;
         if (!s.bestReaction || best < s.bestReaction) s.bestReaction = best;
         (s.sessions = s.sessions || []).push({ t: Date.now(), reps: repsDone, avg, best });
-        body = `<div>Reps: <b>${repsDone}</b></div><div>Avg: <b>${avg.toFixed(2)}s</b></div><div>Best: <b>${best.toFixed(2)}s</b></div><div>Worst: <b>${worst.toFixed(2)}s</b></div><div>Misses: <b>${missCount}</b></div><div>Active: <b>${Math.round(motionActive)}s</b></div>`;
+        s.socks = earnedSocks(s).length; saveStats(s); syncBoard(s);
+        body = `<div>Reps: <b>${repsDone}</b></div><div>Avg: <b>${avg.toFixed(2)}s</b></div><div>Best: <b>${best.toFixed(2)}s</b></div><div>Worst: <b>${worst.toFixed(2)}s</b></div><div>Misses: <b>${missCount}</b></div>`;
       } else {
         body = `<div>Reps: <b>${repsDone}</b></div><div>No timed reps — say “done” a bit louder, or tap ✓ Done next time.</div><div>Misses: <b>${missCount}</b></div>`;
       }
-      saveStats(s);
       $('socSummaryBody').innerHTML = body; soccerView('socSummary'); speak('Session complete');
     }
     $('socRunStop').addEventListener('click', () => { abortAll(); soccerView('socMenu'); renderStats(); });
@@ -2266,18 +2380,20 @@
       soccerView('socList');
     }
     $('socListBack').addEventListener('click', () => { renderCats(); soccerView('socCats'); });
-    function openDrill(dr) {
+    function openDrill(dr, back) {
+      back = back || 'socList';
+      const eq = dr.equipment && dr.equipment.length ? dr.equipment : ['1 ball'];
       $('socDrillBody').innerHTML =
         `<h3>${esc(dr.name)}</h3>` + diagramSVG(dr.diagram) +
-        `<div class="sec"><b>Equipment</b>${dr.equipment.map(e => '• ' + esc(e)).join('<br>')}</div>` +
-        `<div class="sec"><b>Set up</b>${esc(dr.setup)}</div>` +
-        `<div class="sec"><b>How to</b><ul>${dr.steps.map(s => '<li>' + esc(s) + '</li>').join('')}</ul></div>` +
-        `<div class="sec"><b>Focus</b>${esc(dr.focus)}</div>` +
+        `<div class="sec"><b>Equipment</b>${eq.map(e => '• ' + esc(e)).join('<br>')}</div>` +
+        `<div class="sec"><b>Set up</b>${esc(dr.setup || '')}</div>` +
+        `<div class="sec"><b>How to</b><ul>${(dr.steps || []).map(s => '<li>' + esc(s) + '</li>').join('')}</ul></div>` +
+        `<div class="sec"><b>Focus</b>${esc(dr.focus || '')}</div>` +
         `<div class="soc-label">Timer</div><div class="soc-timer-row">` +
         `<button class="soc-chip" data-m="3">3 min</button><button class="soc-chip" data-m="5">5 min</button><button class="soc-chip" data-m="10">10 min</button></div>` +
         `<button class="soc-btn ghost" id="socDrillBack" style="margin-top:0.8rem;">Back</button>`;
-      $('socDrillBody').querySelectorAll('[data-m]').forEach(b => b.onclick = () => startTimer(+b.dataset.m, dr.name));
-      $('socDrillBack').onclick = () => soccerView('socList');
+      $('socDrillBody').querySelectorAll('[data-m]').forEach(b => b.onclick = () => startTimer(+b.dataset.m, dr.name, 'socDrill'));
+      $('socDrillBack').onclick = () => soccerView(back);
       soccerView('socDrill');
     }
 
@@ -2299,9 +2415,11 @@
     }
 
     /* ---- drill timer ---- */
-    function startTimer(mins, name) {
+    let timerBack = 'socDrill';
+    function startTimer(mins, name, back) {
+      timerBack = back || 'socDrill';
       soccerView('socTimer'); $('socTimerName').textContent = name;
-      timerRemain = mins * 60; reqWake(); startMotion(); beep(700, 0.15); vibrate(120); updateClock();
+      timerRemain = mins * 60; reqWake(); startMotion(); beginActive(); beep(700, 0.15); vibrate(120); updateClock();
       const half = Math.floor(mins * 60 / 2);
       timerInt = setInterval(() => {
         timerRemain--; updateClock();
@@ -2317,11 +2435,159 @@
     }
     function stopTimer(done) {
       if (timerInt) { clearInterval(timerInt); timerInt = null; }
-      relWake(); stopMotion();
-      if (done) { beep(950, 0.35); vibrate([120, 80, 120]); speak('Time'); const s = loadStats(); bumpStreak(s); s.activeMinutes = (s.activeMinutes || 0) + motionActive / 60; saveStats(s); }
-      soccerView('socDrill');
+      relWake(); stopMotion(); creditActive(); // credits time whether it finished or you stopped early
+      if (done) { beep(950, 0.35); vibrate([120, 80, 120]); speak('Time'); }
+      soccerView(timerBack);
     }
     $('socTimerStop').addEventListener('click', () => stopTimer(false));
+
+    /* ===== Socks (badges for time put in) ===== */
+    const SOCKS = [
+      { icon: '🧦', name: 'First Steps', hint: '10 min', req: s => (s.activeMinutes || 0) >= 10 },
+      { icon: '🧦', name: 'Warmed Up', hint: '30 min', req: s => (s.activeMinutes || 0) >= 30 },
+      { icon: '🧦', name: 'Grinder', hint: '60 min', req: s => (s.activeMinutes || 0) >= 60 },
+      { icon: '🥎', name: 'Baller', hint: '120 min', req: s => (s.activeMinutes || 0) >= 120 },
+      { icon: '🚀', name: 'Machine', hint: '300 min', req: s => (s.activeMinutes || 0) >= 300 },
+      { icon: '👑', name: 'Golden Sock', hint: '600 min', req: s => (s.activeMinutes || 0) >= 600 },
+      { icon: '🔥', name: 'On Fire', hint: '7-day streak', req: s => (s.streak || 0) >= 7 },
+      { icon: '⚡', name: 'Quick Feet', hint: 'react ≤ 1.2s', req: s => s.bestReaction && s.bestReaction <= 1.2 },
+      { icon: '🪜', name: 'Ladder King', hint: 'ladder Lv 9', req: s => (s.ladderBest || 0) >= 9 }
+    ];
+    function earnedSocks(s) { return SOCKS.filter(k => { try { return k.req(s); } catch (e) { return false; } }); }
+    function renderSocks() {
+      const s = loadStats(), earned = new Set(earnedSocks(s).map(k => k.name));
+      $('socSocksSub').textContent = earned.size + ' of ' + SOCKS.length + ' socks · ' + Math.round(s.activeMinutes || 0) + ' min put in';
+      $('socSocksGrid').innerHTML = SOCKS.map(k => {
+        const on = earned.has(k.name);
+        return `<div class="soc-sock${on ? ' on' : ''}"><div class="si">${on ? k.icon : '🔒'}</div><div class="sn">${esc(k.name)}</div><div class="sr">${esc(k.hint)}</div></div>`;
+      }).join('');
+    }
+    $('socSocksBtn').addEventListener('click', () => { renderSocks(); soccerView('socSocks'); });
+    $('socSocksBack').addEventListener('click', () => soccerView('socMenu'));
+
+    /* ===== Leaderboard (Firestore, all accounts) ===== */
+    let boardUnsub = null, boardData = [], boardTab = 'activeMinutes';
+    const BOARD_TABS = [
+      { key: 'activeMinutes', label: 'Time', fmt: v => Math.round(v || 0) + ' min' },
+      { key: 'bestReaction', label: 'Reaction', asc: true, fmt: v => v ? v.toFixed(2) + 's' : '—' },
+      { key: 'ladderBest', label: 'Ladder', fmt: v => 'Lv ' + (v || 0) }
+    ];
+    function renderBoardTabs() {
+      const box = $('socBoardTabs'); box.innerHTML = '';
+      BOARD_TABS.forEach(t => { const el = document.createElement('span'); el.className = 'soc-board-tab' + (boardTab === t.key ? ' on' : ''); el.textContent = t.label; el.onclick = () => { boardTab = t.key; renderBoardTabs(); renderBoard(); }; box.appendChild(el); });
+    }
+    function renderBoard() {
+      const tab = BOARD_TABS.find(t => t.key === boardTab);
+      const rows = boardData.filter(d => tab.asc ? (d[boardTab] != null) : ((d[boardTab] || 0) > 0))
+        .sort((a, b) => tab.asc ? (a[boardTab] - b[boardTab]) : ((b[boardTab] || 0) - (a[boardTab] || 0)));
+      const box = $('socBoardList');
+      if (!rows.length) { box.innerHTML = '<div class="soc-board-empty">No one here yet — put in some time!</div>'; return; }
+      box.innerHTML = rows.slice(0, 50).map((d, i) => {
+        const mine = (typeof me !== 'undefined' && d.user === me) ? ' me' : '';
+        return `<div class="soc-board-row${mine}"><span class="rk">${i + 1}</span><span class="nm">${esc(d.user || '?')}</span><span class="val">${tab.fmt(d[boardTab])}</span></div>`;
+      }).join('');
+    }
+    $('socBoardBtn').addEventListener('click', openBoard);
+    function openBoard() {
+      renderBoardTabs(); $('socBoardList').innerHTML = '<div class="soc-board-empty">Loading…</div>'; soccerView('socBoard');
+      syncBoard(loadStats());
+      try {
+        if (boardUnsub) boardUnsub();
+        boardUnsub = onSnapshot(collection(db, 'leaderboard'),
+          snap => { boardData = snap.docs.map(d => d.data()); renderBoard(); },
+          () => { $('socBoardList').innerHTML = '<div class="soc-board-empty">Leaderboard unavailable (check Firestore rules for the “leaderboard” collection).</div>'; });
+      } catch (e) { $('socBoardList').innerHTML = '<div class="soc-board-empty">Leaderboard unavailable.</div>'; }
+    }
+    $('socBoardBack').addEventListener('click', () => { if (boardUnsub) { boardUnsub(); boardUnsub = null; } soccerView('socMenu'); });
+
+    /* ===== Soccer AI (OpenAI, key stored on-device) ===== */
+    function loadKey() { try { return localStorage.getItem(AI_KEY) || ''; } catch (e) { return ''; } }
+    function renderKeyState() { const k = loadKey(); $('socAIKeyState').textContent = k ? ('✓ Key saved (…' + k.slice(-4) + ')') : 'No key saved yet.'; }
+    $('socAIKeySave').addEventListener('click', () => { const v = $('socAIKey').value.trim(); if (!v) return; try { localStorage.setItem(AI_KEY, v); } catch (e) {} $('socAIKey').value = ''; renderKeyState(); });
+    $('socAIKeyHelp').addEventListener('click', () => { const b = $('socAIKeyHelpBox'); b.style.display = b.style.display === 'none' ? 'block' : 'none'; });
+    $('socAIBtn').addEventListener('click', () => { $('socAIStatus').textContent = loadKey() ? '' : '⚠️ Add your OpenAI key in ⚙️ Settings first.'; soccerView('socAI'); });
+    $('socAIBack').addEventListener('click', () => soccerView('socMenu'));
+    $('socAIGo').addEventListener('click', runAI);
+    async function runAI() {
+      const key = loadKey();
+      if (!key) { $('socAIStatus').textContent = '⚠️ Add your OpenAI key in ⚙️ Settings first.'; return; }
+      const mood = $('socAIInput').value.trim();
+      if (!mood) { $('socAIStatus').textContent = 'Tell it how you feel / what you want first.'; return; }
+      $('socAIStatus').textContent = '🤖 Thinking…'; $('socAIGo').disabled = true;
+      const names = [].concat.apply([], Object.values(DRILLS)).map(d => d.name);
+      const sys = 'You are a soccer training coach. Given the player\'s mood and request, choose or invent ONE drill they can do right now. Prefer a drill from the provided on-list names when it fits; if their request needs something not on the list, invent a suitable one and set onList to false. Reply with ONLY strict JSON, no markdown: {"name":string,"onList":boolean,"equipment":string[],"setup":string,"steps":string[],"focus":string,"minutes":number}. 3-5 short imperative steps; minutes 3-15.';
+      const usr = 'On-list drills: ' + names.join(', ') + '\nPlayer says: ' + mood;
+      try {
+        const r = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + key },
+          body: JSON.stringify({ model: AI_MODEL, temperature: 0.8, response_format: { type: 'json_object' }, messages: [{ role: 'system', content: sys }, { role: 'user', content: usr }] })
+        });
+        if (!r.ok) { throw new Error(r.status === 401 ? 'Key rejected (401) — check it in Settings.' : (r.status === 429 ? 'Rate/credit limit hit (429).' : ('OpenAI error ' + r.status))); }
+        const data = await r.json();
+        const txt = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+        const dr = JSON.parse(txt);
+        if (!dr || !dr.name) throw new Error('Unexpected reply — try again.');
+        $('socAIStatus').textContent = ''; $('socAIGo').disabled = false; $('socAIInput').value = '';
+        openDrill({ name: dr.name, equipment: dr.equipment, setup: dr.setup, steps: dr.steps, focus: (dr.focus || '') + (dr.onList === false ? ' · (AI-made, not added to your list)' : ''), diagram: null }, 'socAI');
+      } catch (e) {
+        $('socAIGo').disabled = false;
+        $('socAIStatus').textContent = '⚠️ ' + (e.message || 'Something went wrong. Try again.');
+      }
+    }
+
+    /* ===== Ladder Pacing (juggling ladder, paced) ===== */
+    let ladderRunning = false, ladderTimer = null, ladderLevel = 0, ladderBeat = 0, ladderMode = 'ball';
+    const LADDER_MODES = [{ id: 'ball', label: 'With ball' }, { id: 'noball', label: 'Without ball' }], LADDER_BEATS = 10;
+    function ladderBpm(level) { return ladderMode === 'noball' ? 90 + (level - 1) * 25 : 60 + (level - 1) * 20; }
+    function renderLadderMode() {
+      const box = $('socLadderMode'); box.innerHTML = '';
+      LADDER_MODES.forEach(m => { const el = document.createElement('span'); el.className = 'soc-seg' + (ladderMode === m.id ? ' on' : ''); el.textContent = m.label; el.onclick = () => { if (!ladderRunning) { ladderMode = m.id; renderLadderMode(); } }; box.appendChild(el); });
+    }
+    $('socLadderBtn').addEventListener('click', () => {
+      ladderRunning = false; ladderLevel = 0; renderLadderMode();
+      $('socLadderResult').textContent = ''; $('socLadderLive').style.display = 'none';
+      $('socLadderStart').style.display = ''; $('socLadderDrop').style.display = 'none';
+      $('socLadderStep').textContent = 'Juggling ladder — the pace steps up each level. Keep up as long as you can; tap “Dropped it” when you miss.';
+      soccerView('socLadder');
+    });
+    $('socLadderBack').addEventListener('click', () => { if (ladderRunning) endLadder(); else soccerView('socMenu'); });
+    $('socLadderStart').addEventListener('click', startLadder);
+    $('socLadderDrop').addEventListener('click', () => endLadder());
+    function updateLadder() {
+      $('socLadderLevel').textContent = 'Level ' + ladderLevel;
+      $('socLadderTarget').textContent = Math.round(ladderBpm(ladderLevel)) + ' / min' + (ladderMode === 'noball' ? ' · fast feet' : ' · juggles');
+    }
+    function startLadder() {
+      warmSpeech();
+      ladderRunning = true; ladderLevel = 1; ladderBeat = 0;
+      $('socLadderResult').textContent = ''; $('socLadderLive').style.display = '';
+      $('socLadderStart').style.display = 'none'; $('socLadderDrop').style.display = '';
+      reqWake(); startMotion(); beginActive();
+      speak((ladderMode === 'noball' ? 'Fast feet. ' : '') + 'Level one'); updateLadder();
+      ladderTick();
+    }
+    function ladderTick() {
+      if (!ladderRunning) return;
+      beep(760, 0.05); vibrate(20); ladderBeat++;
+      if (ladderBeat >= LADDER_BEATS) { ladderBeat = 0; ladderLevel++; beep(1000, 0.15); speak('Level ' + ladderLevel); updateLadder(); }
+      ladderTimer = setTimeout(ladderTick, 60000 / ladderBpm(ladderLevel));
+    }
+    function ladderRating(level) {
+      if (ladderMode === 'noball') return level < 5 ? 'Out of shape' : level < 10 ? 'Ok' : 'Gold Medalist';
+      return level < 4 ? 'Out of shape' : level < 8 ? 'Ok' : 'Gold Medalist';
+    }
+    function endLadder() {
+      if (!ladderRunning) return;
+      ladderRunning = false; if (ladderTimer) { clearTimeout(ladderTimer); ladderTimer = null; }
+      const reached = Math.max(1, ladderLevel);
+      relWake(); stopMotion(); creditActive();
+      const s = loadStats(); if ((s.ladderBest || 0) < reached) s.ladderBest = reached; s.socks = earnedSocks(s).length; saveStats(s); syncBoard(s);
+      const rating = ladderRating(reached), emoji = rating === 'Gold Medalist' ? '🥇' : rating === 'Ok' ? '👍' : '😮‍💨';
+      $('socLadderLive').style.display = 'none'; $('socLadderStart').style.display = ''; $('socLadderDrop').style.display = 'none';
+      $('socLadderResult').innerHTML = `${emoji} You reached <b>Level ${reached}</b><br><b>${rating}</b>`;
+      speak('You reached level ' + reached + '. ' + rating); beep(520, 0.3);
+    }
   })();
 
   /* ===== AIR HOCKEY ===== */
