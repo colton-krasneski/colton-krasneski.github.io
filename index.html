@@ -666,6 +666,224 @@
     .ds-ovbtn.ghost { border-color: #00ff4166; color: #00ff41aa; font-size: 0.85rem; padding: 0.5rem 1rem; }
     .ds-ovbtn:hover { filter: brightness(1.15); }
     .ds-ovbtn:disabled { opacity: 0.4; cursor: default; }
+
+    /* ============ THE COUNCIL (Discord-style) ============ */
+    #council { background: #313338; color: #dbdee1; font-family: 'Segoe UI', system-ui, sans-serif; }
+    .co-app { display: flex; width: 100%; height: 100%; overflow: hidden; position: relative; }
+    .co-app, .co-app * { box-sizing: border-box; }
+    /* server rail */
+    .co-rail {
+      width: 72px; flex-shrink: 0; background: #1e1f22;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      padding: 12px 0 calc(12px + env(safe-area-inset-bottom));
+      padding-top: calc(12px + env(safe-area-inset-top));
+    }
+    .co-rail-btn {
+      width: 48px; height: 48px; border-radius: 24px; flex-shrink: 0;
+      background: #313338; color: #dbdee1; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+      transition: border-radius .18s ease, background .18s ease; position: relative;
+    }
+    .co-rail-btn:hover { border-radius: 16px; }
+    .co-rail-btn.active { border-radius: 16px; }
+    .co-rail-btn.active::before {
+      content: ''; position: absolute; left: -12px; top: 50%; transform: translateY(-50%);
+      width: 4px; height: 40px; background: #fff; border-radius: 0 4px 4px 0;
+    }
+    .co-rail-btn.home { color: #23a55a; }
+    .co-rail-btn.home:hover { background: #23a55a; color: #fff; }
+    .co-rail-btn.server.active { background: #5865f2; color: #fff; }
+    .co-rail-btn.add { color: #23a55a; font-size: 26px; }
+    .co-rail-btn.add:hover { background: #23a55a; color: #fff; border-radius: 16px; }
+    .co-rail-sep { width: 32px; height: 2px; background: #35363c; border-radius: 1px; }
+    /* channel sidebar */
+    .co-side {
+      width: 240px; flex-shrink: 0; background: #2b2d31;
+      display: flex; flex-direction: column; min-height: 0;
+    }
+    .co-side-head {
+      height: 48px; flex-shrink: 0; padding: 0 16px; display: flex; align-items: center;
+      justify-content: space-between; font-weight: 700; font-size: 15px; color: #f2f3f5;
+      border-bottom: 1px solid #1f2023; box-shadow: 0 1px 0 rgba(0,0,0,.2); cursor: pointer;
+      padding-top: calc(0px + env(safe-area-inset-top)); height: calc(48px + env(safe-area-inset-top));
+    }
+    .co-side-head:hover { background: #35373c; }
+    .co-side-head .chev { color: #b5bac1; font-size: 13px; }
+    .co-chan-scroll { flex: 1; overflow-y: auto; padding: 8px 8px 0; min-height: 0; }
+    .co-cat {
+      display: flex; align-items: center; justify-content: space-between;
+      color: #949ba4; font-size: 11px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase;
+      padding: 16px 8px 4px; cursor: default;
+    }
+    .co-cat button { background: none; border: none; color: #949ba4; cursor: pointer; font-size: 16px; line-height: 1; }
+    .co-cat button:hover { color: #dbdee1; }
+    .co-chan {
+      display: flex; align-items: center; gap: 6px; padding: 7px 8px; margin-bottom: 2px;
+      border-radius: 4px; color: #949ba4; cursor: pointer; font-size: 15px; font-weight: 500;
+    }
+    .co-chan:hover { background: #35373c; color: #dbdee1; }
+    .co-chan.active { background: #404249; color: #f2f3f5; }
+    .co-chan .hash { font-size: 18px; color: #80848e; flex-shrink: 0; }
+    .co-chan .cname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .co-chan .lock { font-size: 11px; opacity: .7; }
+    /* user footer */
+    .co-userbar {
+      height: 52px; flex-shrink: 0; background: #232428; display: flex; align-items: center;
+      gap: 8px; padding: 0 8px; margin-top: auto;
+    }
+    .co-userbar .av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; font-size: 14px; flex-shrink: 0; }
+    .co-userbar .meta { flex: 1; min-width: 0; line-height: 1.1; }
+    .co-userbar .nm { font-size: 13px; font-weight: 600; color: #f2f3f5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .co-userbar .sub { font-size: 11px; color: #949ba4; }
+    .co-userbar .gear { background: none; border: none; color: #b5bac1; cursor: pointer; font-size: 18px; padding: 6px; border-radius: 4px; }
+    .co-userbar .gear:hover { background: #35373c; color: #fff; }
+    /* main column */
+    .co-main { flex: 1; display: flex; flex-direction: column; min-width: 0; background: #313338; }
+    .co-topbar {
+      height: 48px; flex-shrink: 0; display: flex; align-items: center; gap: 10px; padding: 0 14px;
+      border-bottom: 1px solid #26272b; box-shadow: 0 1px 0 rgba(0,0,0,.2); z-index: 2;
+      padding-top: calc(0px + env(safe-area-inset-top)); height: calc(48px + env(safe-area-inset-top));
+    }
+    .co-topbar .hash { color: #80848e; font-size: 22px; }
+    .co-topbar .ttl { font-weight: 700; color: #f2f3f5; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .co-topbar .topic { color: #949ba4; font-size: 13px; border-left: 1px solid #3f4147; padding-left: 10px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+    .co-icon-btn { background: none; border: none; color: #b5bac1; cursor: pointer; font-size: 19px; padding: 5px 7px; border-radius: 4px; line-height: 1; }
+    .co-icon-btn:hover { color: #fff; background: #3a3c42; }
+    .co-icon-btn.only-narrow { display: none; }
+    /* messages */
+    .co-msgs { flex: 1; overflow-y: auto; padding: 14px 8px 4px; min-height: 0; }
+    .co-welcome { padding: 20px 12px; }
+    .co-welcome .big { width: 68px; height: 68px; border-radius: 50%; background: #41434a; display: flex; align-items: center; justify-content: center; font-size: 34px; margin-bottom: 8px; }
+    .co-welcome h2 { color: #f2f3f5; font-size: 28px; margin: 6px 0; font-weight: 800; }
+    .co-welcome p { color: #b5bac1; font-size: 15px; }
+    .co-msg { display: flex; gap: 14px; padding: 3px 12px; position: relative; }
+    .co-msg:hover { background: #2e3035; }
+    .co-msg.mentionsMe { background: rgba(240,178,50,.08); box-shadow: inset 2px 0 0 #f0b232; }
+    .co-msg .av { width: 40px; height: 40px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 2px; }
+    .co-msg .body { flex: 1; min-width: 0; }
+    .co-msg .head { display: flex; align-items: baseline; gap: 8px; }
+    .co-msg .author { font-weight: 600; font-size: 15px; cursor: pointer; }
+    .co-msg .author:hover { text-decoration: underline; }
+    .co-msg .badge-bot { background: #5865f2; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 4px; border-radius: 3px; text-transform: uppercase; }
+    .co-msg .time { font-size: 11px; color: #949ba4; }
+    .co-msg .text { color: #dbdee1; font-size: 15px; line-height: 1.375; word-wrap: break-word; white-space: pre-wrap; }
+    .co-mention { background: rgba(88,101,242,.3); color: #c9cdfb; border-radius: 3px; padding: 0 2px; font-weight: 500; cursor: pointer; }
+    .co-mention.everyone { background: rgba(240,178,50,.3); color: #f0c674; }
+    .co-sys { text-align: center; color: #949ba4; font-size: 13px; padding: 8px; }
+    /* composer */
+    .co-composer { padding: 0 12px 16px; flex-shrink: 0; }
+    .co-composer .box { background: #383a40; border-radius: 8px; display: flex; align-items: flex-end; padding: 2px 8px; }
+    .co-composer textarea {
+      flex: 1; background: none; border: none; outline: none; resize: none; color: #dbdee1;
+      font-family: inherit; font-size: 15px; padding: 11px 6px; max-height: 120px; line-height: 1.375;
+    }
+    .co-composer textarea::placeholder { color: #6d7178; }
+    .co-composer .send { background: none; border: none; cursor: pointer; font-size: 20px; color: #5865f2; padding: 8px 6px; }
+    .co-composer .send:hover { color: #7983f5; }
+    .co-mrow { display: flex; gap: 6px; padding: 4px 2px 0; flex-wrap: wrap; }
+    .co-mchip { background: #404249; color: #c9cdfb; border: none; border-radius: 12px; padding: 3px 10px; font-size: 12px; cursor: pointer; font-family: inherit; }
+    .co-mchip:hover { background: #5865f2; color: #fff; }
+    /* members list */
+    .co-members { width: 240px; flex-shrink: 0; background: #2b2d31; overflow-y: auto; padding: 12px 0; }
+    .co-mem-cat { color: #949ba4; font-size: 12px; font-weight: 700; text-transform: uppercase; padding: 14px 16px 4px; }
+    .co-mem {
+      display: flex; align-items: center; gap: 12px; padding: 5px 8px; margin: 0 8px; border-radius: 4px; cursor: pointer;
+    }
+    .co-mem:hover { background: #35373c; }
+    .co-mem .av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 14px; flex-shrink: 0; position: relative; }
+    .co-mem .av .dot { position: absolute; right: -2px; bottom: -2px; width: 12px; height: 12px; border-radius: 50%; border: 3px solid #2b2d31; }
+    .co-mem .nm { font-size: 15px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .co-mem.owner .nm { font-weight: 600; }
+    .co-mem .crown { font-size: 12px; margin-left: auto; }
+    /* generic overlay / modal */
+    .co-ov {
+      position: absolute; inset: 0; background: rgba(0,0,0,.6); display: none;
+      align-items: center; justify-content: center; z-index: 40; padding: 16px;
+      -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+    }
+    .co-ov.show { display: flex; }
+    .co-card {
+      background: #313338; border-radius: 8px; width: min(440px, 100%); max-height: 88%;
+      overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,.5);
+    }
+    .co-card.wide { width: min(760px, 100%); }
+    .co-card-head { padding: 20px 20px 0; }
+    .co-card-head h3 { color: #f2f3f5; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+    .co-card-head p { color: #b5bac1; font-size: 14px; }
+    .co-card-body { padding: 16px 20px; }
+    .co-card-foot { padding: 14px 16px; background: #2b2d31; display: flex; justify-content: flex-end; gap: 10px; border-radius: 0 0 8px 8px; position: sticky; bottom: 0; }
+    .co-label { display: block; color: #b5bac1; font-size: 12px; font-weight: 700; text-transform: uppercase; margin: 14px 0 6px; }
+    .co-input, .co-select {
+      width: 100%; background: #1e1f22; border: 1px solid #1e1f22; border-radius: 4px; color: #dbdee1;
+      font-family: inherit; font-size: 15px; padding: 10px 12px; outline: none;
+    }
+    .co-input:focus { border-color: #5865f2; }
+    .co-emoji-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+    .co-emoji-pick button { width: 40px; height: 40px; font-size: 20px; background: #1e1f22; border: 2px solid transparent; border-radius: 8px; cursor: pointer; }
+    .co-emoji-pick button.on { border-color: #5865f2; background: #2b2d31; }
+    .co-btn {
+      font-family: inherit; font-size: 14px; font-weight: 600; padding: 10px 16px; border-radius: 4px;
+      border: none; cursor: pointer; background: #5865f2; color: #fff; transition: background .15s;
+    }
+    .co-btn:hover { background: #4752c4; }
+    .co-btn:disabled { opacity: .5; cursor: default; }
+    .co-btn.ghost { background: none; color: #dbdee1; }
+    .co-btn.ghost:hover { background: rgba(255,255,255,.06); text-decoration: underline; }
+    .co-btn.danger { background: #da373c; }
+    .co-btn.danger:hover { background: #a12828; }
+    .co-btn.sm { padding: 6px 12px; font-size: 13px; }
+    .co-btn.full { width: 100%; margin-top: 6px; }
+    .co-check { display: flex; align-items: center; gap: 10px; padding: 10px 0; color: #dbdee1; cursor: pointer; font-size: 15px; }
+    .co-check input { width: 40px; height: 22px; }
+    /* settings tabs */
+    .co-tabs { display: flex; gap: 4px; border-bottom: 1px solid #3f4147; margin-bottom: 4px; flex-wrap: wrap; }
+    .co-tab { background: none; border: none; color: #b5bac1; font-family: inherit; font-size: 14px; font-weight: 600; padding: 10px 12px; cursor: pointer; border-bottom: 2px solid transparent; }
+    .co-tab.on { color: #fff; border-bottom-color: #5865f2; }
+    .co-list-row { display: flex; align-items: center; gap: 10px; padding: 10px; background: #2b2d31; border-radius: 6px; margin-bottom: 6px; }
+    .co-list-row .grow { flex: 1; min-width: 0; }
+    .co-list-row .r-name { color: #f2f3f5; font-weight: 600; font-size: 15px; }
+    .co-list-row .r-sub { color: #949ba4; font-size: 12px; }
+    .co-swatch { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
+    .co-role-chip { display: inline-flex; align-items: center; gap: 5px; background: #1e1f22; border-radius: 12px; padding: 3px 10px; font-size: 12px; margin: 3px 4px 0 0; }
+    .co-role-chip .rd { width: 10px; height: 10px; border-radius: 50%; }
+    .co-role-chip button { background: none; border: none; color: #949ba4; cursor: pointer; font-size: 13px; padding: 0; }
+    .co-role-chip button:hover { color: #fff; }
+    /* profile popout */
+    .co-profile { width: min(340px, 100%); background: #232428; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 30px rgba(0,0,0,.6); }
+    .co-profile .banner { height: 60px; }
+    .co-profile .pbody { padding: 0 16px 16px; margin-top: -30px; }
+    .co-profile .pav { width: 80px; height: 80px; border-radius: 50%; border: 6px solid #232428; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 30px; }
+    .co-profile .pcard { background: #111214; border-radius: 8px; padding: 14px; margin-top: 10px; }
+    .co-profile .pname { color: #f2f3f5; font-size: 20px; font-weight: 800; }
+    .co-profile .phandle { color: #b5bac1; font-size: 13px; margin-bottom: 8px; }
+    .co-profile .psec { color: #b5bac1; font-size: 11px; font-weight: 700; text-transform: uppercase; margin: 12px 0 6px; }
+    .co-profile .pacts { display: flex; gap: 8px; margin-top: 12px; }
+    /* toasts */
+    .co-toasts { position: absolute; top: calc(12px + env(safe-area-inset-top)); right: 12px; left: 12px; z-index: 60; display: flex; flex-direction: column; gap: 8px; pointer-events: none; align-items: flex-end; }
+    .co-toast {
+      pointer-events: auto; background: #1e1f22; border-left: 4px solid #5865f2; border-radius: 8px;
+      padding: 12px 14px; max-width: 340px; box-shadow: 0 6px 20px rgba(0,0,0,.5);
+      display: flex; gap: 10px; align-items: flex-start; animation: coToastIn .25s ease;
+    }
+    .co-toast.everyone { border-left-color: #f0b232; }
+    .co-toast .ti { font-size: 20px; }
+    .co-toast .tt { color: #f2f3f5; font-size: 14px; font-weight: 700; }
+    .co-toast .tb { color: #b5bac1; font-size: 13px; margin-top: 2px; }
+    @keyframes coToastIn { from { transform: translateX(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+    /* empty / create-server hero */
+    .co-hero { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 24px; gap: 6px; }
+    .co-hero .logo { font-size: 60px; }
+    .co-hero h1 { color: #f2f3f5; font-size: 26px; font-weight: 800; }
+    .co-hero p { color: #b5bac1; font-size: 15px; max-width: 360px; margin-bottom: 10px; }
+    .co-scrim { position: absolute; inset: 0; background: rgba(0,0,0,.5); z-index: 8; display: none; }
+    .co-app.nav-open .co-scrim, .co-app.mem-open .co-scrim { display: block; }
+    @media (max-width: 860px) {
+      .co-side { position: absolute; left: 72px; top: 0; bottom: 0; z-index: 10; transform: translateX(-120%); transition: transform .22s ease; box-shadow: 4px 0 20px rgba(0,0,0,.4); }
+      .co-app.nav-open .co-side { transform: none; }
+      .co-members { position: absolute; right: 0; top: 0; bottom: 0; z-index: 10; transform: translateX(120%); transition: transform .22s ease; box-shadow: -4px 0 20px rgba(0,0,0,.4); }
+      .co-app.mem-open .co-members { transform: none; }
+      .co-icon-btn.only-narrow { display: inline-block; }
+    }
   </style>
 </head>
 <body>
@@ -725,6 +943,7 @@
         <div class="app" id="musicfyApp"><span class="icon">🎵</span><span class="label">Musicfy</span></div>
         <div class="app" id="passgameApp"><span class="icon">🔑</span><span class="label">Password Game</span></div>
         <div class="app" id="drivesadApp"><span class="icon">😔</span><span class="label">Drive Sad</span></div>
+        <div class="app" id="councilApp"><span class="icon">🏛️</span><span class="label">The Council</span></div>
       </div>
     </div>
   </div>
@@ -1080,6 +1299,37 @@
     </div>
   </div>
 
+  <!-- ===== THE COUNCIL ===== -->
+  <div class="screen inactive" id="council">
+    <div class="co-app" id="coApp">
+      <div class="co-scrim" id="coScrim"></div>
+      <!-- server rail -->
+      <div class="co-rail">
+        <button class="co-rail-btn home" id="coHome" title="Exit to home">◀</button>
+        <div class="co-rail-sep"></div>
+        <div id="coRailServers"></div>
+        <button class="co-rail-btn add" id="coAddServer" title="Create a council">＋</button>
+      </div>
+      <!-- channel sidebar -->
+      <div class="co-side" id="coSide">
+        <div class="co-side-head" id="coServerHead"><span id="coServerName">The Council</span><span class="chev" id="coServerChev">⚙️</span></div>
+        <div class="co-chan-scroll" id="coChanScroll"></div>
+        <div class="co-userbar">
+          <div class="av" id="coMeAv">C</div>
+          <div class="meta"><div class="nm" id="coMeName">you</div><div class="sub" id="coMeSub">Owner</div></div>
+          <button class="gear" id="coMeGear" title="Settings">⚙️</button>
+        </div>
+      </div>
+      <!-- main -->
+      <div class="co-main" id="coMain"></div>
+      <!-- members -->
+      <div class="co-members" id="coMembers"></div>
+    </div>
+    <div class="co-toasts" id="coToasts"></div>
+    <div class="co-ov" id="coModal"><div id="coModalInner"></div></div>
+    <div class="co-ov" id="coPop"><div id="coPopInner"></div></div>
+  </div>
+
   <!-- ===== CALLS ===== -->
   <audio id="remoteAudio" autoplay></audio>
   <div id="incomingCall" class="call-overlay">
@@ -1300,7 +1550,7 @@
   let me = null; // logged-in username (canonical)
 
   function showScreen(id) {
-    ['login','home','messages','airhockey','soccer','musicfy','passgame','drivesad'].forEach(s => $(s).classList.add('inactive'));
+    ['login','home','messages','airhockey','soccer','musicfy','passgame','drivesad','council'].forEach(s => $(s).classList.add('inactive'));
     $(id).classList.remove('inactive');
   }
 
@@ -1379,7 +1629,7 @@
     stopCallListener();
     me = null;
     mode = MODES.intro;
-    ['login','home','messages','airhockey','soccer','musicfy','passgame','drivesad'].forEach(s => $(s).classList.add('inactive'));
+    ['login','home','messages','airhockey','soccer','musicfy','passgame','drivesad','council'].forEach(s => $(s).classList.add('inactive'));
     $('intro').classList.remove('hidden-up');
   });
 
@@ -3985,6 +4235,442 @@
     $('dsOvNext').addEventListener('click', () => { if (lvl < LEVELS) startLevel(lvl + 1); });
     $('dsOvMenu').addEventListener('click', () => toMenu());
     window.addEventListener('resize', () => { if (running && $('dsGame').style.display !== 'none') sizeCanvas(); });
+
+    /* ================= THE COUNCIL ================= */
+    (function () {
+      const CO_KEY = 'council_v1';
+      const EMOJIS = ['🏛️','⚔️','👑','🐉','🔥','🎮','🎧','🚀','🛡️','🌙','🍕','🐺','💎','🌀','⚽','🎯'];
+      const SWATCHES = ['#f04747','#e67e22','#faa61a','#f1c40f','#2ecc71','#1abc9c','#3498db','#5865f2','#9b59b6','#e91e63','#95a5a6','#ffffff'];
+      const AV_COLORS = ['#5865f2','#3ba55d','#faa81a','#ed4245','#eb459e','#9b59b6','#1abc9c','#e67e22'];
+      const DM_REPLIES = ['sounds good 👍','on it, chief','lol fr','wait what','yeah I saw the ping','give me a sec','council business never sleeps','copy that','🫡','say less','I second that motion','be there in a bit'];
+
+      let db = null;                          // the one server (or null)
+      const cur = { channel: null, dm: null };
+      let coTab = 'overview';
+      let inited = false;
+
+      const uid = p => (p || 'i') + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
+      const now = () => Date.now();
+      const hash = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
+      function load() { try { return JSON.parse(localStorage.getItem(CO_KEY) || 'null'); } catch (e) { return null; } }
+      function save() { try { localStorage.setItem(CO_KEY, JSON.stringify(db)); } catch (e) {} }
+
+      function ensureShape(d) {
+        d.roles = d.roles || []; d.members = d.members || []; d.channels = d.channels || [];
+        d.msgs = d.msgs || {}; d.dms = d.dms || {}; d.settings = d.settings || { sound: true };
+        d.channels.forEach(c => { if (!d.msgs[c.id]) d.msgs[c.id] = []; });
+        return d;
+      }
+      const memberById = id => db.members.find(m => m.id === id);
+      const roleById = id => db.roles.find(r => r.id === id);
+      const meMember = () => db.members.find(m => m.me) || db.members[0];
+      const curChannel = () => db.channels.find(c => c.id === cur.channel) || db.channels[0];
+      function topRole(m) { for (const r of db.roles) if (m.roleIds.includes(r.id)) return r; return null; }
+      function memColor(m) { const r = topRole(m); return (r && r.color) ? r.color : AV_COLORS[hash(m.name || '?') % AV_COLORS.length]; }
+      const initials = n => ((n || '?').trim()[0] || '?').toUpperCase();
+      function memberCanView(m, ch) { if (!ch.private) return true; if (m.me) return true; if (m.roleIds.includes('owner')) return true; return (ch.allow || []).some(r => m.roleIds.includes(r)); }
+      function fmt(ts) { const d = new Date(ts); return 'Today at ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
+
+      /* ---------- sound + toast ---------- */
+      function notifySound(strong) {
+        try { beep(660, 0.12); setTimeout(() => beep(880, 0.14), 110); if (strong) setTimeout(() => beep(990, 0.16), 240); } catch (e) {}
+      }
+      function toast(title, body, everyone) {
+        const t = document.createElement('div');
+        t.className = 'co-toast' + (everyone ? ' everyone' : '');
+        t.innerHTML = '<div class="ti">' + (everyone ? '📢' : '🔔') + '</div><div><div class="tt">' + esc(title) + '</div><div class="tb">' + esc(body) + '</div></div>';
+        $('coToasts').appendChild(t);
+        setTimeout(() => { t.style.transition = 'opacity .3s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 320); }, 4200);
+        if (!db || db.settings.sound !== false) notifySound(everyone);
+        vibrate(everyone ? [90, 50, 90, 50, 90] : [70, 40, 70]);
+      }
+
+      /* ---------- create / delete server ---------- */
+      function createServer(name, icon) {
+        const owner = me || 'You';
+        name = (name || '').trim() || 'The Council';
+        db = ensureShape({
+          name, icon: icon || '🏛️', owner,
+          roles: [
+            { id: 'owner', name: 'Owner', color: '#f1c40f', hoist: true },
+            { id: 'elder', name: 'Council Elder', color: '#5865f2', hoist: true },
+            { id: 'member', name: 'Member', color: '#95a5a6', hoist: false }
+          ],
+          members: [{ id: 'you', name: owner, roleIds: ['owner'], bot: false, online: true, me: true }],
+          channels: [
+            { id: 'general', name: 'general', private: false, allow: [] },
+            { id: 'announcements', name: 'announcements', private: false, allow: [] }
+          ],
+          msgs: { general: [{ id: uid(), sys: true, text: 'Welcome to ' + name + '! This is the beginning of the council. 🏛️', ts: now() }], announcements: [] },
+          dms: {}, settings: { sound: true }
+        });
+        cur.channel = 'general'; save(); renderAll();
+      }
+      function deleteServer() { db = null; cur.channel = cur.dm = null; try { localStorage.removeItem(CO_KEY); } catch (e) {} closeModal(); renderAll(); }
+
+      /* ---------- rendering ---------- */
+      function renderAll() { renderRail(); renderSide(); renderMain(); renderMembers(); }
+
+      function renderRail() {
+        const box = $('coRailServers'); box.innerHTML = '';
+        if (db) {
+          const b = document.createElement('button');
+          b.className = 'co-rail-btn server active'; b.textContent = db.icon; b.title = db.name;
+          b.dataset.act = 'openSettings'; box.appendChild(b);
+          $('coAddServer').style.display = 'none';
+        } else { $('coAddServer').style.display = ''; }
+      }
+
+      function renderSide() {
+        const hide = !db;
+        $('coSide').style.visibility = hide ? 'hidden' : 'visible';
+        if (hide) return;
+        $('coServerName').textContent = db.name;
+        const you = meMember();
+        $('coMeAv').textContent = initials(you.name); $('coMeAv').style.background = memColor(you);
+        $('coMeName').textContent = you.name;
+        const yr = topRole(you); $('coMeSub').textContent = yr ? yr.name : 'Member';
+        const scroll = $('coChanScroll'); scroll.innerHTML = '';
+        const cat = document.createElement('div'); cat.className = 'co-cat';
+        cat.innerHTML = '<span>Text Channels</span><button data-act="newChannel" title="Create channel">＋</button>';
+        scroll.appendChild(cat);
+        db.channels.forEach(c => {
+          const el = document.createElement('div');
+          el.className = 'co-chan' + (c.id === cur.channel ? ' active' : '');
+          el.dataset.act = 'openChannel'; el.dataset.ch = c.id;
+          el.innerHTML = '<span class="hash">' + (c.private ? '🔒' : '#') + '</span><span class="cname">' + esc(c.name) + '</span>';
+          scroll.appendChild(el);
+        });
+      }
+
+      function renderMain() {
+        const main = $('coMain');
+        if (!db) {
+          $('coApp').classList.remove('nav-open', 'mem-open');
+          main.innerHTML = '<div class="co-hero"><div class="logo">🏛️</div><h1>The Council</h1><p>No council exists yet. Found one, add your people, hand out roles, and start pinging.</p><button class="co-btn" data-act="addServer">Create The Council</button></div>';
+          return;
+        }
+        if (!curChannel()) cur.channel = db.channels[0] && db.channels[0].id;
+        const ch = curChannel();
+        main.innerHTML =
+          '<div class="co-topbar">' +
+            '<button class="co-icon-btn only-narrow" data-act="toggleNav">☰</button>' +
+            '<span class="hash">' + (ch.private ? '🔒' : '#') + '</span><span class="ttl">' + esc(ch.name) + '</span>' +
+            '<span class="topic">' + (ch.private ? 'Private — visible to selected roles' : 'Council channel') + '</span>' +
+            '<button class="co-icon-btn" data-act="toggleMem" title="Members">👥</button>' +
+          '</div>' +
+          '<div class="co-msgs" id="coMsgs"></div>' +
+          '<div class="co-composer">' +
+            '<div class="co-mrow" id="coMrow"></div>' +
+            '<div class="box"><textarea id="coInput" rows="1" placeholder="Message #' + esc(ch.name) + '"></textarea>' +
+            '<button class="send" data-act="send" title="Send">➤</button></div>' +
+          '</div>';
+        renderMessages();
+        renderMentionRow();
+      }
+
+      function renderMentionRow() {
+        const row = $('coMrow'); if (!row) return; row.innerHTML = '';
+        const ev = document.createElement('button'); ev.className = 'co-mchip'; ev.textContent = '@everyone'; ev.dataset.act = 'men'; ev.dataset.tok = '@everyone'; row.appendChild(ev);
+        db.members.filter(m => !m.me).slice(0, 8).forEach(m => {
+          const c = document.createElement('button'); c.className = 'co-mchip'; c.textContent = '@' + m.name; c.dataset.act = 'men'; c.dataset.tok = '@' + m.name; row.appendChild(c);
+        });
+      }
+
+      function messageHTML(msg) {
+        if (msg.sys) return '<div class="co-sys">' + renderText(msg.text, []) + '</div>';
+        const a = memberById(msg.author) || { name: 'Unknown', roleIds: [] };
+        const mine = msg.mentions && msg.mentions.length && (msg.mentions.includes('everyone') || msg.mentions.some(id => { const m = memberById(id); return m && m.me; }));
+        return '<div class="co-msg' + (mine ? ' mentionsMe' : '') + '">' +
+          '<div class="av" style="background:' + memColor(a) + '" data-act="member" data-mem="' + a.id + '">' + initials(a.name) + '</div>' +
+          '<div class="body"><div class="head">' +
+            '<span class="author" style="color:' + memColor(a) + '" data-act="member" data-mem="' + a.id + '">' + esc(a.name) + '</span>' +
+            (a.bot ? '<span class="badge-bot">Bot</span>' : '') +
+            '<span class="time">' + fmt(msg.ts) + '</span>' +
+          '</div><div class="text">' + renderText(msg.text, msg.mentions || []) + '</div></div></div>';
+      }
+      function renderMessages() {
+        const ch = curChannel(); const box = $('coMsgs'); if (!box) return;
+        const list = db.msgs[ch.id] || [];
+        let html = '<div class="co-welcome"><div class="big">' + (ch.private ? '🔒' : '#') + '</div><h2>Welcome to #' + esc(ch.name) + '</h2><p>This is the start of the #' + esc(ch.name) + ' channel.</p></div>';
+        html += list.map(messageHTML).join('');
+        box.innerHTML = html;
+        box.scrollTop = box.scrollHeight;
+      }
+      function renderText(text, mentions) {
+        let html = esc(text);
+        html = html.replace(/@everyone/g, '<span class="co-mention everyone">@everyone</span>');
+        db.members.forEach(m => {
+          if (mentions.includes(m.id)) {
+            const tok = '@' + esc(m.name);
+            html = html.split(tok).join('<span class="co-mention" data-act="member" data-mem="' + m.id + '">@' + esc(m.name) + '</span>');
+          }
+        });
+        return html;
+      }
+
+      function renderMembers() {
+        const box = $('coMembers'); box.innerHTML = ''; if (!db) { box.style.visibility = 'hidden'; return; } box.style.visibility = 'visible';
+        const ch = curChannel();
+        const visible = db.members.filter(m => memberCanView(m, ch));
+        const shown = new Set();
+        const groups = [];
+        db.roles.filter(r => r.hoist).forEach(r => {
+          const mem = visible.filter(m => topRole(m) === r);
+          if (mem.length) { mem.forEach(m => shown.add(m.id)); groups.push({ name: r.name, mem }); }
+        });
+        const rest = visible.filter(m => !shown.has(m.id));
+        if (rest.length) groups.push({ name: 'Members', mem: rest });
+        groups.forEach(g => {
+          const cat = document.createElement('div'); cat.className = 'co-mem-cat'; cat.textContent = g.name + ' — ' + g.mem.length; box.appendChild(cat);
+          g.mem.sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0)).forEach(m => {
+            const el = document.createElement('div'); el.className = 'co-mem' + (m.roleIds.includes('owner') ? ' owner' : '');
+            el.dataset.act = 'member'; el.dataset.mem = m.id;
+            el.innerHTML = '<div class="av" style="background:' + memColor(m) + '">' + initials(m.name) +
+              '<span class="dot" style="background:' + (m.online ? '#23a55a' : '#80848e') + '"></span></div>' +
+              '<span class="nm" style="color:' + (topRole(m) && topRole(m).color ? memColor(m) : '#dbdee1') + '">' + esc(m.name) + '</span>' +
+              (m.roleIds.includes('owner') ? '<span class="crown">👑</span>' : (m.bot ? '<span class="badge-bot">Bot</span>' : ''));
+            box.appendChild(el);
+          });
+        });
+      }
+
+      /* ---------- sending + pings ---------- */
+      function parseMentions(text) {
+        const ids = []; let everyone = /@everyone\b/.test(text);
+        db.members.forEach(m => { if (!m.me && text.includes('@' + m.name)) ids.push(m.id); });
+        return { ids, everyone };
+      }
+      function notifyPing(ch, ment, fromName) {
+        const recips = new Set(ment.ids);
+        if (ment.everyone) db.members.forEach(m => { if (!m.me && memberCanView(m, ch)) recips.add(m.id); });
+        const names = [...recips].map(memberById).filter(Boolean).map(m => m.name);
+        if (ment.everyone) toast('@everyone · #' + ch.name, names.length ? (fromName + ' pinged everyone (' + names.length + ' notified)') : 'No members can see this channel yet', true);
+        else if (names.length) toast('Ping · #' + ch.name, fromName + ' pinged ' + names.join(', '), false);
+      }
+      function sendMessage() {
+        const inp = $('coInput'); if (!inp) return; const text = inp.value.trim(); if (!text) return;
+        const ch = curChannel(); const ment = parseMentions(text);
+        const msg = { id: uid(), author: meMember().id, text, ts: now(), mentions: ment.everyone ? ['everyone', ...ment.ids] : ment.ids };
+        (db.msgs[ch.id] = db.msgs[ch.id] || []).push(msg);
+        inp.value = ''; inp.style.height = 'auto'; save(); renderMessages();
+        if (ment.everyone || ment.ids.length) notifyPing(ch, ment, meMember().name);
+      }
+      function pingMember(id) {
+        const m = memberById(id); const ch = curChannel(); if (!m || !ch) return;
+        const msg = { id: uid(), author: meMember().id, text: '@' + m.name, ts: now(), mentions: [m.id] };
+        (db.msgs[ch.id] = db.msgs[ch.id] || []).push(msg); save();
+        if (cur.dm) closePop();
+        if (!db.channels.some(c => c.id === cur.channel)) cur.channel = ch.id;
+        renderMessages(); toast('Ping · #' + ch.name, 'You pinged ' + m.name, false);
+      }
+
+      /* ---------- profile popout ---------- */
+      function openProfile(id) {
+        const m = memberById(id); if (!m) return; cur.dm = null;
+        const col = memColor(m);
+        const roleChips = db.roles.filter(r => m.roleIds.includes(r.id)).map(r =>
+          '<span class="co-role-chip"><span class="rd" style="background:' + (r.color || '#95a5a6') + '"></span>' + esc(r.name) + '</span>').join('') || '<span class="co-role-chip">No roles</span>';
+        const acts = m.me ? '' :
+          '<div class="pacts"><button class="co-btn full" data-act="dm" data-mem="' + m.id + '">💬 Message</button>' +
+          '<button class="co-btn full ghost" data-act="pingMem" data-mem="' + m.id + '">🔔 Ping</button></div>';
+        $('coPopInner').innerHTML =
+          '<div class="co-profile"><div class="banner" style="background:' + col + '"></div><div class="pbody">' +
+            '<div class="pav" style="background:' + col + '">' + initials(m.name) + '</div>' +
+            '<div class="pcard"><div class="pname">' + esc(m.name) + (m.roleIds.includes('owner') ? ' 👑' : '') + '</div>' +
+            '<div class="phandle">' + (m.bot ? 'Bot · ' : '') + (m.online ? '🟢 Online' : '⚫ Offline') + '</div>' +
+            '<div class="psec">Roles</div><div>' + roleChips + '</div>' + acts + '</div></div></div>';
+        $('coPop').classList.add('show');
+      }
+      function closePop() { $('coPop').classList.remove('show'); cur.dm = null; }
+
+      /* ---------- DMs ---------- */
+      function openDM(id) {
+        const m = memberById(id); if (!m) return; cur.dm = id;
+        renderDM(id); $('coPop').classList.add('show');
+      }
+      function renderDM(id) {
+        const m = memberById(id); const thread = db.dms[id] || [];
+        const body = thread.map(t =>
+          '<div class="co-msg"><div class="av" style="background:' + (t.mine ? memColor(meMember()) : memColor(m)) + '">' + initials(t.mine ? meMember().name : m.name) + '</div>' +
+          '<div class="body"><div class="head"><span class="author" style="color:' + (t.mine ? memColor(meMember()) : memColor(m)) + '">' + esc(t.mine ? meMember().name : m.name) + '</span><span class="time">' + fmt(t.ts) + '</span></div>' +
+          '<div class="text">' + esc(t.text) + '</div></div></div>').join('') ||
+          '<div class="co-welcome" style="padding:24px 12px"><div class="big" style="background:' + memColor(m) + '">' + initials(m.name) + '</div><h2>' + esc(m.name) + '</h2><p>This is the beginning of your direct messages with ' + esc(m.name) + '.</p></div>';
+        $('coPopInner').innerHTML =
+          '<div class="co-card" style="height:min(560px,88%);display:flex;flex-direction:column">' +
+            '<div class="co-topbar" style="border-radius:8px 8px 0 0"><span class="hash">@</span><span class="ttl">' + esc(m.name) + '</span>' +
+            '<button class="co-icon-btn" data-act="backProfile" data-mem="' + m.id + '" title="Profile">👤</button>' +
+            '<button class="co-icon-btn" data-act="closePop" title="Close">✕</button></div>' +
+            '<div class="co-msgs" id="coDmMsgs" style="flex:1">' + body + '</div>' +
+            '<div class="co-composer" style="padding:0 12px 12px"><div class="box"><textarea id="coDmInput" rows="1" placeholder="Message @' + esc(m.name) + '"></textarea>' +
+            '<button class="send" data-act="dmSend" data-mem="' + m.id + '">➤</button></div></div>' +
+          '</div>';
+        const dm = $('coDmMsgs'); if (dm) dm.scrollTop = dm.scrollHeight;
+      }
+      function dmSend(id) {
+        const inp = $('coDmInput'); if (!inp) return; const t = inp.value.trim(); if (!t) return;
+        (db.dms[id] = db.dms[id] || []).push({ id: uid(), mine: true, text: t, ts: now() });
+        inp.value = ''; save(); renderDM(id);
+        const m = memberById(id); if (!m) return;
+        setTimeout(() => {
+          if (!db || !memberById(id)) return;
+          const rep = m.bot ? 'beep boop — ' + DM_REPLIES[Math.floor(Math.random() * DM_REPLIES.length)] : DM_REPLIES[Math.floor(Math.random() * DM_REPLIES.length)];
+          (db.dms[id] = db.dms[id] || []).push({ id: uid(), mine: false, text: rep, ts: now() }); save();
+          if ($('coPop').classList.contains('show') && cur.dm === id) renderDM(id);
+          else toast('New message', m.name + ': ' + rep, false);
+        }, 1100 + Math.random() * 900);
+      }
+
+      /* ---------- modals ---------- */
+      function openModal(html, wide) { $('coModalInner').innerHTML = '<div class="co-card' + (wide ? ' wide' : '') + '">' + html + '</div>'; $('coModal').classList.add('show'); }
+      function closeModal() { $('coModal').classList.remove('show'); }
+
+      function emojiPicker(sel) { return '<div class="co-emoji-pick">' + EMOJIS.map(e => '<button data-act="pickEmoji" data-e="' + e + '" class="' + (e === sel ? 'on' : '') + '">' + e + '</button>').join('') + '</div>'; }
+      let newIcon = '🏛️';
+      function openCreate() {
+        newIcon = '🏛️';
+        openModal('<div class="co-card-head"><h3>Create your council</h3><p>Only one council at a time — you can delete it later.</p></div>' +
+          '<div class="co-card-body"><label class="co-label">Server name</label><input class="co-input" id="coCreateName" placeholder="The Council" maxlength="40">' +
+          '<label class="co-label">Icon</label><div id="coIconPick">' + emojiPicker(newIcon) + '</div></div>' +
+          '<div class="co-card-foot"><button class="co-btn ghost" data-act="closeModal">Cancel</button><button class="co-btn" data-act="doCreate">Create</button></div>');
+      }
+
+      function openSettings(tab) { coTab = tab || 'overview'; renderSettings(); $('coModal').classList.add('show'); }
+      function renderSettings() {
+        if (!db) return;
+        const tabs = [['overview', 'Overview'], ['roles', 'Roles'], ['members', 'Members'], ['channels', 'Channels'], ['notif', 'Notifications']];
+        let body = '';
+        if (coTab === 'overview') {
+          body = '<label class="co-label">Server name</label><input class="co-input" id="coRen" value="' + esc(db.name) + '" maxlength="40" data-act="renameServer">' +
+            '<label class="co-label">Icon</label><div id="coIconPick">' + emojiPicker(db.icon) + '</div>' +
+            '<label class="co-label">Owner</label><div class="co-list-row"><div class="co-swatch" style="background:#f1c40f"></div><div class="grow"><div class="r-name">' + esc(db.owner) + '</div><div class="r-sub">Founder of the council</div></div></div>' +
+            '<label class="co-label" style="color:#f04747">Danger zone</label><button class="co-btn danger full" data-act="confirmDelete">Delete this council</button>';
+        } else if (coTab === 'roles') {
+          body = db.roles.map(r => roleRow(r)).join('') +
+            '<button class="co-btn full" data-act="newRole">＋ Create role</button>';
+        } else if (coTab === 'members') {
+          body = db.members.map(m => memberRow(m)).join('') +
+            '<label class="co-label">Add member</label><div style="display:flex;gap:8px"><input class="co-input" id="coNewMem" placeholder="Name" maxlength="24"><label class="co-check" style="white-space:nowrap"><input type="checkbox" id="coNewBot">Bot</label></div>' +
+            '<button class="co-btn full" data-act="addMember">＋ Add member</button>';
+        } else if (coTab === 'channels') {
+          body = db.channels.map(c => channelRow(c)).join('') +
+            '<label class="co-label">Create channel</label><input class="co-input" id="coNewChan" placeholder="new-channel" maxlength="24">' +
+            '<label class="co-check"><input type="checkbox" id="coNewPriv">Make private (choose roles after)</label>' +
+            '<button class="co-btn full" data-act="createChannel">＋ Create channel</button>';
+        } else if (coTab === 'notif') {
+          body = '<label class="co-check"><input type="checkbox" id="coSound" ' + (db.settings.sound !== false ? 'checked' : '') + ' data-act="soundToggle">Play a sound on pings &amp; DMs</label>' +
+            '<p style="color:#949ba4;font-size:13px;margin-top:8px">Pings notify every member who can see the channel. @everyone hits everyone with access; private channels only alert their allowed roles.</p>';
+        }
+        openModal('<div class="co-card-head"><h3>' + esc(db.name) + ' · Settings</h3></div>' +
+          '<div class="co-card-body"><div class="co-tabs">' + tabs.map(t => '<button class="co-tab' + (coTab === t[0] ? ' on' : '') + '" data-act="setTab" data-tab="' + t[0] + '">' + t[1] + '</button>').join('') + '</div>' + body + '</div>' +
+          '<div class="co-card-foot"><button class="co-btn" data-act="closeModal">Done</button></div>', true);
+      }
+      function roleRow(r) {
+        const cnt = db.members.filter(m => m.roleIds.includes(r.id)).length;
+        return '<div class="co-list-row"><div class="co-swatch" style="background:' + (r.color || '#95a5a6') + '"></div>' +
+          '<div class="grow"><input class="co-input" style="padding:6px 8px" value="' + esc(r.name) + '" data-act="roleName" data-role="' + r.id + '"' + (r.id === 'owner' ? ' disabled' : '') + '>' +
+          '<div class="r-sub">' + cnt + ' member' + (cnt === 1 ? '' : 's') + '</div>' +
+          '<div class="co-emoji-pick" style="margin-top:6px">' + SWATCHES.map(c => '<button data-act="pickRoleColor" data-role="' + r.id + '" data-color="' + c + '" style="background:' + c + ';width:24px;height:24px" class="' + (c === r.color ? 'on' : '') + '"></button>').join('') + '</div>' +
+          '<label class="co-check" style="padding:6px 0"><input type="checkbox" ' + (r.hoist ? 'checked' : '') + ' data-act="roleHoist" data-role="' + r.id + '">Show separately in member list</label></div>' +
+          (r.id === 'owner' || r.id === 'member' ? '' : '<button class="co-btn danger sm" data-act="deleteRole" data-role="' + r.id + '">Delete</button>') + '</div>';
+      }
+      function memberRow(m) {
+        const chips = db.roles.filter(r => m.roleIds.includes(r.id)).map(r =>
+          '<span class="co-role-chip"><span class="rd" style="background:' + (r.color || '#95a5a6') + '"></span>' + esc(r.name) +
+          (r.id === 'owner' ? '' : '<button data-act="removeMemberRole" data-mem="' + m.id + '" data-role="' + r.id + '">✕</button>') + '</span>').join('');
+        const addable = db.roles.filter(r => !m.roleIds.includes(r.id));
+        const sel = addable.length ? '<select class="co-select" style="margin-top:6px" data-act="assignRole" data-mem="' + m.id + '"><option value="">＋ Add role…</option>' + addable.map(r => '<option value="' + r.id + '">' + esc(r.name) + '</option>').join('') + '</select>' : '';
+        return '<div class="co-list-row"><div class="co-swatch" style="background:' + memColor(m) + ';width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px">' + initials(m.name) + '</div>' +
+          '<div class="grow"><div class="r-name">' + esc(m.name) + (m.me ? ' (you)' : '') + (m.bot ? ' 🤖' : '') + '</div><div>' + chips + '</div>' + sel + '</div>' +
+          (m.me ? '' : '<button class="co-btn danger sm" data-act="removeMember" data-mem="' + m.id + '">Kick</button>') + '</div>';
+      }
+      function channelRow(c) {
+        const roleChecks = c.private ? '<div style="margin-top:6px">' + db.roles.map(r =>
+          '<label class="co-check" style="padding:4px 0;font-size:13px"><input type="checkbox" ' + ((c.allow || []).includes(r.id) ? 'checked' : '') + (r.id === 'owner' ? ' checked disabled' : '') + ' data-act="chanAllow" data-ch="' + c.id + '" data-role="' + r.id + '"><span class="co-swatch" style="background:' + (r.color || '#95a5a6') + ';width:12px;height:12px"></span>' + esc(r.name) + '</label>').join('') + '</div>' : '';
+        return '<div class="co-list-row"><span class="hash" style="font-size:18px;color:#80848e">' + (c.private ? '🔒' : '#') + '</span>' +
+          '<div class="grow"><div class="r-name">' + esc(c.name) + '</div>' +
+          '<label class="co-check" style="padding:4px 0"><input type="checkbox" ' + (c.private ? 'checked' : '') + ' data-act="chanPrivate" data-ch="' + c.id + '">Private channel</label>' + roleChecks + '</div>' +
+          (db.channels.length > 1 ? '<button class="co-btn danger sm" data-act="deleteChannel" data-ch="' + c.id + '">Delete</button>' : '') + '</div>';
+      }
+
+      /* ---------- action dispatch ---------- */
+      function act(a, el, e) {
+        switch (a) {
+          case 'addServer': case 'openCreate': openCreate(); break;
+          case 'pickEmoji': newIcon = el.dataset.e; if (db && $('coModal').classList.contains('show') && coTab === 'overview') { db.icon = newIcon; save(); renderSettings(); renderRail(); } else { $('coIconPick').innerHTML = emojiPicker(newIcon); } break;
+          case 'doCreate': createServer($('coCreateName').value, newIcon); closeModal(); break;
+          case 'openChannel': cur.channel = el.dataset.ch; $('coApp').classList.remove('nav-open'); renderSide(); renderMain(); renderMembers(); break;
+          case 'openSettings': openSettings('overview'); break;
+          case 'setTab': openSettings(el.dataset.tab); break;
+          case 'closeModal': closeModal(); break;
+          case 'toggleNav': $('coApp').classList.toggle('nav-open'); $('coApp').classList.remove('mem-open'); break;
+          case 'toggleMem': $('coApp').classList.toggle('mem-open'); $('coApp').classList.remove('nav-open'); break;
+          case 'send': sendMessage(); break;
+          case 'men': { const inp = $('coInput'); if (inp) { inp.value = (inp.value + (inp.value && !inp.value.endsWith(' ') ? ' ' : '') + el.dataset.tok + ' ').trimStart(); inp.focus(); } break; }
+          case 'member': openProfile(el.dataset.mem); break;
+          case 'dm': openDM(el.dataset.mem); break;
+          case 'backProfile': openProfile(el.dataset.mem); break;
+          case 'pingMem': pingMember(el.dataset.mem); break;
+          case 'dmSend': dmSend(el.dataset.mem); break;
+          case 'closePop': closePop(); break;
+          case 'confirmDelete': openModal('<div class="co-card-head"><h3>Delete ' + esc(db.name) + '?</h3><p>This wipes the whole council — channels, members, roles, messages. Cannot be undone.</p></div><div class="co-card-foot"><button class="co-btn ghost" data-act="openSettings">Cancel</button><button class="co-btn danger" data-act="doDelete">Delete forever</button></div>'); break;
+          case 'doDelete': deleteServer(); break;
+          case 'newChannel': openSettings('channels'); break;
+          case 'createChannel': { const n = ($('coNewChan').value || '').trim().toLowerCase().replace(/\s+/g, '-'); if (!n) break; const id = uid('c'); const priv = $('coNewPriv').checked; db.channels.push({ id, name: n, private: priv, allow: priv ? ['owner'] : [] }); db.msgs[id] = []; save(); renderSide(); renderSettings(); break; }
+          case 'deleteChannel': { const id = el.dataset.ch; db.channels = db.channels.filter(c => c.id !== id); delete db.msgs[id]; if (cur.channel === id) cur.channel = db.channels[0] && db.channels[0].id; save(); renderSide(); renderMain(); renderSettings(); break; }
+          case 'newRole': { db.roles.splice(db.roles.length - 1, 0, { id: uid('r'), name: 'new role', color: SWATCHES[Math.floor(Math.random() * 10)], hoist: false }); save(); renderSettings(); renderMembers(); break; }
+          case 'deleteRole': { const id = el.dataset.role; db.roles = db.roles.filter(r => r.id !== id); db.members.forEach(m => m.roleIds = m.roleIds.filter(x => x !== id)); db.channels.forEach(c => c.allow = (c.allow || []).filter(x => x !== id)); save(); renderSettings(); renderAll(); break; }
+          case 'pickRoleColor': { const r = roleById(el.dataset.role); if (r) { r.color = el.dataset.color; save(); renderSettings(); renderAll(); } break; }
+          case 'addMember': { const n = ($('coNewMem').value || '').trim(); if (!n) break; db.members.push({ id: uid('m'), name: n, roleIds: ['member'], bot: $('coNewBot').checked, online: Math.random() > 0.35, me: false }); save(); renderSettings(); renderMembers(); break; }
+          case 'removeMember': { db.members = db.members.filter(m => m.id !== el.dataset.mem); save(); renderSettings(); renderMembers(); break; }
+          case 'removeMemberRole': { const m = memberById(el.dataset.mem); if (m) { m.roleIds = m.roleIds.filter(x => x !== el.dataset.role); save(); renderSettings(); renderMembers(); } break; }
+        }
+      }
+      function change(a, el) {
+        switch (a) {
+          case 'renameServer': db.name = el.value.trim() || 'The Council'; save(); renderSide(); renderRail(); break;
+          case 'roleName': { const r = roleById(el.dataset.role); if (r) { r.name = el.value.trim() || 'role'; save(); renderMembers(); renderSide(); } break; }
+          case 'roleHoist': { const r = roleById(el.dataset.role); if (r) { r.hoist = el.checked; save(); renderMembers(); } break; }
+          case 'chanPrivate': { const c = db.channels.find(x => x.id === el.dataset.ch); if (c) { c.private = el.checked; if (c.private && !(c.allow || []).includes('owner')) c.allow = ['owner']; save(); renderSide(); renderSettings(); renderMembers(); } break; }
+          case 'chanAllow': { const c = db.channels.find(x => x.id === el.dataset.ch); if (c) { const set = new Set(c.allow || []); el.checked ? set.add(el.dataset.role) : set.delete(el.dataset.role); c.allow = [...set]; save(); renderMembers(); } break; }
+          case 'assignRole': { const m = memberById(el.dataset.mem); if (m && el.value) { if (!m.roleIds.includes(el.value)) m.roleIds.push(el.value); m.roleIds = db.roles.filter(r => m.roleIds.includes(r.id)).map(r => r.id); save(); renderSettings(); renderMembers(); } break; }
+          case 'soundToggle': db.settings.sound = el.checked; save(); break;
+        }
+      }
+
+      /* ---------- entry / wiring ---------- */
+      function openCouncil() {
+        db = load(); if (db) ensureShape(db);
+        if (db && !cur.channel) cur.channel = db.channels[0] && db.channels[0].id;
+        $('menuBtn').style.display = 'none';
+        showScreen('council');
+        if (!inited) { wire(); inited = true; }
+        renderAll();
+      }
+      function exitCouncil() { $('coApp').classList.remove('nav-open', 'mem-open'); closeModal(); closePop(); $('menuBtn').style.display = ''; showScreen('home'); }
+      function onAddServer() { if (db) { toast('One council at a time', 'Delete the current council first (Settings ▸ Overview).', false); return; } openCreate(); }
+
+      function wire() {
+        $('coHome').addEventListener('click', exitCouncil);
+        $('coAddServer').addEventListener('click', onAddServer);
+        $('coServerHead').addEventListener('click', () => { if (db) openSettings('overview'); });
+        $('coMeGear').addEventListener('click', () => { if (db) openSettings('overview'); });
+        $('coScrim').addEventListener('click', () => $('coApp').classList.remove('nav-open', 'mem-open'));
+        $('coModal').addEventListener('click', e => { if (e.target.id === 'coModal') closeModal(); });
+        $('coPop').addEventListener('click', e => { if (e.target.id === 'coPop') closePop(); });
+        const root = $('council');
+        root.addEventListener('click', e => { const t = e.target.closest('[data-act]'); if (!t) return; e.preventDefault(); act(t.dataset.act, t, e); });
+        root.addEventListener('change', e => { const t = e.target.closest('[data-act]'); if (!t) return; change(t.dataset.act, t); });
+        root.addEventListener('input', e => { if (e.target.tagName === 'TEXTAREA') { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; } });
+        root.addEventListener('keydown', e => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.target.id === 'coInput') { e.preventDefault(); sendMessage(); }
+            else if (e.target.id === 'coDmInput' && cur.dm) { e.preventDefault(); dmSend(cur.dm); }
+          }
+        });
+      }
+      $('councilApp').addEventListener('click', openCouncil);
+    })();
   })();
   </script>
 </body>
