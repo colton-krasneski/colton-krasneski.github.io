@@ -168,9 +168,29 @@
     .soc-chip.on { background: #00ff41; color: #000; border-color: #00ff41; }
     .soc-chip .dot { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
     .soc-setup-panel .soc-btn { width: 100%; margin-top: 0.8rem; }
+    /* reaction: camera cone registration */
+    .soc-cam-wrap { position: relative; width: 100%; max-width: 420px; aspect-ratio: 3 / 4; margin: 0 auto 0.6rem; background: #000; border: 1px solid #00ff4133; border-radius: 12px; overflow: hidden; }
+    #socCam { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
+    #socOverlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .soc-cross { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00ff41cc; font-size: 1.5rem; pointer-events: none; text-shadow: 0 0 6px #000; }
+    .soc-cam-hint { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.5rem; background: linear-gradient(transparent, rgba(0,0,0,0.75)); color: #dfffe6; font-size: 0.85rem; text-align: center; }
+    .soc-cam-gps { position: absolute; top: 0.5rem; left: 0.5rem; background: rgba(0,0,0,0.6); color: #9fffb5; font-size: 0.72rem; padding: 0.25rem 0.5rem; border-radius: 6px; }
+    .soc-cam-confirm { position: absolute; left: 0; right: 0; bottom: 0; display: none; align-items: center; gap: 0.5rem; padding: 0.6rem; background: rgba(0,0,0,0.82); }
+    .soc-cam-confirm.show { display: flex; }
+    .soc-confirm-swatch { width: 34px; height: 34px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.4); flex-shrink: 0; }
+    .soc-confirm-info { flex: 1; display: flex; flex-direction: column; line-height: 1.15; color: #fff; text-align: left; min-width: 0; }
+    .soc-confirm-info span { font-size: 0.7rem; color: #9fffb5; }
+    .soc-mini2 { padding: 0.5rem 0.8rem !important; font-size: 0.85rem !important; margin: 0 !important; width: auto !important; }
+    .soc-cone-chip { display: inline-flex; align-items: center; gap: 0.4rem; }
+    .soc-cone-chip .sw { width: 14px; height: 14px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.25); }
     /* run */
-    #socRun { justify-content: space-between; }
+    #socRun { justify-content: flex-start; gap: 0.3rem; padding-top: 0.5rem; }
     .soc-run-hud { width: 100%; display: flex; justify-content: space-between; font-size: 1.1rem; color: #00ff41; text-shadow: 0 0 10px #00ff41; }
+    .soc-run-color { font-size: 2rem; font-weight: 800; text-align: center; padding: 0.5rem 1.2rem; border-radius: 12px; margin: 0.4rem auto; color: #001a08; min-width: 60%; box-shadow: 0 0 24px rgba(0,255,65,0.25); }
+    .soc-compass { display: flex; align-items: center; justify-content: center; margin: 0.5rem 0; height: 40vh; max-height: 320px; }
+    .soc-arrow { font-size: 7rem; line-height: 1; transition: transform 0.25s ease-out; color: #00ff41; text-shadow: 0 0 24px #00ff41; will-change: transform; }
+    .soc-run-dist { text-align: center; font-size: 1.8rem; color: #dfffe6; font-weight: 700; }
+    .soc-run-note { text-align: center; color: #9fffb5; font-size: 0.85rem; min-height: 1.1rem; margin: 0.2rem 0 0.4rem; }
     .soc-stop { width: min(60%, 200px); }
     /* summary */
     .soc-summary { text-align: center; color: #baffcf; line-height: 1.9; font-size: 1rem; }
@@ -1093,28 +1113,34 @@
 
       <div class="soc-view" id="socSetup" style="display:none;">
         <div class="soc-sub">⚡ Reaction Trainer</div>
-        <div class="soc-step" id="socStepText"></div>
-        <div class="soc-color-add">
-          <input id="socColorInput" type="text" placeholder="Type a colour…" autocomplete="off" autocapitalize="words">
-          <button id="socColorAdd">Add</button>
+        <div class="soc-cam-wrap" id="socCamWrap">
+          <video id="socCam" playsinline autoplay muted></video>
+          <canvas id="socOverlay"></canvas>
+          <div class="soc-cross" id="socCross">＋</div>
+          <div class="soc-cam-gps" id="socCamGps">📍 finding you…</div>
+          <div class="soc-cam-hint" id="socCamHint">Stand by a cone, point at it, and tap it</div>
+          <div class="soc-cam-confirm" id="socCamConfirm">
+            <div class="soc-confirm-swatch" id="socConfirmSwatch"></div>
+            <div class="soc-confirm-info"><b id="socConfirmName">Cone</b><span id="socConfirmGps"></span></div>
+            <button class="soc-btn ghost soc-mini2" id="socRetake">✕ No</button>
+            <button class="soc-btn soc-mini2" id="socAccept">✓ Accept</button>
+          </div>
         </div>
-        <div class="soc-label">Quick add</div>
-        <div class="soc-chips" id="socQuick"></div>
-        <div class="soc-label">Your cones</div>
-        <div class="soc-chips" id="socColorChips"></div>
+        <div class="soc-label">Your cones · <span id="socConeCount">0</span></div>
+        <div class="soc-chips" id="socConeChips"></div>
         <div class="soc-label">Reps</div>
         <div class="soc-reps-seg" id="socReps"></div>
         <button class="soc-btn" id="socStart" disabled>Start ▶</button>
-        <button class="soc-mini" id="socColorClear">Clear all</button>
+        <button class="soc-mini" id="socConeClear">Clear all cones</button>
       </div>
 
       <div class="soc-view" id="socRun" style="display:none;">
-        <div class="soc-run-hud"><span id="socRep">0/0</span><span id="socSplit"></span></div>
-        <div class="soc-run-bottom">
-          <div class="soc-mic-status" id="socMicStatus"></div>
-          <button class="soc-btn" id="socDoneBtn">✓ Done</button>
-          <button class="soc-btn ghost soc-stop" id="socRunStop">Stop</button>
-        </div>
+        <div class="soc-run-hud"><span id="socRep">0/0</span><span id="socRunAcc"></span></div>
+        <div class="soc-run-color" id="socRunColor">Get ready…</div>
+        <div class="soc-compass"><div class="soc-arrow" id="socArrow">⬆</div></div>
+        <div class="soc-run-dist" id="socRunDist"></div>
+        <div class="soc-run-note" id="socRunNote"></div>
+        <button class="soc-btn ghost soc-stop" id="socRunStop">Stop</button>
       </div>
 
       <div class="soc-view" id="socSummary" style="display:none;">
@@ -2388,97 +2414,137 @@
       if (timerInt) clearInterval(timerInt);
       nextTimer = cdTimer = repTimer = timerInt = null;
       ladderRunning = false; if (ladderTimer) { clearTimeout(ladderTimer); ladderTimer = null; }
-      stopRecog(); relWake(); stopMotion(); creditActive(); // credit any in-progress activity on Back/Stop
+      reactionCleanup(); relWake(); stopMotion(); creditActive(); // credit any in-progress activity on Back/Stop
       $('socBanner').classList.remove('show');
     }
     $('soccerApp').addEventListener('click', openSoccer);
     $('socBack').addEventListener('click', () => { if (lockActive) return; if (currentView === 'socMenu') exitSoccer(); else { abortAll(); soccerView('socMenu'); renderStats(); } });
 
-    /* ===== Reaction Trainer — no camera. Type your cone colours; it calls one, you go tap it and say "done". ===== */
-    function setStep(t) { $('socStepText').textContent = t; }
+    /* ===== Reaction Trainer — register real cones by camera (colour + GPS), then a GPS-arrow run ===== */
     function warmSpeech() { SAC(); try { if (window.speechSynthesis) { speechSynthesis.resume(); speak('Ready'); } } catch (e) {} }
-    function saveColors() { try { localStorage.setItem(COLORS_KEY, JSON.stringify(colors)); } catch (e) {} }
-    function loadColors() { try { const a = JSON.parse(localStorage.getItem(COLORS_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
-    function colorCss(name) {
-      const k = String(name).trim().toLowerCase();
-      if (COLOR_CSS[k]) return COLOR_CSS[k];
-      let h = 0; for (let i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) % 360; // stable hue for custom names
-      return 'hsl(' + h + ',70%,55%)';
+    const CONES_KEY = 'colton_soccer_cones';
+    const NAMED = [['red', [229, 57, 53]], ['orange', [255, 140, 26]], ['yellow', [255, 210, 74]], ['green', [51, 209, 122]], ['blue', [58, 160, 255]], ['purple', [176, 108, 255]], ['pink', [255, 91, 168]], ['white', [240, 240, 245]], ['black', [35, 35, 40]], ['cyan', [58, 209, 200]], ['brown', [150, 90, 50]]];
+    let cones = [], camStream = null, geoWatch = null, curFix = null, fixBuf = [];
+    let compassHeading = null, compassAt = 0, orientHandler = null;
+    let pending = null, targetCone = null, lastConeId = null, arriveSince = 0, runStart = 0, coneSplits = [], repArriveT = 0;
+
+    /* ---- pure geo/colour helpers (unit-tested) ---- */
+    const toRad = d => d * Math.PI / 180, toDeg = r => r * 180 / Math.PI;
+    function haversine(a, b) { const R = 6371000, dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng), la1 = toRad(a.lat), la2 = toRad(b.lat); const x = Math.sin(dLat / 2) ** 2 + Math.cos(la1) * Math.cos(la2) * Math.sin(dLng / 2) ** 2; return 2 * R * Math.asin(Math.min(1, Math.sqrt(x))); }
+    function bearingTo(a, b) { const la1 = toRad(a.lat), la2 = toRad(b.lat), dLng = toRad(b.lng - a.lng); const y = Math.sin(dLng) * Math.cos(la2), x = Math.cos(la1) * Math.sin(la2) - Math.sin(la1) * Math.cos(la2) * Math.cos(dLng); return (toDeg(Math.atan2(y, x)) + 360) % 360; }
+    function colorDist(a, b) { return Math.sqrt((a.r - b.r) ** 2 + (a.g - b.g) ** 2 + (a.b - b.b) ** 2); }
+    function nearestName(rgb) { let n = 'colour', bd = 1e9; for (const [nm, c] of NAMED) { const d = colorDist(rgb, { r: c[0], g: c[1], b: c[2] }); if (d < bd) { bd = d; n = nm; } } return n; }
+    function detectBlob(data, W, H, tx, ty) {
+      const at = (x, y) => (y * W + x) * 4, si = at(tx, ty), tgt = { r: data[si], g: data[si + 1], b: data[si + 2] };
+      const seen = new Uint8Array(W * H), stack = [tx, ty]; let minx = tx, maxx = tx, miny = ty, maxy = ty, sr = 0, sg = 0, sb = 0, cnt = 0; const TH = 46;
+      while (stack.length) { const y = stack.pop(), x = stack.pop(); if (x < 0 || y < 0 || x >= W || y >= H) continue; const p = y * W + x; if (seen[p]) continue; seen[p] = 1; const i = p * 4; if (Math.sqrt((data[i] - tgt.r) ** 2 + (data[i + 1] - tgt.g) ** 2 + (data[i + 2] - tgt.b) ** 2) > TH) continue; sr += data[i]; sg += data[i + 1]; sb += data[i + 2]; cnt++; if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y; stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1); }
+      if (cnt < 4) return null;
+      return { box: { x: minx, y: miny, w: maxx - minx + 1, h: maxy - miny + 1 }, color: { r: Math.round(sr / cnt), g: Math.round(sg / cnt), b: Math.round(sb / cnt) }, count: cnt };
     }
-    const PRESETS = ['Red', 'Orange', 'Yellow', 'Green', 'Blue', 'Purple', 'Pink', 'White'];
+    const rgbCss = c => 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')';
+
+    function saveCones() { try { localStorage.setItem(CONES_KEY, JSON.stringify(cones)); } catch (e) {} }
+    function loadCones() { try { const a = JSON.parse(localStorage.getItem(CONES_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } }
     function renderReps() {
       const rp = $('socReps'); rp.innerHTML = '';
-      [20, 45, 100].forEach(n => { const c = document.createElement('span'); c.className = 'soc-seg' + (reps === n ? ' on' : ''); c.textContent = n; c.onclick = () => { reps = n; renderReps(); }; rp.appendChild(c); });
+      [25, 50, 100].forEach(n => { const c = document.createElement('span'); c.className = 'soc-seg' + (reps === n ? ' on' : ''); c.textContent = n; c.onclick = () => { reps = n; renderReps(); }; rp.appendChild(c); });
     }
-    function renderPresets() {
-      const box = $('socQuick'); box.innerHTML = '';
-      PRESETS.forEach(name => {
-        const on = colors.some(c => c.toLowerCase() === name.toLowerCase());
-        const chip = document.createElement('span'); chip.className = 'soc-chip' + (on ? ' on' : '');
-        chip.innerHTML = '<span class="dot" style="background:' + colorCss(name) + '"></span>' + name;
-        chip.onclick = () => { on ? removeColor(name) : addColor(name); };
-        box.appendChild(chip);
-      });
+    function renderCones() {
+      $('socConeCount').textContent = cones.length;
+      const box = $('socConeChips'); box.innerHTML = '';
+      cones.forEach(c => { const chip = document.createElement('span'); chip.className = 'soc-chip on soc-cone-chip'; chip.innerHTML = '<span class="sw" style="background:' + c.css + '"></span>' + esc(c.name) + ' <b class="x">×</b>'; chip.onclick = () => { cones = cones.filter(x => x.id !== c.id); saveCones(); renderCones(); }; box.appendChild(chip); });
+      $('socStart').disabled = cones.length < 2;
     }
-    function renderColorList() {
-      const box = $('socColorChips'); box.innerHTML = '';
-      colors.forEach(name => {
-        const chip = document.createElement('span'); chip.className = 'soc-chip on';
-        chip.innerHTML = '<span class="dot" style="background:' + colorCss(name) + '"></span>' + esc(name) + ' <b class="x">×</b>';
-        chip.onclick = () => removeColor(name);
-        box.appendChild(chip);
-      });
-      $('socStart').disabled = colors.length < 2;
-      setStep(colors.length < 2 ? 'Add at least 2 cone colours you have out there.' : 'Ready! It calls a colour — go foot-tap that cone and say “done”.');
+
+    /* ---- camera + tap-to-detect ---- */
+    async function startCam() {
+      try { camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false }); const v = $('socCam'); v.srcObject = camStream; await v.play().catch(() => {}); }
+      catch (e) { $('socCamHint').textContent = '📷 Camera blocked — allow camera access, then reopen.'; }
     }
-    function addColor(name) {
-      name = String(name).trim(); if (!name) return;
-      name = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
-      if (colors.some(c => c.toLowerCase() === name.toLowerCase())) return;
-      colors.push(name); saveColors(); renderPresets(); renderColorList();
+    function stopCam() { if (camStream) { camStream.getTracks().forEach(t => t.stop()); camStream = null; } const v = $('socCam'); if (v) { try { v.pause(); } catch (e) {} v.srcObject = null; } }
+    function clearOverlay() { const o = $('socOverlay'); const g = o && o.getContext('2d'); if (g) g.clearRect(0, 0, o.width, o.height); }
+    function onConeTap(ev) {
+      if (pending) return;
+      const v = $('socCam'); if (!v || !v.videoWidth) return;
+      const rect = v.getBoundingClientRect();
+      const pt = ev.touches ? ev.touches[0] : ev; const px = (pt.clientX - rect.left) / rect.width, py = (pt.clientY - rect.top) / rect.height;
+      if (px < 0 || px > 1 || py < 0 || py > 1) return;
+      const W = 220, H = Math.max(1, Math.round(W * v.videoHeight / v.videoWidth));
+      const wc = document.createElement('canvas'); wc.width = W; wc.height = H; const wg = wc.getContext('2d', { willReadFrequently: true });
+      wg.drawImage(v, 0, 0, W, H);
+      // map tap through object-fit: cover (video crops to fill the box)
+      const vAsp = v.videoWidth / v.videoHeight, rAsp = rect.width / rect.height;
+      let u = px, w2 = py;
+      if (vAsp > rAsp) { const vis = rAsp / vAsp; u = 0.5 + (px - 0.5) * vis; } else { const vis = vAsp / rAsp; w2 = 0.5 + (py - 0.5) * vis; }
+      const tx = Math.max(0, Math.min(W - 1, Math.round(u * W))), ty = Math.max(0, Math.min(H - 1, Math.round(w2 * H)));
+      const data = wg.getImageData(0, 0, W, H).data;
+      const blob = detectBlob(data, W, H, tx, ty);
+      if (!blob) { $('socCamHint').textContent = 'Tap right on the cone — try again.'; vibrate(40); return; }
+      const o = $('socOverlay'); o.width = rect.width; o.height = rect.height; const g = o.getContext('2d');
+      const sx = rect.width / W, sy = rect.height / H;
+      g.clearRect(0, 0, o.width, o.height); g.strokeStyle = rgbCss(blob.color); g.lineWidth = 3; g.shadowColor = '#000'; g.shadowBlur = 4;
+      g.strokeRect(blob.box.x * sx, blob.box.y * sy, blob.box.w * sx, blob.box.h * sy);
+      const nm = nearestName(blob.color);
+      pending = { color: blob.color, css: rgbCss(blob.color), name: nm };
+      $('socConfirmSwatch').style.background = pending.css;
+      $('socConfirmName').textContent = 'Looks ' + nm;
+      $('socConfirmGps').textContent = curFix ? ('📍 ±' + Math.round(curFix.acc) + 'm here') : '📍 no GPS yet';
+      $('socCamConfirm').classList.add('show');
+      try { v.pause(); } catch (e) {}
     }
-    function removeColor(name) {
-      colors = colors.filter(c => c.toLowerCase() !== String(name).toLowerCase());
-      saveColors(); renderPresets(); renderColorList();
+    function cancelPending() { pending = null; clearOverlay(); $('socCamConfirm').classList.remove('show'); $('socCamHint').textContent = 'Stand by a cone, point at it, and tap it'; const v = $('socCam'); if (v) v.play().catch(() => {}); }
+    function acceptPending() {
+      if (!pending) return;
+      if (!curFix) { $('socConfirmGps').textContent = '📍 waiting for GPS…'; return; }
+      let name = pending.name; const dup = cones.filter(c => c.baseName === pending.name).length; if (dup) name = pending.name + ' ' + (dup + 1);
+      cones.push({ id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name, baseName: pending.name, css: pending.css, r: pending.color.r, g: pending.color.g, b: pending.color.b, lat: curFix.lat, lng: curFix.lng, acc: curFix.acc });
+      saveCones(); renderCones(); beep(880, 0.08); vibrate(60); cancelPending();
     }
+
+    /* ---- geolocation: high-accuracy, averaged over recent fixes ---- */
+    function startGeo() {
+      if (!navigator.geolocation) { $('socCamGps').textContent = '📍 no GPS on this device'; return; }
+      geoWatch = navigator.geolocation.watchPosition(p => {
+        const f = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy || 20, heading: (p.coords.heading != null && !isNaN(p.coords.heading)) ? p.coords.heading : null, speed: p.coords.speed || 0, t: Date.now() };
+        fixBuf.push(f); if (fixBuf.length > 5) fixBuf.shift();
+        const w = fixBuf.filter(x => Date.now() - x.t < 8000); let sLat = 0, sLng = 0, n = 0, bestAcc = 999;
+        w.forEach(x => { sLat += x.lat; sLng += x.lng; n++; bestAcc = Math.min(bestAcc, x.acc); });
+        curFix = { lat: sLat / n, lng: sLng / n, acc: bestAcc, heading: f.heading, speed: f.speed };
+        const q = curFix.acc <= 8 ? '🟢' : curFix.acc <= 16 ? '🟡' : '🔴';
+        if (!pending && currentView === 'socSetup') $('socCamGps').textContent = q + ' ±' + Math.round(curFix.acc) + 'm';
+        if (running) onRunFix();
+      }, () => { $('socCamGps').textContent = '📍 GPS blocked — allow location access.'; }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 25000 });
+    }
+    function stopGeo() { if (geoWatch != null) { try { navigator.geolocation.clearWatch(geoWatch); } catch (e) {} geoWatch = null; } fixBuf = []; }
+
+    /* ---- compass heading for the arrow ---- */
+    function startOrient() {
+      const h = e => { let hd = null; if (typeof e.webkitCompassHeading === 'number') hd = e.webkitCompassHeading; else if (e.absolute && typeof e.alpha === 'number') hd = (360 - e.alpha) % 360; if (hd != null) { compassHeading = hd; compassAt = Date.now(); } };
+      orientHandler = h;
+      const add = () => { window.addEventListener('deviceorientationabsolute', h, true); window.addEventListener('deviceorientation', h, true); };
+      if (typeof DeviceOrientationEvent !== 'undefined' && DeviceOrientationEvent.requestPermission) DeviceOrientationEvent.requestPermission().then(s => { if (s === 'granted') add(); }).catch(() => {});
+      else add();
+    }
+    function stopOrient() { if (orientHandler) { window.removeEventListener('deviceorientationabsolute', orientHandler, true); window.removeEventListener('deviceorientation', orientHandler, true); orientHandler = null; } compassHeading = null; }
+
+    function reactionCleanup() { stopCam(); stopGeo(); stopOrient(); pending = null; targetCone = null; }
+
     $('socReactBtn').addEventListener('click', openReaction);
     function openReaction() {
-      colors = loadColors();
-      renderReps(); renderPresets(); renderColorList();
-      $('socColorInput').value = '';
+      cones = loadCones(); renderReps(); renderCones();
+      $('socCamConfirm').classList.remove('show'); clearOverlay(); $('socCamHint').textContent = 'Stand by a cone, point at it, and tap it'; $('socCamGps').textContent = '📍 finding you…';
       soccerView('socSetup');
+      startCam(); startGeo();
     }
-    $('socColorAdd').addEventListener('click', () => { addColor($('socColorInput').value); $('socColorInput').value = ''; $('socColorInput').focus(); });
-    $('socColorInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addColor($('socColorInput').value); $('socColorInput').value = ''; } });
-    $('socColorClear').addEventListener('click', () => { colors = []; saveColors(); renderPresets(); renderColorList(); });
-
-    /* ---- speech recognition: it hears you say "done" and moves to the next colour ---- */
-    let recog = null, recogOn = false, recogAvail = ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
-    function initRecog() {
-      const SR = window.SpeechRecognition || window.webkitSpeechRecognition; if (!SR) return null;
-      const r = new SR(); r.continuous = true; r.interimResults = true; r.lang = 'en-US';
-      r.onresult = e => {
-        if (!current || performance.now() - callTime < 350) return; // ignore echo of the previous "done"
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-          const t = (e.results[i][0].transcript || '').toLowerCase();
-          if (/\b(done|next|got it|go|okay|ok|yep|yes|check|tapped)\b/.test(t)) { finishRep(false); break; }
-        }
-      };
-      r.onend = () => { if (recogOn) { try { r.start(); } catch (e) {} } }; // browsers auto-stop; keep it alive
-      r.onerror = () => {};
-      return r;
-    }
-    function startRecog() {
-      if (!recogAvail) return false;
-      if (!recog) recog = initRecog();
-      if (!recog) { recogAvail = false; return false; }
-      recogOn = true; try { recog.start(); } catch (e) {} return true;
-    }
-    function stopRecog() { recogOn = false; if (recog) { try { recog.stop(); } catch (e) {} } }
+    $('socCam').addEventListener('click', onConeTap);
+    $('socOverlay').addEventListener('click', onConeTap);
+    $('socRetake').addEventListener('click', cancelPending);
+    $('socAccept').addEventListener('click', acceptPending);
+    $('socConeClear').addEventListener('click', () => { cones = []; saveCones(); renderCones(); });
     $('socStart').addEventListener('click', () => {
-      warmSpeech();
-      if (colors.length < 2) return;
-      startRun();
+      if (cones.length < 2) return;
+      if (!curFix) { $('socCamGps').textContent = '📍 waiting for a GPS fix…'; return; }
+      warmSpeech(); startOrient(); stopCam(); startRun();
     });
 
     /* ===== Locked Training mode ===== */
@@ -2542,13 +2608,12 @@
       soccerView('socMenu'); renderStats();
     }
 
-    /* ---- reaction run: it calls a colour, you go tap that cone and say "done" ---- */
+    /* ---- reaction run: calls a colour, GPS arrow guides you to that cone; arriving = a rep ---- */
     function startRun() {
-      running = true; repsDone = 0; lastColor = null; splits = []; missCount = 0;
-      $('socRep').textContent = '0/' + reps; $('socSplit').textContent = '';
-      $('socMicStatus').textContent = recogAvail ? '🎤 Listening — say “done” after each cone' : '🔇 Voice unavailable — tap ✓ Done each time';
-      soccerView('socRun'); reqWake(); startMotion(); startRecog(); beginActive();
-      countdown(3, nextRep);
+      running = true; repsDone = 0; lastConeId = null; arriveSince = 0; coneSplits = []; runStart = Date.now();
+      $('socRep').textContent = '0/' + reps; $('socRunNote').textContent = 'Head to the cone the arrow points to.'; $('socRunDist').textContent = ''; $('socRunAcc').textContent = '';
+      soccerView('socRun'); reqWake(); startMotion(); beginActive();
+      countdown(3, nextCone);
     }
     function countdown(n, cb) {
       $('socBanner').style.color = '#00ff41';
@@ -2559,44 +2624,63 @@
       };
       step();
     }
-    function nextRep() {
+    function nextCone() {
       if (!running) return;
-      let c; do { c = colors[Math.floor(Math.random() * colors.length)]; } while (c === lastColor && colors.length > 1);
-      lastColor = c; current = { name: c };
-      $('socBanner').textContent = c; $('socBanner').style.color = colorCss(c); $('socBanner').classList.add('show');
-      speak(c); beep(660, 0.15); vibrate(120);
-      callTime = performance.now();
-      repTimer = setTimeout(() => finishRep(true), 20000); // safety: never get stuck if it mishears you
+      let c; do { c = cones[Math.floor(Math.random() * cones.length)]; } while (c.id === lastConeId && cones.length > 1);
+      lastConeId = c.id; targetCone = c; arriveSince = 0; repArriveT = performance.now();
+      $('socRunColor').textContent = c.name.toUpperCase(); $('socRunColor').style.background = c.css;
+      $('socRunColor').style.color = (c.r + c.g + c.b) > 380 ? '#001a08' : '#fff';
+      speak(c.baseName); beep(660, 0.15); vibrate(120);
+      if (curFix) updateArrow(haversine(curFix, targetCone));
     }
-    function finishRep(timeout) {
-      if (!running || !current) return;
-      if (repTimer) { clearTimeout(repTimer); repTimer = null; }
-      const dt = performance.now() - callTime;
-      if (timeout) missCount++; else splits.push(dt);
-      repsDone++;
-      $('socRep').textContent = repsDone + '/' + reps;
-      $('socSplit').textContent = timeout ? 'miss' : (dt / 1000).toFixed(2) + 's';
-      beep(880, 0.08); vibrate(50);
-      current = null; $('socBanner').classList.remove('show');
-      if (repsDone >= reps) endRun();
-      else nextTimer = setTimeout(nextRep, 500);
+    function effHeading() {
+      if (compassHeading != null && Date.now() - compassAt < 4000) return compassHeading;
+      if (curFix && curFix.heading != null && curFix.speed > 0.6) return curFix.heading;
+      return null;
     }
-    $('socDoneBtn').addEventListener('click', () => finishRep(false));
+    function updateArrow(d) {
+      if (!targetCone || !curFix) return;
+      const eh = effHeading(), brg = bearingTo(curFix, targetCone), arrow = $('socArrow');
+      if (eh == null) { arrow.style.transform = 'rotate(0deg)'; arrow.style.opacity = '0.45'; $('socRunNote').textContent = 'Walk a few steps so it can lock your heading…'; }
+      else { arrow.style.transform = 'rotate(' + ((brg - eh + 360) % 360) + 'deg)'; arrow.style.opacity = '1'; if ($('socRunNote').textContent.indexOf('heading') >= 0) $('socRunNote').textContent = ''; }
+      $('socRunDist').textContent = d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(2) + ' km';
+      const q = curFix.acc <= 8 ? '🟢' : curFix.acc <= 16 ? '🟡' : '🔴';
+      $('socRunAcc').textContent = q + ' ±' + Math.round(curFix.acc) + 'm';
+    }
+    function onRunFix() {
+      if (!running || !targetCone || !curFix) return;
+      const d = haversine(curFix, targetCone);
+      updateArrow(d);
+      let nd = 1e9; cones.forEach(c => { const dd = haversine(curFix, c); if (dd < nd) nd = dd; });
+      const thr = Math.min(14, Math.max(4, (curFix.acc || 10) * 1.1 + (targetCone.acc || 10) * 0.35));
+      // arrive when inside the (accuracy-aware) threshold AND the target is essentially the closest cone
+      if (d < thr && (d - nd) <= 2) { if (!arriveSince) arriveSince = Date.now(); else if (Date.now() - arriveSince > 700) arriveRep(); }
+      else arriveSince = 0;
+    }
+    function arriveRep() {
+      arriveSince = 0;
+      coneSplits.push((performance.now() - repArriveT) / 1000);
+      repsDone++; $('socRep').textContent = repsDone + '/' + reps;
+      beep(880, 0.1); vibrate([70, 40, 70]);
+      $('socBanner').textContent = '✓'; $('socBanner').style.color = '#00ff41'; $('socBanner').classList.add('show');
+      setTimeout(() => { if (running) $('socBanner').classList.remove('show'); }, 400);
+      if (repsDone >= reps) endRun(); else setTimeout(nextCone, 500);
+    }
     function endRun() {
       running = false;
       [nextTimer, cdTimer, repTimer].forEach(t => t && clearTimeout(t)); nextTimer = cdTimer = repTimer = null;
-      stopRecog(); relWake(); stopMotion(); creditActive(); // time put in + streak + socks
+      relWake(); stopMotion(); reactionCleanup(); creditActive();
       const s = loadStats();
+      const valid = coneSplits.filter(x => x > 0.4 && x < 120);
       let body;
-      if (splits.length) {
-        const avg = splits.reduce((a, b) => a + b, 0) / splits.length / 1000;
-        const best = Math.min(...splits) / 1000, worst = Math.max(...splits) / 1000;
+      if (valid.length) {
+        const avg = valid.reduce((a, b) => a + b, 0) / valid.length, best = Math.min(...valid), mins = (Date.now() - runStart) / 60000;
         if (!s.bestReaction || best < s.bestReaction) s.bestReaction = best;
-        (s.sessions = s.sessions || []).push({ t: Date.now(), reps: repsDone, avg, best });
+        (s.sessions = s.sessions || []).push({ t: Date.now(), reps: repsDone, avg, best, kind: 'cones' });
         s.socks = earnedSocks(s).length; saveStats(s); syncBoard(s);
-        body = `<div>Reps: <b>${repsDone}</b></div><div>Avg: <b>${avg.toFixed(2)}s</b></div><div>Best: <b>${best.toFixed(2)}s</b></div><div>Worst: <b>${worst.toFixed(2)}s</b></div><div>Misses: <b>${missCount}</b></div>`;
+        body = `<div>Cones reached: <b>${repsDone}</b></div><div>Avg per cone: <b>${avg.toFixed(1)}s</b></div><div>Fastest: <b>${best.toFixed(1)}s</b></div><div>Time: <b>${mins.toFixed(1)} min</b></div>`;
       } else {
-        body = `<div>Reps: <b>${repsDone}</b></div><div>No timed reps — say “done” a bit louder, or tap ✓ Done next time.</div><div>Misses: <b>${missCount}</b></div>`;
+        body = `<div>Cones reached: <b>${repsDone}</b></div><div>Great hustle!</div>`;
       }
       $('socSummaryBody').innerHTML = body; soccerView('socSummary'); speak('Session complete');
     }
