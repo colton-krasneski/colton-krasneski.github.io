@@ -793,6 +793,10 @@
     .co-img-out { max-width: 100%; border-radius: 8px; display: block; }
     .co-msg-img { max-width: min(380px, 100%); border-radius: 8px; margin-top: 6px; cursor: pointer; display: block; background: #2b2d31; }
     .co-lightbox { max-width: 92vw; max-height: 88vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+    .co-spoiler { background: #17181b; border-radius: 4px; padding: 0 4px; cursor: pointer; transition: background .1s; }
+    .co-spoiler:not(.revealed), .co-spoiler:not(.revealed) * { color: transparent !important; text-shadow: none !important; }
+    .co-spoiler:not(.revealed) .co-mention { background: #17181b !important; }
+    .co-spoiler.revealed { background: rgba(255,255,255,.06); cursor: default; }
     .co-mrow { display: flex; gap: 6px; padding: 4px 2px 0; flex-wrap: wrap; }
     .co-mchip { background: #404249; color: #c9cdfb; border: none; border-radius: 12px; padding: 3px 10px; font-size: 12px; cursor: pointer; font-family: inherit; }
     .co-mchip:hover { background: #5865f2; color: #fff; }
@@ -4285,6 +4289,8 @@
       function isOwner() { return !!db && db.owner === me; }
       function amMember() { return !!db && (db.owner === me || db.members.some(m => m.name === me)); }
       function canFound() { return me === CADMIN; }
+      function canModerate() { if (!db) return false; if (isOwner()) return true; const m = myMember(); return !!m && db.roles.some(r => m.roleIds.includes(r.id) && r.name.toLowerCase() === 'loyalty'); }
+      function isMuted(name) { return !!(db && db.mutes && db.mutes[name] && db.mutes[name] > nowMs()); }
 
       const memberByName = n => db.members.find(m => m.name === n);
       const roleById = id => db.roles.find(r => r.id === id);
@@ -4323,7 +4329,7 @@
       }
 
       /* ---------- Firestore writes ---------- */
-      function persist() { if (!db || !isOwner()) return; FS.setDoc(ref, db).catch(e => toast('Sync error', e.message || 'offline', false)); }
+      function persist() { if (!db || !canModerate()) return; FS.setDoc(ref, db).catch(e => toast('Sync error', e.message || 'offline', false)); }
       function setMyPfp(v) { if (!amMember()) return; FS.updateDoc(ref, { ['pfps.' + me]: v }).catch(() => {}); }
       function createServer(name, icon) {
         if (!canFound()) return;
@@ -4427,7 +4433,7 @@
           '<div class="body"><div class="head">' +
             '<span class="author" style="color:' + memColor(a) + '" data-act="member" data-mem="' + esc(a.name) + '">' + esc(a.name) + '</span>' +
             (a.bot ? '<span class="badge-bot">Bot</span>' : '') + '<span class="time">' + fmt(m.ts) + '</span>' +
-          '</div><div class="text">' + renderText(m.text, m.mentions || []) + '</div>' + imgHtml(m) + '</div></div>';
+          '</div><div class="text">' + (m.spoiler ? '<span class="co-spoiler" data-act="revealSpoiler">' + renderText(m.text, m.mentions || []) + '</span>' : renderText(m.text, m.mentions || [])) + '</div>' + imgHtml(m) + '</div></div>';
       }
       function imgHtml(m) { return (m.image && /^https:\/\//.test(m.image)) ? '<img class="co-msg-img" src="' + esc(m.image) + '" alt="' + esc((m.text || 'image').slice(0, 80)) + '" loading="lazy" data-act="viewImg" data-src="' + esc(m.image) + '">' : ''; }
       function renderMessages() {
@@ -4458,6 +4464,7 @@
             const el = document.createElement('div'); el.className = 'co-mem' + (m.name === db.owner ? ' owner' : ''); el.dataset.act = 'member'; el.dataset.mem = m.name;
             el.innerHTML = '<div class="av" style="' + avStyle(m) + '">' + avText(m) + '</div>' +
               '<span class="nm" style="color:' + (topRole(m) && topRole(m).color ? memColor(m) : '#dbdee1') + '">' + esc(m.name) + '</span>' +
+              (isMuted(m.name) ? '<span class="crown" title="Muted">🔇</span>' : '') +
               (m.name === db.owner ? '<span class="crown">👑</span>' : (m.bot ? '<span class="badge-bot">Bot</span>' : ''));
             box.appendChild(el);
           });
@@ -4468,6 +4475,7 @@
       function parseMentions(text) { const names = []; const everyone = /@everyone\b/.test(text); db.members.forEach(m => { if (m.name !== me && text.includes('@' + m.name)) names.push(m.name); }); return { names, everyone }; }
       function sendMessage() {
         const inp = $('coInput'); if (!inp) return; const text = inp.value.trim(); if (!text) return;
+        if (isMuted(me)) { toast('You are muted', "You can't send messages right now.", false); inp.value = ''; const sp2 = $('coSlash'); if (sp2) sp2.classList.remove('show'); return; }
         if (text[0] === '/' && runSlash(text)) { inp.value = ''; inp.style.height = 'auto'; const sp = $('coSlash'); if (sp) sp.classList.remove('show'); return; }
         const ch = db.channels.find(c => c.id === cur.channel); if (!ch) return;
         const ment = parseMentions(text); inp.value = ''; inp.style.height = 'auto';
@@ -4475,13 +4483,90 @@
       }
 
       /* ---------- slash commands + AI image generation ---------- */
-      const SLASH = [{ name: '/CreateImage', desc: 'Generate an AI image from a prompt', run: p => openImagePrompt(p) }];
-      function runSlash(text) { const parts = text.slice(1).split(/\s+/); const cmd = '/' + (parts[0] || '').toLowerCase(); const c = SLASH.find(s => s.name.toLowerCase() === cmd); if (!c) return false; c.run(text.slice(parts[0].length + 1).trim()); return true; }
+      const SLASH = [
+        { name: '/CreateImage', desc: 'Generate an AI image from a prompt', run: p => openImagePrompt(p) },
+        { name: '/spoiler', desc: 'Send hidden (spoiler) text · /spoiler <text>', run: cmdSpoiler },
+        { name: '/mute', desc: 'Mute a member · /mute <user> <30s|10m|2h|1d>', mod: true, run: cmdMute },
+        { name: '/giverole', desc: 'Give a member a role · /giverole <user> <role>', mod: true, run: cmdGiveRole },
+        { name: '/removerole', desc: 'Remove a role · /removerole <user> <role>', mod: true, run: cmdRemoveRole },
+        { name: '/kick', desc: 'Kick a member · /kick <user>', mod: true, run: cmdKick },
+        { name: '/createrole', desc: 'Create a role · /createrole <name> <color>', mod: true, run: cmdCreateRole }
+      ];
+      function runSlash(text) {
+        const parts = text.slice(1).split(/\s+/); const cmd = '/' + (parts[0] || '').toLowerCase();
+        const c = SLASH.find(s => s.name.toLowerCase() === cmd); if (!c) return false;
+        if (c.mod && !canModerate()) { toast('No permission', 'Only Owner or the Loyalty role can use ' + c.name + '.', false); return true; }
+        c.run(text.slice(parts[0].length + 1).trim()); return true;
+      }
       function updateSlash() {
         const inp = $('coInput'), box = $('coSlash'); if (!inp || !box) return; const v = inp.value;
-        if (v[0] === '/') { const q = v.slice(1).toLowerCase().split(/\s+/)[0]; const matches = SLASH.filter(c => c.name.toLowerCase().slice(1).startsWith(q));
+        if (v[0] === '/') { const q = v.slice(1).toLowerCase().split(/\s+/)[0]; const matches = SLASH.filter(c => (!c.mod || canModerate()) && c.name.toLowerCase().slice(1).startsWith(q));
           if (matches.length) { box.innerHTML = matches.map(c => '<div class="co-slash-item" data-act="slashRun" data-cmd="' + c.name + '"><b>' + c.name + '</b><span>' + esc(c.desc) + '</span></div>').join(''); box.classList.add('show'); return; } }
         box.classList.remove('show'); box.innerHTML = '';
+      }
+      // ---- command helpers ----
+      function sysMsg(text) { const ch = db.channels.find(c => c.id === cur.channel); if (!ch) return; FS.addDoc(msgsCol, { channel: ch.id, author: me, text: String(text).slice(0, 300), ts: nowMs(), mentions: [], sys: true }).catch(() => {}); }
+      function parseDur(s) { const m = /^(\d+)\s*(s|m|h|d)?$/i.exec((s || '').trim()); if (!m) return 0; return (+m[1]) * ({ s: 1e3, m: 6e4, h: 36e5, d: 864e5 }[(m[2] || 'm').toLowerCase()]); }
+      function parseColor(s) {
+        if (!s) return null; s = s.trim().toLowerCase();
+        const named = { red: '#f04747', orange: '#e67e22', amber: '#faa61a', yellow: '#f1c40f', gold: '#f1c40f', green: '#2ecc71', teal: '#1abc9c', cyan: '#1abc9c', blue: '#3498db', blurple: '#5865f2', indigo: '#5865f2', purple: '#9b59b6', violet: '#9b59b6', pink: '#e91e63', magenta: '#e91e63', gray: '#95a5a6', grey: '#95a5a6', white: '#ffffff', black: '#111214' };
+        if (named[s]) return named[s];
+        let m = /^#?([0-9a-f]{6})$/i.exec(s); if (m) return '#' + m[1].toLowerCase();
+        m = /^#?([0-9a-f]{3})$/i.exec(s); if (m) { const t = m[1]; return '#' + t[0] + t[0] + t[1] + t[1] + t[2] + t[2]; }
+        return null;
+      }
+      // ---- commands ----
+      function cmdSpoiler(text) {
+        const t = (text || '').trim(); if (!t) { toast('Usage', '/spoiler <text>', false); return; }
+        const ch = db.channels.find(c => c.id === cur.channel); if (!ch) return;
+        const ment = parseMentions(t);
+        FS.addDoc(msgsCol, { channel: ch.id, author: me, text: t, ts: nowMs(), mentions: ment.everyone ? ['everyone', ...ment.names] : ment.names, spoiler: true }).catch(() => {});
+      }
+      function cmdMute(text) {
+        const parts = (text || '').trim().split(/\s+/); const user = canonName(parts[0] || ''); const dur = parts[1] || '';
+        if (!user || !dur) { toast('Usage', '/mute <user> <30s|10m|2h|1d>', false); return; }
+        const m = memberByName(user); if (!m) { toast('No such member', user, false); return; }
+        if (m.name === db.owner) { toast("Can't mute", 'The owner cannot be muted.', false); return; }
+        const ms = parseDur(dur); if (!ms) { toast('Bad duration', 'Use 30s, 10m, 2h, or 1d.', false); return; }
+        db.mutes = db.mutes || {}; db.mutes[user] = nowMs() + ms; persist();
+        sysMsg('🔇 ' + user + ' was muted for ' + dur + ' by ' + me); toast('Muted', user + ' muted for ' + dur, false);
+      }
+      function cmdGiveRole(text) {
+        const parts = (text || '').trim().split(/\s+/); const user = canonName(parts[0] || ''); const roleName = parts.slice(1).join(' ').trim();
+        if (!user || !roleName) { toast('Usage', '/giverole <user> <role>', false); return; }
+        const m = memberByName(user); if (!m) { toast('No such member', user, false); return; }
+        const r = db.roles.find(x => x.name.toLowerCase() === roleName.toLowerCase()); if (!r) { toast('No such role', roleName, false); return; }
+        if (m.roleIds.includes(r.id)) { toast('Already has it', user + ' already has ' + r.name, false); return; }
+        m.roleIds.push(r.id); m.roleIds = db.roles.filter(x => m.roleIds.includes(x.id)).map(x => x.id); persist();
+        sysMsg('🏷️ ' + user + ' was given the ' + r.name + ' role by ' + me); toast('Role given', user + ' → ' + r.name, false);
+      }
+      function cmdRemoveRole(text) {
+        const parts = (text || '').trim().split(/\s+/); const user = canonName(parts[0] || ''); const roleName = parts.slice(1).join(' ').trim();
+        if (!user || !roleName) { toast('Usage', '/removerole <user> <role>', false); return; }
+        const m = memberByName(user); if (!m) { toast('No such member', user, false); return; }
+        const r = db.roles.find(x => x.name.toLowerCase() === roleName.toLowerCase()); if (!r) { toast('No such role', roleName, false); return; }
+        if (r.id === 'owner') { toast("Can't remove", 'The Owner role is protected.', false); return; }
+        if (!m.roleIds.includes(r.id)) { toast("Doesn't have it", user + " doesn't have " + r.name, false); return; }
+        m.roleIds = m.roleIds.filter(x => x !== r.id); persist();
+        sysMsg('🏷️ ' + r.name + ' was removed from ' + user + ' by ' + me); toast('Role removed', user + ' ✕ ' + r.name, false);
+      }
+      function cmdKick(text) {
+        const user = canonName(((text || '').trim().split(/\s+/)[0]) || ''); if (!user) { toast('Usage', '/kick <user>', false); return; }
+        const m = memberByName(user); if (!m) { toast('No such member', user, false); return; }
+        if (m.name === db.owner) { toast("Can't kick", "The owner can't be kicked.", false); return; }
+        db.members = db.members.filter(x => x.name !== user); persist();
+        sysMsg('👢 ' + user + ' was kicked by ' + me); toast('Kicked', user + ' was removed.', false);
+      }
+      function cmdCreateRole(text) {
+        const parts = (text || '').trim().split(/\s+/).filter(Boolean);
+        if (!parts.length) { toast('Usage', '/createrole <name> <color>', false); return; }
+        let color = null, name;
+        const c = parts.length > 1 ? parseColor(parts[parts.length - 1]) : null;
+        if (c) { color = c; name = parts.slice(0, -1).join(' '); } else { color = SWATCHES[Math.floor(Math.random() * 10)]; name = parts.join(' '); }
+        name = name.trim(); if (!name) { toast('Usage', '/createrole <name> <color>', false); return; }
+        if (db.roles.some(r => r.name.toLowerCase() === name.toLowerCase())) { toast('Exists', 'A role named ' + name + ' already exists.', false); return; }
+        db.roles.splice(db.roles.length - 1, 0, { id: uid('r'), name, color, hoist: false }); persist();
+        sysMsg('✨ Role "' + name + '" was created by ' + me); toast('Role created', name, false);
       }
       let genUrl = null, genPrompt = '';
       function openImagePrompt(initial) {
@@ -4637,6 +4722,7 @@
           case 'genImg': genImg(); break;
           case 'sendImg': sendImg(); break;
           case 'viewImg': openLightbox(el.dataset.src); break;
+          case 'revealSpoiler': el.classList.add('revealed'); break;
           case 'men': { const inp = $('coInput'); if (inp) { inp.value = (inp.value + (inp.value && !inp.value.endsWith(' ') ? ' ' : '') + el.dataset.tok + ' ').trimStart(); inp.focus(); } break; }
           case 'member': openProfile(el.dataset.mem); break;
           case 'dm': openDMReal(el.dataset.mem); break;
