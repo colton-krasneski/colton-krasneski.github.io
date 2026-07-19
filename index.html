@@ -2424,7 +2424,7 @@
     function warmSpeech() { SAC(); try { if (window.speechSynthesis) { speechSynthesis.resume(); speak('Ready'); } } catch (e) {} }
     const CONES_KEY = 'colton_soccer_cones';
     const NAMED = [['red', [229, 57, 53]], ['orange', [255, 140, 26]], ['yellow', [255, 210, 74]], ['green', [51, 209, 122]], ['blue', [58, 160, 255]], ['purple', [176, 108, 255]], ['pink', [255, 91, 168]], ['white', [240, 240, 245]], ['black', [35, 35, 40]], ['cyan', [58, 209, 200]], ['brown', [150, 90, 50]]];
-    let cones = [], camStream = null, geoWatch = null, curFix = null, fixBuf = [];
+    let cones = [], camStream = null, geoWatch = null, curFix = null, fixBuf = [], geoRetryT = null, geoGotFix = false;
     let compassHeading = null, compassAt = 0, orientHandler = null;
     let pending = null, targetCone = null, lastConeId = null, arriveSince = 0, runStart = 0, coneSplits = [], repArriveT = 0;
 
@@ -2434,11 +2434,17 @@
     function bearingTo(a, b) { const la1 = toRad(a.lat), la2 = toRad(b.lat), dLng = toRad(b.lng - a.lng); const y = Math.sin(dLng) * Math.cos(la2), x = Math.cos(la1) * Math.sin(la2) - Math.sin(la1) * Math.cos(la2) * Math.cos(dLng); return (toDeg(Math.atan2(y, x)) + 360) % 360; }
     function colorDist(a, b) { return Math.sqrt((a.r - b.r) ** 2 + (a.g - b.g) ** 2 + (a.b - b.b) ** 2); }
     function nearestName(rgb) { let n = 'colour', bd = 1e9; for (const [nm, c] of NAMED) { const d = colorDist(rgb, { r: c[0], g: c[1], b: c[2] }); if (d < bd) { bd = d; n = nm; } } return n; }
-    function detectBlob(data, W, H, tx, ty) {
-      const at = (x, y) => (y * W + x) * 4, si = at(tx, ty), tgt = { r: data[si], g: data[si + 1], b: data[si + 2] };
-      const seen = new Uint8Array(W * H), stack = [tx, ty]; let minx = tx, maxx = tx, miny = ty, maxy = ty, sr = 0, sg = 0, sb = 0, cnt = 0; const TH = 46;
-      while (stack.length) { const y = stack.pop(), x = stack.pop(); if (x < 0 || y < 0 || x >= W || y >= H) continue; const p = y * W + x; if (seen[p]) continue; seen[p] = 1; const i = p * 4; if (Math.sqrt((data[i] - tgt.r) ** 2 + (data[i + 1] - tgt.g) ** 2 + (data[i + 2] - tgt.b) ** 2) > TH) continue; sr += data[i]; sg += data[i + 1]; sb += data[i + 2]; cnt++; if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y; stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1); }
-      if (cnt < 4) return null;
+    function patchAvg(data, W, H, cx, cy, r) {
+      let sr = 0, sg = 0, sb = 0, n = 0;
+      for (let y = cy - r; y <= cy + r; y++) for (let x = cx - r; x <= cx + r; x++) { if (x < 0 || y < 0 || x >= W || y >= H) continue; const i = (y * W + x) * 4; sr += data[i]; sg += data[i + 1]; sb += data[i + 2]; n++; }
+      if (!n) { const i = (cy * W + cx) * 4; return { r: data[i] || 0, g: data[i + 1] || 0, b: data[i + 2] || 0 }; }
+      return { r: Math.round(sr / n), g: Math.round(sg / n), b: Math.round(sb / n) };
+    }
+    function detectBlob(data, W, H, tx, ty, seed) {
+      seed = seed || { r: data[(ty * W + tx) * 4], g: data[(ty * W + tx) * 4 + 1], b: data[(ty * W + tx) * 4 + 2] };
+      const seen = new Uint8Array(W * H), stack = [tx, ty]; let minx = tx, maxx = tx, miny = ty, maxy = ty, sr = 0, sg = 0, sb = 0, cnt = 0; const TH = 64;
+      while (stack.length) { const y = stack.pop(), x = stack.pop(); if (x < 0 || y < 0 || x >= W || y >= H) continue; const p = y * W + x; if (seen[p]) continue; seen[p] = 1; const i = p * 4; if (Math.sqrt((data[i] - seed.r) ** 2 + (data[i + 1] - seed.g) ** 2 + (data[i + 2] - seed.b) ** 2) > TH) continue; sr += data[i]; sg += data[i + 1]; sb += data[i + 2]; cnt++; if (x < minx) minx = x; if (x > maxx) maxx = x; if (y < miny) miny = y; if (y > maxy) maxy = y; stack.push(x + 1, y, x - 1, y, x, y + 1, x, y - 1); }
+      if (cnt < 1) return null;
       return { box: { x: minx, y: miny, w: maxx - minx + 1, h: maxy - miny + 1 }, color: { r: Math.round(sr / cnt), g: Math.round(sg / cnt), b: Math.round(sb / cnt) }, count: cnt };
     }
     const rgbCss = c => 'rgb(' + c.r + ',' + c.g + ',' + c.b + ')';
@@ -2469,26 +2475,30 @@
       const rect = v.getBoundingClientRect();
       const pt = ev.touches ? ev.touches[0] : ev; const px = (pt.clientX - rect.left) / rect.width, py = (pt.clientY - rect.top) / rect.height;
       if (px < 0 || px > 1 || py < 0 || py > 1) return;
-      const W = 220, H = Math.max(1, Math.round(W * v.videoHeight / v.videoWidth));
-      const wc = document.createElement('canvas'); wc.width = W; wc.height = H; const wg = wc.getContext('2d', { willReadFrequently: true });
-      wg.drawImage(v, 0, 0, W, H);
-      // map tap through object-fit: cover (video crops to fill the box)
+      // render exactly the DISPLAYED (object-fit: cover) crop into a work canvas, so tap + box map 1:1
+      const cw = 240, ch = Math.max(1, Math.round(cw * rect.height / rect.width));
       const vAsp = v.videoWidth / v.videoHeight, rAsp = rect.width / rect.height;
-      let u = px, w2 = py;
-      if (vAsp > rAsp) { const vis = rAsp / vAsp; u = 0.5 + (px - 0.5) * vis; } else { const vis = vAsp / rAsp; w2 = 0.5 + (py - 0.5) * vis; }
-      const tx = Math.max(0, Math.min(W - 1, Math.round(u * W))), ty = Math.max(0, Math.min(H - 1, Math.round(w2 * H)));
-      const data = wg.getImageData(0, 0, W, H).data;
-      const blob = detectBlob(data, W, H, tx, ty);
-      if (!blob) { $('socCamHint').textContent = 'Tap right on the cone — try again.'; vibrate(40); return; }
+      let sxr, syr, swr, shr;
+      if (vAsp > rAsp) { shr = v.videoHeight; swr = Math.round(v.videoHeight * rAsp); sxr = Math.round((v.videoWidth - swr) / 2); syr = 0; }
+      else { swr = v.videoWidth; shr = Math.round(v.videoWidth / rAsp); sxr = 0; syr = Math.round((v.videoHeight - shr) / 2); }
+      const wc = document.createElement('canvas'); wc.width = cw; wc.height = ch; const wg = wc.getContext('2d', { willReadFrequently: true });
+      wg.drawImage(v, sxr, syr, swr, shr, 0, 0, cw, ch);
+      const tx = Math.max(0, Math.min(cw - 1, Math.round(px * cw))), ty = Math.max(0, Math.min(ch - 1, Math.round(py * ch)));
+      const data = wg.getImageData(0, 0, cw, ch).data;
+      const seed = patchAvg(data, cw, ch, tx, ty, 4);          // averaged patch = robust cone colour
+      const blob = detectBlob(data, cw, ch, tx, ty, seed);
+      const big = blob && blob.count > 25;
+      const color = big ? blob.color : seed;
+      const box = big ? blob.box : (() => { const s = Math.round(cw * 0.16); return { x: tx - s / 2, y: ty - s / 2, w: s, h: s }; })();
       const o = $('socOverlay'); o.width = rect.width; o.height = rect.height; const g = o.getContext('2d');
-      const sx = rect.width / W, sy = rect.height / H;
-      g.clearRect(0, 0, o.width, o.height); g.strokeStyle = rgbCss(blob.color); g.lineWidth = 3; g.shadowColor = '#000'; g.shadowBlur = 4;
-      g.strokeRect(blob.box.x * sx, blob.box.y * sy, blob.box.w * sx, blob.box.h * sy);
-      const nm = nearestName(blob.color);
-      pending = { color: blob.color, css: rgbCss(blob.color), name: nm };
+      const scale = rect.width / cw;
+      g.clearRect(0, 0, o.width, o.height); g.strokeStyle = rgbCss(color); g.lineWidth = 3; g.shadowColor = '#000'; g.shadowBlur = 5;
+      g.strokeRect(box.x * scale, box.y * scale, box.w * scale, box.h * scale);
+      const nm = nearestName(color);
+      pending = { color: color, css: rgbCss(color), name: nm };
       $('socConfirmSwatch').style.background = pending.css;
       $('socConfirmName').textContent = 'Looks ' + nm;
-      $('socConfirmGps').textContent = curFix ? ('📍 ±' + Math.round(curFix.acc) + 'm here') : '📍 no GPS yet';
+      $('socConfirmGps').textContent = curFix ? ('📍 ±' + Math.round(curFix.acc) + 'm here') : '📍 GPS not ready — wait for a fix';
       $('socCamConfirm').classList.add('show');
       try { v.pause(); } catch (e) {}
     }
@@ -2501,10 +2511,14 @@
       saveCones(); renderCones(); beep(880, 0.08); vibrate(60); cancelPending();
     }
 
-    /* ---- geolocation: high-accuracy, averaged over recent fixes ---- */
+    /* ---- geolocation: high-accuracy, averaged; patient acquisition + honest errors ---- */
     function startGeo() {
       if (!navigator.geolocation) { $('socCamGps').textContent = '📍 no GPS on this device'; return; }
-      geoWatch = navigator.geolocation.watchPosition(p => {
+      geoGotFix = false;
+      if (currentView === 'socSetup') $('socCamGps').textContent = '📍 acquiring GPS… (best outdoors)';
+      const opts = { enableHighAccuracy: true, maximumAge: 2000, timeout: 30000 };
+      const onOk = p => {
+        geoGotFix = true; if (geoRetryT) { clearTimeout(geoRetryT); geoRetryT = null; }
         const f = { lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy || 20, heading: (p.coords.heading != null && !isNaN(p.coords.heading)) ? p.coords.heading : null, speed: p.coords.speed || 0, t: Date.now() };
         fixBuf.push(f); if (fixBuf.length > 5) fixBuf.shift();
         const w = fixBuf.filter(x => Date.now() - x.t < 8000); let sLat = 0, sLng = 0, n = 0, bestAcc = 999;
@@ -2513,9 +2527,16 @@
         const q = curFix.acc <= 8 ? '🟢' : curFix.acc <= 16 ? '🟡' : '🔴';
         if (!pending && currentView === 'socSetup') $('socCamGps').textContent = q + ' ±' + Math.round(curFix.acc) + 'm';
         if (running) onRunFix();
-      }, () => { $('socCamGps').textContent = '📍 GPS blocked — allow location access.'; }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 25000 });
+      };
+      const onErr = e => {
+        if (e && e.code === 1) { $('socCamGps').textContent = '📍 Location blocked — enable it for this site in your browser'; return; } // PERMISSION_DENIED
+        if (!geoGotFix && currentView === 'socSetup') $('socCamGps').textContent = '📍 acquiring GPS… hold still' + (e && e.code === 3 ? ' (slow fix)' : ''); // TIMEOUT / UNAVAILABLE — keep trying
+        if (geoWatch != null) { try { navigator.geolocation.clearWatch(geoWatch); } catch (x) {} geoWatch = null; }
+        geoRetryT = setTimeout(() => { if (currentView === 'socSetup' || running) { try { geoWatch = navigator.geolocation.watchPosition(onOk, onErr, opts); } catch (x) {} } }, 2500);
+      };
+      try { geoWatch = navigator.geolocation.watchPosition(onOk, onErr, opts); } catch (e) { $('socCamGps').textContent = '📍 GPS error — reopen the trainer'; }
     }
-    function stopGeo() { if (geoWatch != null) { try { navigator.geolocation.clearWatch(geoWatch); } catch (e) {} geoWatch = null; } fixBuf = []; }
+    function stopGeo() { if (geoWatch != null) { try { navigator.geolocation.clearWatch(geoWatch); } catch (e) {} geoWatch = null; } if (geoRetryT) { clearTimeout(geoRetryT); geoRetryT = null; } fixBuf = []; geoGotFix = false; }
 
     /* ---- compass heading for the arrow ---- */
     function startOrient() {
