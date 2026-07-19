@@ -262,6 +262,24 @@
     .soc-ladder-target { color: #ffd24a; font-size: 1rem; margin-top: 0.3rem; }
     .soc-ladder-result { color: #baffcf; font-size: 1.05rem; text-align: center; line-height: 1.6; min-height: 1rem; }
     .soc-ladder-result b { color: #00ff41; }
+    /* ---- Striker (shot power + accuracy, British commentary) ---- */
+    .soc-strike-note { color: #baffcf; font-size: 0.82rem; text-align: center; max-width: 340px; line-height: 1.5; }
+    .soc-strike-note b { color: #00ff41; }
+    .soc-power-num { font-size: clamp(3rem, 22vw, 6rem); color: #00ff41; text-shadow: 0 0 22px #00ff41; font-variant-numeric: tabular-nums; line-height: 1; }
+    .soc-power-num.weak { color: #ff9a9a; text-shadow: 0 0 22px #ff5ba8; }
+    .soc-power-num.mid { color: #ffd24a; text-shadow: 0 0 22px #ff8c1a; }
+    .soc-power-label { color: #ffd24a; font-size: 0.95rem; min-height: 1.2rem; text-align: center; max-width: 320px; }
+    .soc-power-bar { width: min(85%, 300px); height: 14px; border: 1px solid #00ff4155; border-radius: 8px; overflow: hidden; background: rgba(0,0,0,0.4); }
+    .soc-power-bar > i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #ff5ba8, #ffd24a, #00ff41); }
+    .soc-power-best { color: #00ff41cc; font-size: 0.85rem; }
+    #socStrikeCam { width: 100%; height: 100%; object-fit: cover; display: block; background: #000; }
+    #socStrikeOverlay { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: crosshair; }
+    .soc-strike-flash { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: clamp(2.4rem, 16vw, 5rem); font-weight: 900; letter-spacing: 0.08em; opacity: 0; transition: opacity 0.15s; pointer-events: none; }
+    .soc-strike-flash.show { opacity: 1; }
+    .soc-strike-score { display: flex; gap: 0.7rem; }
+    .soc-strike-cta { display: flex; gap: 0.5rem; width: min(90%, 340px); }
+    .soc-strike-cta .soc-btn { flex: 1; }
+    .soc-strike-live { color: #00ff4188; font-size: 0.7rem; text-align: center; max-width: 320px; line-height: 1.4; }
 
     /* ---- Musicfy ---- */
     .mf-wrap { width: min(100%, 500px); height: 100%; margin: 0 auto; display: flex; flex-direction: column; background: rgba(0,6,10,0.6); }
@@ -1112,6 +1130,7 @@
         <div class="soc-stats" id="socStats"></div>
         <button class="soc-btn" id="socReactBtn">⚡ Reaction Trainer</button>
         <button class="soc-btn" id="socLadderBtn">🪜 Ladder Pacing</button>
+        <button class="soc-btn" id="socStrikerBtn">🎯 Striker</button>
         <button class="soc-btn" id="socDrillsBtn">📋 Drills</button>
         <button class="soc-btn" id="socAIBtn">🤖 Soccer AI</button>
         <div class="soc-menu-row">
@@ -1267,6 +1286,43 @@
         <button class="soc-btn" id="socLadderDrop" style="display:none;">😵 Dropped it</button>
         <div class="soc-ladder-result" id="socLadderResult"></div>
         <button class="soc-btn ghost" id="socLadderBack">Back</button>
+      </div>
+
+      <div class="soc-view" id="socStriker" style="display:none;">
+        <div class="soc-sub">🎯 Striker</div>
+        <div class="soc-mode-seg" id="socStrikeMode"></div>
+
+        <div id="socPowerPanel" style="display:none; flex-direction:column; align-items:center; gap:0.5rem;">
+          <div class="soc-strike-note">Hold your phone and <b>smash the ball</b>. The mic reads your strike and scores its power — 100 is feeble, 1000 is a rocket.</div>
+          <div class="soc-power-num" id="socPowerNum">0</div>
+          <div class="soc-power-bar" id="socPowerBar"><i></i></div>
+          <div class="soc-power-label" id="socPowerLabel"></div>
+          <div class="soc-power-best" id="socPowerBest">Hardest: 0</div>
+        </div>
+
+        <div id="socAccPanel" style="display:none; flex-direction:column; align-items:center; gap:0.5rem; width:100%;">
+          <div class="soc-cam-wrap" id="socStrikeCamWrap">
+            <video id="socStrikeCam" playsinline autoplay muted></video>
+            <canvas id="socStrikeOverlay"></canvas>
+            <button class="soc-cam-flip" id="socStrikeFlipBtn" title="Flip camera">🔄</button>
+            <div class="soc-strike-flash" id="socStrikeFlash"></div>
+            <div class="soc-cam-hint" id="socStrikeHint">Point at the goal, then DRAG a box around the net</div>
+          </div>
+          <div class="soc-strike-score">
+            <div class="soc-stat"><div class="v" id="socStrikeShots">0</div><div class="k">Shots</div></div>
+            <div class="soc-stat"><div class="v" id="socStrikeGoals">0</div><div class="k">Goals</div></div>
+            <div class="soc-stat"><div class="v" id="socStrikeAcc">—</div><div class="k">Accuracy</div></div>
+          </div>
+          <div class="soc-strike-cta">
+            <button class="soc-btn ghost soc-mini2" id="socStrikeGoalBtn">⚽ Goal</button>
+            <button class="soc-btn ghost soc-mini2" id="socStrikeMissBtn">❌ Miss</button>
+            <button class="soc-btn ghost soc-mini2" id="socStrikeClear">🗑 Box</button>
+          </div>
+          <div class="soc-strike-live">Auto-calls a goal when the ball hits your box · the Goal/Miss buttons correct a wrong call</div>
+        </div>
+
+        <button class="soc-btn" id="socStrikeStart">Start ▶</button>
+        <button class="soc-btn ghost" id="socStrikeBack">Back</button>
       </div>
     </div>
   </div>
@@ -2351,7 +2407,7 @@
 
   /* ===== SOCCER TRAINER ===== */
   (function () {
-    const VIEWS = ['socMenu', 'socSetup', 'socRun', 'socSummary', 'socCats', 'socList', 'socDrill', 'socTimer', 'socSettings', 'socLock', 'socSocks', 'socBoard', 'socAI', 'socLadder'];
+    const VIEWS = ['socMenu', 'socSetup', 'socRun', 'socSummary', 'socCats', 'socList', 'socDrill', 'socTimer', 'socSettings', 'socLock', 'socSocks', 'socBoard', 'socAI', 'socLadder', 'socStriker'];
     const SKEY = 'colton_soccer', COLORS_KEY = 'colton_soccer_colors', AI_KEY = 'colton_openai_key';
     const AI_MODEL = 'gpt-4o-mini';
     const COLOR_CSS = { red: '#ff3b3b', orange: '#ff8c1a', yellow: '#ffd24a', green: '#33d17a', blue: '#3aa0ff', purple: '#b06cff', pink: '#ff5ba8', white: '#f2f2f7', black: '#2a2a2a', cyan: '#3ad1c8', teal: '#2ec4b6', brown: '#a5673f', gray: '#9aa0a6', grey: '#9aa0a6', magenta: '#ff3fb0' };
@@ -2409,6 +2465,7 @@
           bestReaction: s.bestReaction || null,
           socks: s.socks || 0,
           ladderBest: s.ladderBest || 0,
+          bestShot: s.bestShot || 0,
           streak: s.streak || 0,
           updatedAt: serverTimestamp()
         }, { merge: true });
@@ -2439,6 +2496,7 @@
       if (timerInt) clearInterval(timerInt);
       nextTimer = cdTimer = repTimer = timerInt = null;
       ladderRunning = false; if (ladderTimer) { clearTimeout(ladderTimer); ladderTimer = null; }
+      strikerCleanup();
       reactionCleanup(); relWake(); stopMotion(); creditActive(); // credit any in-progress activity on Back/Stop
       $('socBanner').classList.remove('show');
     }
@@ -3056,7 +3114,8 @@
       { icon: '👑', name: 'Golden Sock', hint: '600 min', req: s => (s.activeMinutes || 0) >= 600 },
       { icon: '🔥', name: 'On Fire', hint: '7-day streak', req: s => (s.streak || 0) >= 7 },
       { icon: '⚡', name: 'Quick Feet', hint: 'react ≤ 1.2s', req: s => s.bestReaction && s.bestReaction <= 1.2 },
-      { icon: '🪜', name: 'Ladder King', hint: 'ladder Lv 9', req: s => (s.ladderBest || 0) >= 9 }
+      { icon: '🪜', name: 'Ladder King', hint: 'ladder Lv 9', req: s => (s.ladderBest || 0) >= 9 },
+      { icon: '💥', name: 'Cannon', hint: 'shot ≥ 900', req: s => (s.bestShot || 0) >= 900 }
     ];
     function earnedSocks(s) { return SOCKS.filter(k => { try { return k.req(s); } catch (e) { return false; } }); }
     function renderSocks() {
@@ -3075,7 +3134,8 @@
     const BOARD_TABS = [
       { key: 'activeMinutes', label: 'Time', fmt: v => Math.round(v || 0) + ' min' },
       { key: 'bestReaction', label: 'Reaction', asc: true, fmt: v => v ? v.toFixed(2) + 's' : '—' },
-      { key: 'ladderBest', label: 'Ladder', fmt: v => 'Lv ' + (v || 0) }
+      { key: 'ladderBest', label: 'Ladder', fmt: v => 'Lv ' + (v || 0) },
+      { key: 'bestShot', label: 'Power', fmt: v => (v ? v + ' pow' : '—') }
     ];
     function renderBoardTabs() {
       const box = $('socBoardTabs'); box.innerHTML = '';
@@ -3193,6 +3253,234 @@
       $('socLadderResult').innerHTML = `${emoji} You reached <b>Level ${reached}</b><br><b>${rating}</b>`;
       speak('You reached level ' + reached + '. ' + rating); beep(520, 0.3);
     }
+
+    /* ===== Striker (shot power + accuracy, with a British commentator) ===== */
+    const STRIKE_BOX_KEY = 'colton_soccer_goalbox';
+    let strikeMode = 'power';           // 'power' | 'accuracy'
+    let strikeRunning = false, strikeFacing = 'environment';
+    // power (mic)
+    let micStream = null, micAnalyser = null, micBuf = null, strikeRAF = null;
+    let lastStrikeT = 0, capturing = false, capMax = 0, capStart = 0;
+    const STRIKE_TH = 0.16, STRIKE_COOLDOWN = 700;
+    // accuracy (camera + drag box)
+    let strikeCamStream = null, strikeTrackT = null, strikePrev = null;
+    let goalBox = null, dragStart = null, dragBox = null;
+    let sessShots = 0, sessGoals = 0, lastResult = null, accCap = null, lastAccT = 0;
+    const ACC_TW = 80, ACC_TH2 = 60, SHOT_TH = 0.020, GOAL_MARGIN = 1.15, ACC_COOLDOWN = 1400;
+
+    const GOAL_LINES = [
+      'GOAL! A bloody lucky one, that was.',
+      'It\'s in! Back of the net, get in there!',
+      'GOAAAL! Even a broken clock\'s right twice a day.',
+      'Oh, it\'s in! Didn\'t think you had it in you.'
+    ];
+    const MISS_LINES = [
+      'You call that a shot? My grandma can shoot harder than that.',
+      'Why don\'t you go back to the rec?',
+      'You think you\'re trying your best, mate?',
+      'Wow, you missed. There goes half your aura.',
+      'Good luck getting into the pros. They\'ll call you Mister Can\'t Score.',
+      'Ohh, wide! Were you aiming for the car park?',
+      'Absolutely woeful, that. Have a word with yourself.'
+    ];
+    let lastLineIdx = -1;
+    function pick(arr) { let i = Math.floor(Math.random() * arr.length); if (arr.length > 1 && i === lastLineIdx) i = (i + 1) % arr.length; lastLineIdx = i; return arr[i]; }
+
+    /* British TTS voice, chosen from whatever the device has (falls back gracefully) */
+    let ukVoice = null, voiceReady = false;
+    function pickVoice() {
+      try {
+        const vs = (window.speechSynthesis && speechSynthesis.getVoices()) || [];
+        ukVoice = vs.find(v => /en[-_]GB/i.test(v.lang) && /(daniel|george|arthur|oliver|male)/i.test(v.name))
+               || vs.find(v => /en[-_]GB/i.test(v.lang)) || null;
+        if (vs.length) voiceReady = true;
+      } catch (e) {}
+    }
+    if (window.speechSynthesis) { pickVoice(); try { speechSynthesis.onvoiceschanged = pickVoice; } catch (e) {} }
+    function announce(txt, rate) {
+      try {
+        if (!window.speechSynthesis) return;
+        if (!voiceReady) pickVoice();
+        const u = new SpeechSynthesisUtterance(String(txt));
+        u.lang = 'en-GB'; if (ukVoice) u.voice = ukVoice; u.rate = rate || 0.98; u.pitch = 1;
+        speechSynthesis.resume(); speechSynthesis.speak(u);
+      } catch (e) {}
+    }
+
+    /* ---- power scoring ---- */
+    function peakToScore(peak) { const t = Math.max(0, Math.min(1, (peak - 0.10) / 0.85)); return Math.round(100 + 900 * Math.pow(t, 0.62)); }
+    function powerLabel(score) {
+      if (score < 300) return ['weak', 'Feeble! Absolutely pathetic, that.'];
+      if (score < 500) return ['weak', 'Bit soft, mate. My nan\'s got more welly.'];
+      if (score < 700) return ['mid', 'Decent strike. Bit of pace on it.'];
+      if (score < 880) return ['', 'Cracking hit! Top-bins material, that.'];
+      return ['', 'Absolute rocket! The net\'s still shaking!'];
+    }
+    async function startMic() {
+      try {
+        micStream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false } });
+        const ctx = SAC(); if (!ctx) return false;
+        const src = ctx.createMediaStreamSource(micStream);
+        micAnalyser = ctx.createAnalyser(); micAnalyser.fftSize = 1024; micBuf = new Uint8Array(micAnalyser.fftSize);
+        src.connect(micAnalyser); // analyser only — do NOT connect to destination (avoids mic feedback)
+        return true;
+      } catch (e) { return false; }
+    }
+    function stopMic() {
+      if (strikeRAF) { cancelAnimationFrame(strikeRAF); strikeRAF = null; }
+      if (micStream) { try { micStream.getTracks().forEach(t => t.stop()); } catch (e) {} micStream = null; }
+      micAnalyser = null; micBuf = null; capturing = false;
+    }
+    function micPeak() {
+      if (!micAnalyser) return 0;
+      micAnalyser.getByteTimeDomainData(micBuf);
+      let peak = 0; for (let i = 0; i < micBuf.length; i++) { const v = Math.abs(micBuf[i] - 128) / 128; if (v > peak) peak = v; }
+      return peak;
+    }
+    function powerLoop() {
+      if (!strikeRunning || strikeMode !== 'power') return;
+      const peak = micPeak(), now = performance.now();
+      const bar = $('socPowerBar'); if (bar && bar.firstElementChild) bar.firstElementChild.style.width = Math.min(100, Math.round(peak * 100)) + '%';
+      if (!capturing) {
+        if (peak >= STRIKE_TH && now - lastStrikeT > STRIKE_COOLDOWN) { capturing = true; capMax = peak; capStart = now; }
+      } else {
+        capMax = Math.max(capMax, peak);
+        if (now - capStart > 130) { capturing = false; lastStrikeT = now; registerPowerShot(capMax); }
+      }
+      strikeRAF = requestAnimationFrame(powerLoop);
+    }
+    function registerPowerShot(peak) {
+      const score = peakToScore(peak), lab = powerLabel(score);
+      const el = $('socPowerNum'); el.textContent = score; el.className = 'soc-power-num' + (lab[0] ? ' ' + lab[0] : '');
+      $('socPowerLabel').textContent = lab[1];
+      beep(score > 700 ? 1000 : 420, 0.12); vibrate(score > 700 ? [40, 30, 60] : 40);
+      announce(score + '. ' + lab[1]);
+      const s = loadStats();
+      if ((s.bestShot || 0) < score) { s.bestShot = score; s.socks = earnedSocks(s).length; saveStats(s); syncBoard(s); }
+      $('socPowerBest').textContent = 'Hardest: ' + (loadStats().bestShot || score);
+    }
+
+    /* ---- accuracy: camera + drag-a-box goal, motion split in/out of the box ---- */
+    async function startStrikeCam() {
+      try { strikeCamStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: strikeFacing } }, audio: false }); const v = $('socStrikeCam'); v.srcObject = strikeCamStream; await v.play().catch(() => {}); }
+      catch (e) { $('socStrikeHint').textContent = '📷 Camera blocked — allow camera access, then reopen.'; }
+    }
+    function stopStrikeCam() { if (strikeCamStream) { try { strikeCamStream.getTracks().forEach(t => t.stop()); } catch (e) {} strikeCamStream = null; } const v = $('socStrikeCam'); if (v) { try { v.pause(); } catch (e) {} v.srcObject = null; } }
+    function regionMotion(cur, prev, W, H, box, pxTh) {
+      const x0 = Math.floor(box.x * W), y0 = Math.floor(box.y * H), x1 = Math.ceil((box.x + box.w) * W), y1 = Math.ceil((box.y + box.h) * H);
+      let inN = 0, inTot = 0, outN = 0, outTot = 0;
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const j = (y * W + x) * 4, d = Math.abs(cur[j] - prev[j]) + Math.abs(cur[j + 1] - prev[j + 1]) + Math.abs(cur[j + 2] - prev[j + 2]);
+        const inside = x >= x0 && x < x1 && y >= y0 && y < y1;
+        if (inside) { inTot++; if (d > pxTh) inN++; } else { outTot++; if (d > pxTh) outN++; }
+      }
+      return [inTot ? inN / inTot : 0, outTot ? outN / outTot : 0];
+    }
+    function accTick() {
+      const v = $('socStrikeCam'); if (!v || !v.videoWidth) return;
+      const fr = frameToData(v, ACC_TW, ACC_TH2);
+      let inFrac = 0, outFrac = 0;
+      if (strikePrev && goalBox) { const r = regionMotion(fr, strikePrev, ACC_TW, ACC_TH2, goalBox, 55); inFrac = r[0]; outFrac = r[1]; }
+      strikePrev = fr;
+      if (!goalBox) return;
+      const now = performance.now(), total = inFrac + outFrac;
+      if (accCap) {
+        accCap.inMax = Math.max(accCap.inMax, inFrac); accCap.outMax = Math.max(accCap.outMax, outFrac);
+        if (now - accCap.start > 650) { const c = accCap; accCap = null; decideShot(c.inMax, c.outMax); }
+      } else if (total >= SHOT_TH && now - lastAccT > ACC_COOLDOWN) {
+        accCap = { inMax: inFrac, outMax: outFrac, start: now };
+      }
+    }
+    function decideShot(inMax, outMax) {
+      lastAccT = performance.now(); sessShots++;
+      const goal = inMax >= 0.05 && inMax >= outMax * GOAL_MARGIN;
+      lastResult = goal ? 'goal' : 'miss';
+      if (goal) { sessGoals++; onGoal(); } else onMiss();
+      renderStrikeScore();
+    }
+    function logManual(to) {
+      if (lastResult) { if (lastResult === to) return; if (to === 'goal') sessGoals++; else sessGoals = Math.max(0, sessGoals - 1); }
+      else { sessShots++; if (to === 'goal') sessGoals++; }
+      lastResult = to; if (to === 'goal') onGoal(); else onMiss(); renderStrikeScore();
+    }
+    function onGoal() { beep(920, 0.3); vibrate([60, 40, 120]); flashStrike('GOAL', '#00ff41'); announce(pick(GOAL_LINES), 1.02); }
+    function onMiss() { beep(200, 0.3); vibrate(200); flashStrike('MISS', '#ff5ba8'); announce(pick(MISS_LINES), 0.98); }
+    function flashStrike(txt, color) { const el = $('socStrikeFlash'); if (!el) return; el.textContent = txt; el.style.color = color; el.style.textShadow = '0 0 18px ' + color; el.classList.add('show'); setTimeout(() => el.classList.remove('show'), 1100); }
+    function renderStrikeScore() { $('socStrikeShots').textContent = sessShots; $('socStrikeGoals').textContent = sessGoals; $('socStrikeAcc').textContent = sessShots ? Math.round(sessGoals / sessShots * 100) + '%' : '—'; }
+
+    /* ---- drag-to-draw the goal box ---- */
+    function saveGoalBox() { try { localStorage.setItem(STRIKE_BOX_KEY, JSON.stringify(goalBox)); } catch (e) {} }
+    function loadGoalBox() { try { const b = JSON.parse(localStorage.getItem(STRIKE_BOX_KEY) || 'null'); return (b && typeof b.x === 'number') ? b : null; } catch (e) { return null; } }
+    function clampBox(b) { const x = Math.max(0, Math.min(1, b.x)), y = Math.max(0, Math.min(1, b.y)); return { x, y, w: Math.min(1 - x, b.w), h: Math.min(1 - y, b.h) }; }
+    function drawGoalBox(temp) {
+      const o = $('socStrikeOverlay'), v = $('socStrikeCam'); if (!o || !v) return;
+      const rect = v.getBoundingClientRect(); o.width = rect.width; o.height = rect.height;
+      const g = o.getContext('2d'); g.clearRect(0, 0, o.width, o.height);
+      const b = temp || goalBox; if (!b) return;
+      const col = temp ? '#ffd24a' : '#00ff41';
+      g.lineWidth = 3; g.strokeStyle = col; g.shadowColor = '#000'; g.shadowBlur = 6;
+      g.strokeRect(b.x * o.width, b.y * o.height, b.w * o.width, b.h * o.height);
+      g.fillStyle = col + '22'; g.fillRect(b.x * o.width, b.y * o.height, b.w * o.width, b.h * o.height);
+    }
+    function normPt(ev, el) { const r = el.getBoundingClientRect(); return { x: (ev.clientX - r.left) / r.width, y: (ev.clientY - r.top) / r.height }; }
+    function onDragStart(ev) { ev.preventDefault(); dragStart = normPt(ev, $('socStrikeOverlay')); dragBox = null; }
+    function onDragMove(ev) { if (!dragStart) return; ev.preventDefault(); const p = normPt(ev, $('socStrikeOverlay')); dragBox = clampBox({ x: Math.min(dragStart.x, p.x), y: Math.min(dragStart.y, p.y), w: Math.abs(p.x - dragStart.x), h: Math.abs(p.y - dragStart.y) }); drawGoalBox(dragBox); }
+    function onDragEnd() { if (!dragStart) return; dragStart = null; if (dragBox && dragBox.w > 0.05 && dragBox.h > 0.05) { goalBox = dragBox; saveGoalBox(); $('socStrikeHint').textContent = '✅ Net set — shoot! (drag again to redo)'; } dragBox = null; drawGoalBox(); }
+
+    /* ---- mode UI + lifecycle ---- */
+    function renderStrikeMode() {
+      const seg = $('socStrikeMode'); if (!seg) return; seg.innerHTML = '';
+      [['power', '💥 Power'], ['accuracy', '🎯 Accuracy']].forEach(ml => { const b = document.createElement('span'); b.className = 'soc-seg' + (strikeMode === ml[0] ? ' on' : ''); b.textContent = ml[1]; b.onclick = () => { if (strikeRunning) return; strikeMode = ml[0]; renderStrikeMode(); applyStrikeUI(); }; seg.appendChild(b); });
+    }
+    function applyStrikeUI() {
+      const power = strikeMode === 'power';
+      $('socPowerPanel').style.display = power ? 'flex' : 'none';
+      $('socAccPanel').style.display = power ? 'none' : 'flex';
+      $('socStrikeStart').textContent = strikeRunning ? 'Stop ■' : 'Start ▶';
+    }
+    function openStriker() {
+      strikeRunning = false; sessShots = 0; sessGoals = 0; lastResult = null; goalBox = loadGoalBox();
+      $('socPowerNum').textContent = '0'; $('socPowerNum').className = 'soc-power-num';
+      $('socPowerLabel').textContent = ''; $('socPowerBest').textContent = 'Hardest: ' + (loadStats().bestShot || 0);
+      const bar = $('socPowerBar'); if (bar && bar.firstElementChild) bar.firstElementChild.style.width = '0%';
+      $('socStrikeHint').textContent = goalBox ? '✅ Net remembered — shoot! (drag to redo the box)' : 'Point at the goal, then DRAG a box around the net';
+      renderStrikeMode(); applyStrikeUI(); renderStrikeScore();
+      soccerView('socStriker');
+    }
+    async function startStrike() {
+      warmSpeech(); strikeRunning = true; lastStrikeT = 0; applyStrikeUI();
+      reqWake(); startMotion(); beginActive();
+      if (strikeMode === 'power') {
+        const ok = await startMic();
+        if (!ok) { $('socPowerLabel').textContent = '🎤 Mic blocked — allow microphone, then Start.'; strikeRunning = false; applyStrikeUI(); relWake(); stopMotion(); creditActive(); return; }
+        capturing = false; strikeRAF = requestAnimationFrame(powerLoop);
+        announce('Right then. Let\'s see what you\'ve got.');
+      } else {
+        await startStrikeCam(); strikePrev = null; accCap = null; lastAccT = 0; lastResult = null;
+        setTimeout(() => drawGoalBox(), 300);
+        strikeTrackT = setInterval(accTick, 120);
+        announce(goalBox ? 'Net locked in. Off you go.' : 'Drag a box round the net first, then have a shot.');
+      }
+    }
+    function stopStrike() {
+      strikeRunning = false; stopMic();
+      if (strikeTrackT) { clearInterval(strikeTrackT); strikeTrackT = null; }
+      stopStrikeCam(); relWake(); stopMotion(); creditActive(); applyStrikeUI();
+    }
+    function strikerCleanup() {
+      strikeRunning = false; stopMic();
+      if (strikeTrackT) { clearInterval(strikeTrackT); strikeTrackT = null; }
+      stopStrikeCam(); try { if (window.speechSynthesis) speechSynthesis.cancel(); } catch (e) {}
+    }
+
+    $('socStrikerBtn').addEventListener('click', openStriker);
+    $('socStrikeStart').addEventListener('click', () => { if (strikeRunning) stopStrike(); else startStrike(); });
+    $('socStrikeBack').addEventListener('click', () => { if (strikeRunning) stopStrike(); soccerView('socMenu'); });
+    $('socStrikeFlipBtn').addEventListener('click', async () => { strikeFacing = strikeFacing === 'user' ? 'environment' : 'user'; if (strikeRunning && strikeMode === 'accuracy') { stopStrikeCam(); await startStrikeCam(); setTimeout(() => drawGoalBox(), 300); } });
+    $('socStrikeClear').addEventListener('click', () => { goalBox = null; try { localStorage.removeItem(STRIKE_BOX_KEY); } catch (e) {} drawGoalBox(); $('socStrikeHint').textContent = 'Point at the goal, then DRAG a box around the net'; });
+    $('socStrikeGoalBtn').addEventListener('click', () => logManual('goal'));
+    $('socStrikeMissBtn').addEventListener('click', () => logManual('miss'));
+    (function () { const o = $('socStrikeOverlay'); if (!o) return; o.addEventListener('pointerdown', onDragStart); o.addEventListener('pointermove', onDragMove); o.addEventListener('pointerup', onDragEnd); o.addEventListener('pointercancel', onDragEnd); })();
   })();
 
   /* ===== AIR HOCKEY ===== */
