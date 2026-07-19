@@ -780,6 +780,19 @@
     .co-composer textarea::placeholder { color: #6d7178; }
     .co-composer .send { background: none; border: none; cursor: pointer; font-size: 20px; color: #5865f2; padding: 8px 6px; }
     .co-composer .send:hover { color: #7983f5; }
+    .co-composer .send.img { color: #eb459e; }
+    .co-composer .send.img:hover { color: #f472b6; }
+    .co-slash { display: none; flex-direction: column; background: #111214; border-radius: 8px; margin-bottom: 6px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.45); }
+    .co-slash.show { display: flex; }
+    .co-slash-item { padding: 10px 12px; cursor: pointer; display: flex; gap: 10px; align-items: baseline; }
+    .co-slash-item:hover { background: #232428; }
+    .co-slash-item b { color: #f2f3f5; font-size: 15px; }
+    .co-slash-item span { color: #949ba4; font-size: 13px; }
+    .co-img-preview { margin-top: 12px; }
+    .co-img-loading { color: #b5bac1; font-size: 14px; padding: 26px 14px; text-align: center; background: #2b2d31; border-radius: 8px; }
+    .co-img-out { max-width: 100%; border-radius: 8px; display: block; }
+    .co-msg-img { max-width: min(380px, 100%); border-radius: 8px; margin-top: 6px; cursor: pointer; display: block; background: #2b2d31; }
+    .co-lightbox { max-width: 92vw; max-height: 88vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
     .co-mrow { display: flex; gap: 6px; padding: 4px 2px 0; flex-wrap: wrap; }
     .co-mchip { background: #404249; color: #c9cdfb; border: none; border-radius: 12px; padding: 3px 10px; font-size: 12px; cursor: pointer; font-family: inherit; }
     .co-mchip:hover { background: #5865f2; color: #fff; }
@@ -4392,8 +4405,9 @@
             '<button class="co-icon-btn" data-act="toggleMem" title="Members">👥</button>' +
           '</div>' +
           '<div class="co-msgs" id="coMsgs"></div>' +
-          '<div class="co-composer"><div class="co-mrow" id="coMrow"></div>' +
-            '<div class="box"><textarea id="coInput" rows="1" placeholder="Message #' + esc(ch.name) + '"></textarea>' +
+          '<div class="co-composer"><div class="co-slash" id="coSlash"></div><div class="co-mrow" id="coMrow"></div>' +
+            '<div class="box"><textarea id="coInput" rows="1" placeholder="Message #' + esc(ch.name) + '   ·   try /CreateImage"></textarea>' +
+            '<button class="send img" data-act="slashImg" title="Create an AI image">🎨</button>' +
             '<button class="send" data-act="send" title="Send">➤</button></div></div>';
         renderMessages(); renderMentionRow();
       }
@@ -4413,8 +4427,9 @@
           '<div class="body"><div class="head">' +
             '<span class="author" style="color:' + memColor(a) + '" data-act="member" data-mem="' + esc(a.name) + '">' + esc(a.name) + '</span>' +
             (a.bot ? '<span class="badge-bot">Bot</span>' : '') + '<span class="time">' + fmt(m.ts) + '</span>' +
-          '</div><div class="text">' + renderText(m.text, m.mentions || []) + '</div></div></div>';
+          '</div><div class="text">' + renderText(m.text, m.mentions || []) + '</div>' + imgHtml(m) + '</div></div>';
       }
+      function imgHtml(m) { return (m.image && /^https:\/\//.test(m.image)) ? '<img class="co-msg-img" src="' + esc(m.image) + '" alt="' + esc((m.text || 'image').slice(0, 80)) + '" loading="lazy" data-act="viewImg" data-src="' + esc(m.image) + '">' : ''; }
       function renderMessages() {
         const box = $('coMsgs'); if (!box || !db) return; const ch = db.channels.find(c => c.id === cur.channel); if (!ch) return;
         const list = msgs[ch.id] || [];
@@ -4453,10 +4468,48 @@
       function parseMentions(text) { const names = []; const everyone = /@everyone\b/.test(text); db.members.forEach(m => { if (m.name !== me && text.includes('@' + m.name)) names.push(m.name); }); return { names, everyone }; }
       function sendMessage() {
         const inp = $('coInput'); if (!inp) return; const text = inp.value.trim(); if (!text) return;
+        if (text[0] === '/' && runSlash(text)) { inp.value = ''; inp.style.height = 'auto'; const sp = $('coSlash'); if (sp) sp.classList.remove('show'); return; }
         const ch = db.channels.find(c => c.id === cur.channel); if (!ch) return;
         const ment = parseMentions(text); inp.value = ''; inp.style.height = 'auto';
         FS.addDoc(msgsCol, { channel: ch.id, author: me, text, ts: nowMs(), mentions: ment.everyone ? ['everyone', ...ment.names] : ment.names }).catch(e => toast('Not sent', e.message || 'offline', false));
       }
+
+      /* ---------- slash commands + AI image generation ---------- */
+      const SLASH = [{ name: '/CreateImage', desc: 'Generate an AI image from a prompt', run: p => openImagePrompt(p) }];
+      function runSlash(text) { const parts = text.slice(1).split(/\s+/); const cmd = '/' + (parts[0] || '').toLowerCase(); const c = SLASH.find(s => s.name.toLowerCase() === cmd); if (!c) return false; c.run(text.slice(parts[0].length + 1).trim()); return true; }
+      function updateSlash() {
+        const inp = $('coInput'), box = $('coSlash'); if (!inp || !box) return; const v = inp.value;
+        if (v[0] === '/') { const q = v.slice(1).toLowerCase().split(/\s+/)[0]; const matches = SLASH.filter(c => c.name.toLowerCase().slice(1).startsWith(q));
+          if (matches.length) { box.innerHTML = matches.map(c => '<div class="co-slash-item" data-act="slashRun" data-cmd="' + c.name + '"><b>' + c.name + '</b><span>' + esc(c.desc) + '</span></div>').join(''); box.classList.add('show'); return; } }
+        box.classList.remove('show'); box.innerHTML = '';
+      }
+      let genUrl = null, genPrompt = '';
+      function openImagePrompt(initial) {
+        genUrl = null; genPrompt = initial || '';
+        openModal('<div class="co-card-head"><h3>🎨 Create an image</h3><p>Describe it — AI draws it, then you can post it to the channel. Free, no limits.</p></div>' +
+          '<div class="co-card-body"><label class="co-label">Prompt</label><textarea class="co-input" id="coImgPrompt" rows="3" placeholder="a neon dragon over a cyberpunk city at night">' + esc(initial || '') + '</textarea>' +
+          '<label class="co-label">Shape</label><select class="co-select" id="coImgSize"><option value="1024x1024">Square</option><option value="1280x768">Landscape</option><option value="768x1280">Portrait</option></select>' +
+          '<div id="coImgPreview" class="co-img-preview"></div></div>' +
+          '<div class="co-card-foot"><button class="co-btn ghost" data-act="closeModal">Cancel</button><button class="co-btn" data-act="genImg" id="coGenBtn">✨ Generate</button><button class="co-btn" data-act="sendImg" id="coSendImg" style="display:none">Send to channel</button></div>');
+        setTimeout(() => { const p = $('coImgPrompt'); if (p) p.focus(); }, 60);
+      }
+      function genImg() {
+        const pe = $('coImgPrompt'); if (!pe) return; const p = (pe.value || '').trim(); if (!p) { pe.focus(); return; }
+        genPrompt = p; const sz = (($('coImgSize') && $('coImgSize').value) || '1024x1024').split('x'); const seed = Math.floor(Math.random() * 1e9);
+        const url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(p) + '?width=' + sz[0] + '&height=' + sz[1] + '&seed=' + seed + '&nologo=true&model=flux';
+        genUrl = null; const box = $('coImgPreview'), send = $('coSendImg'); if (send) send.style.display = 'none';
+        if (box) box.innerHTML = '<div class="co-img-loading">✨ Generating… this can take ~10–20s</div>';
+        const img = new Image(); img.className = 'co-img-out';
+        img.onload = () => { if (box) { box.innerHTML = ''; box.appendChild(img); } genUrl = url; if (send) send.style.display = ''; };
+        img.onerror = () => { if (box) box.innerHTML = '<div class="co-img-loading">⚠️ Couldn\'t generate that one — try again or reword it.</div>'; genUrl = null; if (send) send.style.display = 'none'; };
+        img.src = url;
+      }
+      function sendImg() {
+        if (!genUrl) return; const ch = db.channels.find(c => c.id === cur.channel); if (!ch) return;
+        FS.addDoc(msgsCol, { channel: ch.id, author: me, text: (genPrompt || '🎨 image').slice(0, 300), ts: nowMs(), mentions: [], image: genUrl }).catch(e => toast('Not sent', e.message || 'offline', false));
+        genUrl = null; closeModal();
+      }
+      function openLightbox(src) { if (!/^https:\/\//.test(src)) return; $('coPopInner').innerHTML = '<img class="co-lightbox" src="' + esc(src) + '" alt="image">'; $('coPop').classList.add('show'); }
       function pingMember(name) {
         const m = memberByName(name); const ch = db.channels.find(c => c.id === cur.channel); if (!m || !ch) return; closePop();
         FS.addDoc(msgsCol, { channel: ch.id, author: me, text: '@' + m.name, ts: nowMs(), mentions: [m.name] }).catch(() => {});
@@ -4579,6 +4632,11 @@
           case 'toggleNav': $('coApp').classList.toggle('nav-open'); $('coApp').classList.remove('mem-open'); break;
           case 'toggleMem': $('coApp').classList.toggle('mem-open'); $('coApp').classList.remove('nav-open'); break;
           case 'send': sendMessage(); break;
+          case 'slashImg': openImagePrompt(''); break;
+          case 'slashRun': { const c = SLASH.find(s => s.name.toLowerCase() === (el.dataset.cmd || '').toLowerCase()); const inp = $('coInput'); if (inp) { inp.value = ''; inp.style.height = 'auto'; } const sp = $('coSlash'); if (sp) sp.classList.remove('show'); if (c) c.run(''); break; }
+          case 'genImg': genImg(); break;
+          case 'sendImg': sendImg(); break;
+          case 'viewImg': openLightbox(el.dataset.src); break;
           case 'men': { const inp = $('coInput'); if (inp) { inp.value = (inp.value + (inp.value && !inp.value.endsWith(' ') ? ' ' : '') + el.dataset.tok + ' ').trimStart(); inp.focus(); } break; }
           case 'member': openProfile(el.dataset.mem); break;
           case 'dm': openDMReal(el.dataset.mem); break;
@@ -4639,7 +4697,7 @@
         const root = $('council');
         root.addEventListener('click', e => { const t = e.target.closest('[data-act]'); if (!t) return; if (t.matches('input,select,textarea,option')) return; e.preventDefault(); act(t.dataset.act, t); });
         root.addEventListener('change', e => { const t = e.target.closest('[data-act]'); if (!t) return; change(t.dataset.act, t); });
-        root.addEventListener('input', e => { if (e.target.tagName === 'TEXTAREA') { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; } });
+        root.addEventListener('input', e => { if (e.target.tagName === 'TEXTAREA') { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; if (e.target.id === 'coInput') updateSlash(); } });
         root.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'coInput') { e.preventDefault(); sendMessage(); } });
       }
       $('councilApp').addEventListener('click', openCouncil);
