@@ -411,10 +411,10 @@
     .home-inner {
       width: 100%; height: 100%;
       display: flex; flex-direction: column; justify-content: space-between;
-      padding: 2rem 1rem 1.5rem;
+      padding: calc(2rem + env(safe-area-inset-top)) 1rem calc(1.5rem + env(safe-area-inset-bottom));
     }
     .home-header { text-align: center; }
-    .home-header .welcome { font-size: 1rem; color: #00ff41cc; letter-spacing: 0.2em; }
+    .home-header .welcome { font-size: 0.85rem; color: #00ff41aa; letter-spacing: 0.35em; }
     .home-header .user { font-size: 2rem; color: #00ff41; text-shadow: 0 0 15px #00ff41; margin-top: 0.3rem; }
     .logout {
       position: absolute; top: 1rem; left: 1rem;
@@ -423,17 +423,42 @@
       padding: 0.35rem 0.7rem; border-radius: 4px; cursor: pointer; font-family: inherit;
     }
     .logout:hover { color: #00ff41; border-color: #00ff41; }
-    .dock { display: flex; flex-wrap: wrap; justify-content: center; gap: 1.2rem; padding-bottom: 0.5rem; }
-    .app {
-      width: 78px; height: 78px; border-radius: 18px;
-      background: rgba(0, 20, 5, 0.75); border: 1px solid #00ff4155;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 2.2rem; cursor: pointer;
-      box-shadow: 0 0 12px rgba(0,255,65,0.25); transition: all 0.2s ease;
+    /* app grid — clean aligned rows, labels in normal flow */
+    .dock {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.6rem 0.8rem;
+      width: min(100%, 360px);
+      margin: 0 auto;
+      align-content: center;
     }
-    .app:hover { transform: translateY(-6px) scale(1.05); box-shadow: 0 0 22px rgba(0,255,65,0.6); }
-    .app .label { position: absolute; margin-top: 62px; font-size: 0.65rem; color: #00ff41aa; }
-    .app.locked { color: #00ff4166; }
+    .app {
+      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+      cursor: pointer; user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app .icon {
+      width: 68px; height: 68px; border-radius: 20px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 2.1rem; line-height: 1;
+      background: linear-gradient(160deg, rgba(0,40,12,0.9), rgba(0,14,5,0.9));
+      border: 1px solid #00ff4155;
+      box-shadow: 0 0 12px rgba(0,255,65,0.22), inset 0 0 14px rgba(0,255,65,0.06);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+    .app .label {
+      font-size: 0.7rem; letter-spacing: 0.02em; color: #00ff41aa;
+      text-align: center; line-height: 1.15; max-width: 84px;
+    }
+    .app:hover .icon, .app:focus-visible .icon {
+      transform: translateY(-5px) scale(1.05);
+      border-color: #00ff41;
+      box-shadow: 0 8px 22px rgba(0,255,65,0.5), inset 0 0 16px rgba(0,255,65,0.12);
+    }
+    .app:hover .label { color: #00ff41; }
+    .app:active .icon { transform: translateY(-2px) scale(0.98); }
+    .app.locked .icon { opacity: 0.45; filter: grayscale(0.4); }
+    .app.locked .label { color: #00ff4155; }
 
     /* ---- Messages app ---- */
     .msg-app {
@@ -694,12 +719,12 @@
         <div class="user" id="homeUser">—</div>
       </div>
       <div class="dock">
-        <div class="app" id="airHockeyApp">🏒<span class="label">Air Hockey</span></div>
-        <div class="app" id="messagesApp">💬<span class="label">Messages</span></div>
-        <div class="app" id="soccerApp" style="display:none;">⚽<span class="label">Soccer Trainer</span></div>
-        <div class="app" id="musicfyApp">🎵<span class="label">Musicfy</span></div>
-        <div class="app" id="passgameApp">🔑<span class="label">Password Game</span></div>
-        <div class="app" id="drivesadApp">😔<span class="label">Drive Sad</span></div>
+        <div class="app" id="airHockeyApp"><span class="icon">🏒</span><span class="label">Air Hockey</span></div>
+        <div class="app" id="messagesApp"><span class="icon">💬</span><span class="label">Messages</span></div>
+        <div class="app" id="soccerApp" style="display:none;"><span class="icon">⚽</span><span class="label">Soccer Trainer</span></div>
+        <div class="app" id="musicfyApp"><span class="icon">🎵</span><span class="label">Musicfy</span></div>
+        <div class="app" id="passgameApp"><span class="icon">🔑</span><span class="label">Password Game</span></div>
+        <div class="app" id="drivesadApp"><span class="icon">😔</span><span class="label">Drive Sad</span></div>
       </div>
     </div>
   </div>
