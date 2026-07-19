@@ -1,0 +1,81 @@
+rules_version = '2';
+
+// ============================================================================
+//  Firestore security rules for colton-site
+// ----------------------------------------------------------------------------
+//  IMPORTANT: this app has NO Firebase Authentication. It rolls its own
+//  username/password stored in the `users` collection, so every request is
+//  anonymous to Firestore (request.auth is always null). Because of that,
+//  these rules CANNOT verify *who* is making a write — they can only validate
+//  the *shape* of the data and lock a few fields.
+//
+//  What this buys you for The Council:
+//    - the `owner` and `createdAt` fields can never be changed after creation,
+//      so nobody can quietly hand ownership of the council to themselves;
+//    - documents must be well-formed (right fields / types), so a malformed or
+//      junk write is rejected;
+//    - channel messages are capped at 2000 chars and can never be edited.
+//
+//  What it does NOT do: stop a determined person using browser devtools from
+//  impersonating a member. True owner-only / member-only enforcement requires
+//  Firebase Authentication. Everything else below is kept exactly as open as it
+//  was before so existing features (login, messages, calls, air hockey) keep
+//  working unchanged.
+//
+//  Deploy:  firebase deploy --only firestore:rules
+//     (or paste this into Firebase Console -> Firestore Database -> Rules)
+// ============================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- validation helpers ----------
+    function validCouncil(d) {
+      return d.name is string && d.name.size() > 0 && d.name.size() <= 60
+        && d.owner is string
+        && d.icon is string
+        && d.roles is list
+        && d.members is list
+        && d.channels is list
+        && d.createdAt is number;
+    }
+    function validCouncilMsg(d) {
+      return d.channel is string
+        && d.author is string
+        && d.text is string && d.text.size() > 0 && d.text.size() <= 2000
+        && d.ts is number;
+    }
+
+    // ---------- The Council (hardened) ----------
+    match /council/{id} {
+      allow read: if true;
+      allow create: if validCouncil(request.resource.data);
+      // any update must stay well-formed AND may not reassign ownership or backdate creation
+      allow update: if validCouncil(request.resource.data)
+                    && request.resource.data.owner == resource.data.owner
+                    && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if true;   // owner's "delete council" (identity can't be verified without auth)
+    }
+    match /councilMsgs/{id} {
+      allow read: if true;
+      allow create: if validCouncilMsg(request.resource.data);
+      allow update: if false;  // messages are immutable
+      allow delete: if true;   // removed when the owner wipes the council
+    }
+
+    // ---------- existing collections: unchanged (app has no auth) ----------
+    match /users/{id}       { allow read, write: if true; }
+    match /messages/{id}    { allow read, write: if true; }
+    match /reactions/{id}   { allow read, write: if true; }
+    match /leaderboard/{id} { allow read, write: if true; }
+    match /presence/{id}    { allow read, write: if true; }
+    match /calls/{id} {
+      allow read, write: if true;
+      match /{sub=**}       { allow read, write: if true; }   // callerCand / calleeCand
+    }
+    match /duels/{id} {
+      allow read, write: if true;
+      match /{sub=**}       { allow read, write: if true; }   // hostCand / guestCand
+    }
+  }
+}
