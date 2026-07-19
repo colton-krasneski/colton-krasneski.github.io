@@ -792,9 +792,6 @@
     .co-img-loading { color: #b5bac1; font-size: 14px; padding: 26px 14px; text-align: center; background: #2b2d31; border-radius: 8px; }
     .co-img-out { max-width: 100%; border-radius: 8px; display: block; }
     .co-msg-img { max-width: min(380px, 100%); border-radius: 8px; margin-top: 6px; cursor: pointer; display: block; background: #2b2d31; }
-    .co-msg-vid { max-width: min(400px, 100%); border-radius: 8px; margin-top: 6px; display: block; background: #000; }
-    .co-composer .send.vid { color: #faa61a; }
-    .co-composer .send.vid:hover { color: #ffbf47; }
     .co-lightbox { max-width: 92vw; max-height: 88vh; border-radius: 10px; box-shadow: 0 10px 40px rgba(0,0,0,.6); }
     .co-spoiler { background: #17181b; border-radius: 4px; padding: 0 4px; cursor: pointer; transition: background .1s; }
     .co-spoiler:not(.revealed), .co-spoiler:not(.revealed) * { color: transparent !important; text-shadow: none !important; }
@@ -1400,7 +1397,6 @@
     getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
     query, where, orderBy, limit, onSnapshot, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-  import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
   import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
   const firebaseConfig = {
@@ -1413,7 +1409,6 @@
   };
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
-  const storage = getStorage(app);
 
   /* ===== MATRIX BACKGROUND ===== */
   const canvas = document.getElementById('matrix');
@@ -4419,7 +4414,6 @@
           '<div class="co-composer"><div class="co-slash" id="coSlash"></div><div class="co-mrow" id="coMrow"></div>' +
             '<div class="box"><textarea id="coInput" rows="1" placeholder="Message #' + esc(ch.name) + '   ·   try /CreateImage"></textarea>' +
             '<button class="send img" data-act="slashImg" title="Create an AI image">🎨</button>' +
-            '<button class="send vid" data-act="slashVid" title="Generate an AI video">🎬</button>' +
             '<button class="send" data-act="send" title="Send">➤</button></div></div>';
         renderMessages(); renderMentionRow();
       }
@@ -4439,10 +4433,9 @@
           '<div class="body"><div class="head">' +
             '<span class="author" style="color:' + memColor(a) + '" data-act="member" data-mem="' + esc(a.name) + '">' + esc(a.name) + '</span>' +
             (a.bot ? '<span class="badge-bot">Bot</span>' : '') + '<span class="time">' + fmt(m.ts) + '</span>' +
-          '</div><div class="text">' + (m.spoiler ? '<span class="co-spoiler" data-act="revealSpoiler">' + renderText(m.text, m.mentions || []) + '</span>' : renderText(m.text, m.mentions || [])) + '</div>' + imgHtml(m) + vidHtml(m) + '</div></div>';
+          '</div><div class="text">' + (m.spoiler ? '<span class="co-spoiler" data-act="revealSpoiler">' + renderText(m.text, m.mentions || []) + '</span>' : renderText(m.text, m.mentions || [])) + '</div>' + imgHtml(m) + '</div></div>';
       }
       function imgHtml(m) { return (m.image && /^https:\/\//.test(m.image)) ? '<img class="co-msg-img" src="' + esc(m.image) + '" alt="' + esc((m.text || 'image').slice(0, 80)) + '" loading="lazy" data-act="viewImg" data-src="' + esc(m.image) + '">' : ''; }
-      function vidHtml(m) { return (m.video && /^https:\/\//.test(m.video)) ? '<video class="co-msg-vid" src="' + esc(m.video) + '" controls preload="metadata" playsinline></video>' : ''; }
       function renderMessages() {
         const box = $('coMsgs'); if (!box || !db) return; const ch = db.channels.find(c => c.id === cur.channel); if (!ch) return;
         const list = msgs[ch.id] || [];
@@ -4492,7 +4485,6 @@
       /* ---------- slash commands + AI image generation ---------- */
       const SLASH = [
         { name: '/CreateImage', desc: 'Generate an AI image from a prompt', run: p => openImagePrompt(p) },
-        { name: '/GenerateVideo', desc: 'Generate an AI video with Sora · /GenerateVideo <prompt>', run: p => openVideoPrompt(p) },
         { name: '/spoiler', desc: 'Send hidden (spoiler) text · /spoiler <text>', run: cmdSpoiler },
         { name: '/mute', desc: 'Mute a member · /mute <user> <30s|10m|2h|1d>', mod: true, run: cmdMute },
         { name: '/giverole', desc: 'Give a member a role · /giverole <user> <role>', mod: true, run: cmdGiveRole },
@@ -4604,72 +4596,6 @@
       }
       function openLightbox(src) { if (!/^https:\/\//.test(src)) return; $('coPopInner').innerHTML = '<img class="co-lightbox" src="' + esc(src) + '" alt="image">'; $('coPop').classList.add('show'); }
 
-      /* ---------- AI video (/GenerateVideo via OpenAI Sora, hosted on Firebase Storage) ---------- */
-      function loadOAIKey() { try { return localStorage.getItem('council_openai_key') || localStorage.getItem('colton_openai_key') || ''; } catch (e) { return ''; } }
-      function saveOAIKey(k) { try { localStorage.setItem('council_openai_key', k); } catch (e) {} }
-      let genVidUrl = null, genVidPrompt = '';
-      function openVideoPrompt(initial) {
-        genVidUrl = null; genVidPrompt = initial || ''; const hasKey = !!loadOAIKey();
-        openModal('<div class="co-card-head"><h3>🎬 Generate a video</h3><p>Text-to-video with OpenAI Sora, then hosted on your Firebase Storage so everyone can watch it. Uses your OpenAI key (needs Sora access + billing). Takes ~1–2 min.</p></div>' +
-          '<div class="co-card-body"><label class="co-label">Prompt</label><textarea class="co-input" id="coVidPrompt" rows="3" placeholder="a golden retriever surfing a big wave, cinematic slow motion">' + esc(initial || '') + '</textarea>' +
-          '<label class="co-label">Model</label><select class="co-select" id="coVidModel"><option value="sora-2">sora-2</option><option value="sora-2-pro">sora-2-pro (slower, pricier)</option></select>' +
-          '<label class="co-label">Shape &amp; length</label><div style="display:flex;gap:8px"><select class="co-select" id="coVidSize"><option value="720x1280">Portrait</option><option value="1280x720">Landscape</option></select><select class="co-select" id="coVidSecs"><option value="4">4s</option><option value="8">8s</option><option value="12">12s</option></select></div>' +
-          '<div id="coOaiKeyRow"' + (hasKey ? ' style="display:none"' : '') + '><label class="co-label">OpenAI API key <span style="font-weight:400;color:#949ba4">· saved only on this device</span></label><div style="display:flex;gap:8px"><input class="co-input" id="coOaiKey" type="password" placeholder="sk-… your OpenAI key" autocomplete="off"><button class="co-btn" data-act="saveOaiKey">Save</button></div><div class="co-sugg-note">Needs Sora API access + billing on your OpenAI account.</div></div>' +
-          '<div id="coVidPreview" class="co-img-preview"></div></div>' +
-          '<div class="co-card-foot"><button class="co-btn ghost" data-act="closeModal">Cancel</button><button class="co-btn" data-act="genVideo" id="coGenVidBtn">🎬 Generate</button><button class="co-btn" data-act="sendVideo" id="coSendVid" style="display:none">Send to channel</button></div>');
-        setTimeout(() => { const p = $('coVidPrompt'); if (p) p.focus(); }, 60);
-      }
-      async function oaErr(resp, stage) {
-        let d = ''; try { const t = await resp.text(); try { const j = JSON.parse(t); let x = (j.error && (j.error.message || j.error.code)) || j.detail || t; d = typeof x === 'object' ? JSON.stringify(x) : String(x); } catch (_) { d = t; } } catch (e) {}
-        d = String(d || '').replace(/\s+/g, ' ').trim().slice(0, 220);
-        if (resp.status === 401) return 'OpenAI key rejected (401) — check the key.';
-        if (resp.status === 403) return 'Forbidden (403) — your account may not have Sora API access yet.' + (d ? ' ' + d : '');
-        if (resp.status === 404 && stage === 'create') return 'Sora not found (404) — your account may not have the video API enabled.' + (d ? ' ' + d : '');
-        if (resp.status === 429) return 'Rate/credit limit (429) — ' + (d || 'try again shortly.');
-        return 'OpenAI ' + stage + ' error ' + resp.status + (d ? ' — ' + d : '');
-      }
-      async function genVideo() {
-        const pe = $('coVidPrompt'); if (!pe) return; const p = (pe.value || '').trim(); if (!p) { pe.focus(); return; }
-        const key = loadOAIKey(); if (!key) { toast('Add your OpenAI key', 'Paste your key below, then Generate.', false); const kf = $('coOaiKey'); if (kf) kf.focus(); return; }
-        genVidPrompt = p; genVidUrl = null;
-        const model = ($('coVidModel') && $('coVidModel').value) || 'sora-2';
-        const size = ($('coVidSize') && $('coVidSize').value) || '720x1280';
-        const seconds = ($('coVidSecs') && $('coVidSecs').value) || '4';
-        const send = $('coSendVid'), gen = $('coGenVidBtn'); if (send) send.style.display = 'none'; if (gen) gen.disabled = true;
-        const status = t => { const b = $('coVidPreview'); if (b) b.innerHTML = '<div class="co-img-loading">' + esc(t) + '</div>'; };
-        const H = { 'Authorization': 'Bearer ' + key };
-        try {
-          status('🎬 Submitting to Sora…');
-          const sub = await fetch('https://api.openai.com/v1/videos', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, H), body: JSON.stringify({ model, prompt: p, size, seconds }) });
-          if (!sub.ok) throw new Error(await oaErr(sub, 'create'));
-          const job = await sub.json(); const id = job.id; if (!id) throw new Error('No video id returned by OpenAI.');
-          let st = job.status || 'queued', err = null; const start = Date.now();
-          while (st !== 'completed') {
-            if (st === 'failed') throw new Error('Sora failed: ' + ((err && err.message) || 'try a simpler prompt.'));
-            if (Date.now() - start > 300000) throw new Error('Timed out after 5 min.');
-            await new Promise(r => setTimeout(r, 4000));
-            const pr = await fetch('https://api.openai.com/v1/videos/' + id, { headers: H });
-            if (!pr.ok) throw new Error(await oaErr(pr, 'status'));
-            const jb = await pr.json(); st = jb.status; err = jb.error;
-            status('🎬 Rendering…' + (jb.progress != null ? ' ' + jb.progress + '%' : '') + ' · Sora takes a minute or two');
-          }
-          status('⬇️ Downloading…');
-          const cr = await fetch('https://api.openai.com/v1/videos/' + id + '/content', { headers: H });
-          if (!cr.ok) throw new Error(await oaErr(cr, 'download'));
-          const blob = await cr.blob();
-          status('☁️ Hosting it so everyone can watch…');
-          let url;
-          try { const sr = FS.storageRef(FS.storage, 'councilVideos/' + id + '.mp4'); await FS.uploadBytes(sr, blob, { contentType: 'video/mp4' }); url = await FS.getDownloadURL(sr); }
-          catch (se) { throw new Error('Video made, but hosting failed — enable Firebase Storage + its rules. (' + (se.code || se.message || '') + ')'); }
-          genVidUrl = url; const b = $('coVidPreview'); if (b) b.innerHTML = '<video class="co-img-out" src="' + esc(url) + '" controls autoplay muted loop playsinline></video>'; if (send) send.style.display = '';
-        } catch (err) { status('⚠️ ' + (err.message || 'Failed')); genVidUrl = null; }
-        finally { const g = $('coGenVidBtn'); if (g) g.disabled = false; }
-      }
-      function sendVideo() {
-        if (!genVidUrl) return; const ch = db.channels.find(c => c.id === cur.channel); if (!ch) return;
-        FS.addDoc(msgsCol, { channel: ch.id, author: me, text: (genVidPrompt || '🎬 video').slice(0, 300), ts: nowMs(), mentions: [], video: genVidUrl }).catch(e => toast('Not sent', e.message || 'offline', false));
-        genVidUrl = null; closeModal();
-      }
       function pingMember(name) {
         const m = memberByName(name); const ch = db.channels.find(c => c.id === cur.channel); if (!m || !ch) return; closePop();
         FS.addDoc(msgsCol, { channel: ch.id, author: me, text: '@' + m.name, ts: nowMs(), mentions: [m.name] }).catch(() => {});
@@ -4798,10 +4724,6 @@
           case 'sendImg': sendImg(); break;
           case 'viewImg': openLightbox(el.dataset.src); break;
           case 'revealSpoiler': el.classList.add('revealed'); break;
-          case 'slashVid': openVideoPrompt(''); break;
-          case 'genVideo': genVideo(); break;
-          case 'sendVideo': sendVideo(); break;
-          case 'saveOaiKey': { const kf = $('coOaiKey'); if (kf && kf.value.trim()) { saveOAIKey(kf.value.trim()); const row = $('coOaiKeyRow'); if (row) row.style.display = 'none'; toast('Key saved', 'Saved on this device only.', false); } break; }
           case 'men': { const inp = $('coInput'); if (inp) { inp.value = (inp.value + (inp.value && !inp.value.endsWith(' ') ? ' ' : '') + el.dataset.tok + ' ').trimStart(); inp.focus(); } break; }
           case 'member': openProfile(el.dataset.mem); break;
           case 'dm': openDMReal(el.dataset.mem); break;
@@ -4866,7 +4788,7 @@
         root.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'coInput') { e.preventDefault(); sendMessage(); } });
       }
       $('councilApp').addEventListener('click', openCouncil);
-    })({ fdb: db, collection: collection, doc: doc, getDoc: getDoc, getDocs: getDocs, setDoc: setDoc, addDoc: addDoc, updateDoc: updateDoc, deleteDoc: deleteDoc, onSnapshot: onSnapshot, query: query, orderBy: orderBy, limit: limit, storage: storage, storageRef: storageRef, uploadBytes: uploadBytes, getDownloadURL: getDownloadURL });
+    })({ fdb: db, collection: collection, doc: doc, getDoc: getDoc, getDocs: getDocs, setDoc: setDoc, addDoc: addDoc, updateDoc: updateDoc, deleteDoc: deleteDoc, onSnapshot: onSnapshot, query: query, orderBy: orderBy, limit: limit });
   })();
   </script>
 </body>
