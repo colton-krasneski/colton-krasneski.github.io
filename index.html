@@ -4297,7 +4297,7 @@
       function fmt(ts) { const d = new Date(ts); return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
       const pfpOf = m => db.pfps && db.pfps[m.name];
       const isImg = v => typeof v === 'string' && v.indexOf('data:image/') === 0;
-      function avStyle(m) { const p = pfpOf(m); if (isImg(p)) return 'background-image:url("' + p + '");background-size:cover;background-position:center'; return 'background:' + memColor(m); }
+      function avStyle(m) { const p = pfpOf(m); if (isImg(p)) return "background-image:url('" + p + "');background-size:cover;background-position:center"; return 'background:' + memColor(m); }
       function avText(m) { const p = pfpOf(m); if (p) { if (isImg(p)) return ''; return p; } return initials(m.name); }
 
       /* ---------- sound + toast ---------- */
