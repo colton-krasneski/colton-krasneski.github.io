@@ -182,7 +182,9 @@
     #socOverlay { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
     .soc-cross { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00ff41cc; font-size: 1.5rem; pointer-events: none; text-shadow: 0 0 6px #000; }
     .soc-cam-hint { position: absolute; left: 0; right: 0; bottom: 0; padding: 0.5rem; background: linear-gradient(transparent, rgba(0,0,0,0.75)); color: #dfffe6; font-size: 0.85rem; text-align: center; }
-    .soc-cam-gps { position: absolute; top: 0.5rem; left: 0.5rem; right: 0.5rem; background: rgba(0,0,0,0.62); color: #9fffb5; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-radius: 6px; cursor: pointer; line-height: 1.3; }
+    .soc-cam-gps { position: absolute; top: 0.5rem; left: 0.5rem; right: 3rem; background: rgba(0,0,0,0.62); color: #9fffb5; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-radius: 6px; cursor: pointer; line-height: 1.3; }
+    .soc-cam-flip { position: absolute; top: 0.5rem; right: 0.5rem; z-index: 3; background: rgba(0,0,0,0.62); color: #dfffe6; border: 1px solid #00ff4155; border-radius: 8px; font-size: 1.05rem; padding: 0.3rem 0.5rem; cursor: pointer; line-height: 1; }
+    .soc-cam-flip:active { background: #00ff41; color: #000; }
     .soc-cam-confirm { position: absolute; left: 0; right: 0; bottom: 0; display: none; align-items: center; gap: 0.5rem; padding: 0.6rem; background: rgba(0,0,0,0.82); }
     .soc-cam-confirm.show { display: flex; }
     .soc-confirm-swatch { width: 34px; height: 34px; border-radius: 8px; border: 2px solid rgba(255,255,255,0.4); flex-shrink: 0; }
@@ -1128,6 +1130,7 @@
           <canvas id="socOverlay"></canvas>
           <div class="soc-cross" id="socCross">＋</div>
           <div class="soc-cam-gps" id="socCamGps">📍 finding you…</div>
+          <button class="soc-cam-flip" id="socCamFlip" title="Flip camera">🔄</button>
           <div class="soc-cam-hint" id="socCamHint">Stand by a cone, point at it, and tap it</div>
           <div class="soc-cam-confirm" id="socCamConfirm">
             <div class="soc-confirm-swatch" id="socConfirmSwatch"></div>
@@ -2650,6 +2653,7 @@
     }
     $('socCam').addEventListener('click', onConeTap);
     $('socOverlay').addEventListener('click', onConeTap);
+    $('socCamFlip').addEventListener('click', async e => { e.stopPropagation(); camFacing = camFacing === 'user' ? 'environment' : 'user'; await restartCam(); const rv = $('socRunCam'); if (rv && camStream && running) { rv.srcObject = camStream; rv.play().catch(() => {}); } });
     $('socCamGps').addEventListener('click', e => { e.stopPropagation(); retryGeo(); });
     $('socRetake').addEventListener('click', cancelPending);
     $('socAccept').addEventListener('click', acceptPending);
