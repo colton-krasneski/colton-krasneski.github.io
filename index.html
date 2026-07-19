@@ -4632,7 +4632,16 @@
         status('🎬 Submitting…');
         try {
           const sub = await fetch('https://queue.fal.run/' + model, { method: 'POST', headers: { 'Authorization': 'Key ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: p }) });
-          if (!sub.ok) throw new Error(sub.status === 401 ? 'Key rejected (401) — check your fal.ai key.' : (sub.status === 404 ? 'Model unavailable — try another one.' : ('fal error ' + sub.status)));
+          if (!sub.ok) {
+            let detail = ''; try { const t = await sub.text(); try { const j = JSON.parse(t); let d = j.detail || j.message || (j.error && (j.error.message || j.error)) || t; detail = typeof d === 'object' ? JSON.stringify(d) : String(d); } catch (_) { detail = t; } } catch (e) {}
+            detail = detail.replace(/\s+/g, ' ').trim().slice(0, 220);
+            throw new Error(
+              sub.status === 401 ? 'Key rejected (401) — check your fal.ai key.' :
+              sub.status === 403 ? ('Forbidden (403) — this usually means fal.ai billing isn\'t enabled. Add a payment method at fal.ai → Billing, then retry.' + (detail ? ' fal says: ' + detail : '')) :
+              sub.status === 402 ? ('Out of credits (402) — top up at fal.ai → Billing.' + (detail ? ' ' + detail : '')) :
+              sub.status === 404 ? 'Model unavailable — pick a different model.' :
+              ('fal error ' + sub.status + (detail ? ' — ' + detail : '')));
+          }
           const j = await sub.json(); const statusUrl = j.status_url, respUrl = j.response_url; if (!statusUrl || !respUrl) throw new Error('Unexpected response from fal.');
           const start = Date.now(); let done = false;
           while (Date.now() - start < 240000) {
