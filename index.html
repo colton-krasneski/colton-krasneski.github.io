@@ -839,8 +839,16 @@
     .co-tabs { display: flex; gap: 4px; border-bottom: 1px solid #3f4147; margin-bottom: 4px; flex-wrap: wrap; }
     .co-tab { background: none; border: none; color: #b5bac1; font-family: inherit; font-size: 14px; font-weight: 600; padding: 10px 12px; cursor: pointer; border-bottom: 2px solid transparent; }
     .co-tab.on { color: #fff; border-bottom-color: #5865f2; }
-    .co-list-row { display: flex; align-items: center; gap: 10px; padding: 10px; background: #2b2d31; border-radius: 6px; margin-bottom: 6px; }
+    .co-list-row { display: flex; align-items: center; gap: 10px; padding: 12px; background: #2b2d31; border-radius: 8px; margin-bottom: 8px; }
+    .co-list-row.col { flex-direction: column; align-items: stretch; }
+    .co-list-row .row-top { display: flex; align-items: center; gap: 10px; }
     .co-list-row .grow { flex: 1; min-width: 0; }
+    .co-mini-label { color: #949ba4; font-size: 11px; font-weight: 700; text-transform: uppercase; margin: 10px 0 5px; }
+    .co-swrow { display: flex; flex-wrap: wrap; gap: 7px; }
+    .co-sw { width: 26px; height: 26px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+    .co-sw.on { border-color: #fff; box-shadow: 0 0 0 2px #5865f2; }
+    .co-sugg { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 4px; }
+    .co-sugg-note { color: #949ba4; font-size: 13px; padding: 4px 0 8px; }
     .co-list-row .r-name { color: #f2f3f5; font-weight: 600; font-size: 15px; }
     .co-list-row .r-sub { color: #949ba4; font-size: 12px; }
     .co-swatch { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
@@ -1367,7 +1375,7 @@
   <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
-    getFirestore, collection, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc,
+    getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
     query, where, onSnapshot, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
@@ -4237,7 +4245,7 @@
     window.addEventListener('resize', () => { if (running && $('dsGame').style.display !== 'none') sizeCanvas(); });
 
     /* ================= THE COUNCIL ================= */
-    (function () {
+    (function (FS) {
       const CO_KEY = 'council_v1';
       const EMOJIS = ['🏛️','⚔️','👑','🐉','🔥','🎮','🎧','🚀','🛡️','🌙','🍕','🐺','💎','🌀','⚽','🎯'];
       const SWATCHES = ['#f04747','#e67e22','#faa61a','#f1c40f','#2ecc71','#1abc9c','#3498db','#5865f2','#9b59b6','#e91e63','#95a5a6','#ffffff'];
@@ -4248,6 +4256,19 @@
       const cur = { channel: null, dm: null };
       let coTab = 'overview';
       let inited = false;
+      let siteUsers = null, siteUsersLoading = false; // registered accounts on the site
+
+      function fetchSiteUsers() {
+        if (siteUsers || siteUsersLoading || !FS || !FS.getDocs) { if (!FS || !FS.getDocs) siteUsers = []; return; }
+        siteUsersLoading = true;
+        FS.getDocs(FS.collection(FS.fdb, 'users')).then(snap => {
+          const names = [];
+          snap.forEach(d => { const n = (d.data() && d.data().username) || d.id; if (n) names.push(String(n)); });
+          siteUsers = [...new Set(names)].sort((a, b) => a.localeCompare(b));
+          siteUsersLoading = false;
+          if ($('coModal').classList.contains('show') && coTab === 'members') renderSettings();
+        }).catch(() => { siteUsers = []; siteUsersLoading = false; if ($('coModal').classList.contains('show') && coTab === 'members') renderSettings(); });
+      }
 
       const uid = p => (p || 'i') + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
       const now = () => Date.now();
@@ -4307,6 +4328,12 @@
         cur.channel = 'general'; save(); renderAll();
       }
       function deleteServer() { db = null; cur.channel = cur.dm = null; try { localStorage.removeItem(CO_KEY); } catch (e) {} closeModal(); renderAll(); }
+      function addMemberNamed(name, bot) {
+        name = (name || '').trim(); if (!name) return false;
+        if (db.members.some(m => m.name.toLowerCase() === name.toLowerCase())) { toast('Already added', name + ' is already in the council.', false); return false; }
+        db.members.push({ id: uid('m'), name, roleIds: roleById('member') ? ['member'] : [], bot: !!bot, online: Math.random() > 0.35, me: false });
+        save(); return true;
+      }
 
       /* ---------- rendering ---------- */
       function renderAll() { renderRail(); renderSide(); renderMain(); renderMembers(); }
@@ -4549,8 +4576,13 @@
           body = db.roles.map(r => roleRow(r)).join('') +
             '<button class="co-btn full" data-act="newRole">＋ Create role</button>';
         } else if (coTab === 'members') {
+          const existing = new Set(db.members.map(m => m.name.toLowerCase()));
+          let sugg;
+          if (siteUsers === null) { fetchSiteUsers(); sugg = '<div class="co-sugg-note">Loading people from the site…</div>'; }
+          else { const avail = siteUsers.filter(u => !existing.has(u.toLowerCase())); sugg = avail.length ? '<div class="co-sugg">' + avail.map(u => '<button class="co-mchip" data-act="addSuggested" data-name="' + esc(u) + '">＋ ' + esc(u) + '</button>').join('') + '</div>' : '<div class="co-sugg-note">Everyone from the site is already in the council.</div>'; }
           body = db.members.map(m => memberRow(m)).join('') +
-            '<label class="co-label">Add member</label><div style="display:flex;gap:8px"><input class="co-input" id="coNewMem" placeholder="Name" maxlength="24"><label class="co-check" style="white-space:nowrap"><input type="checkbox" id="coNewBot">Bot</label></div>' +
+            '<label class="co-label">People on the site</label>' + sugg +
+            '<label class="co-label">Add someone new</label><div style="display:flex;gap:8px"><input class="co-input" id="coNewMem" placeholder="Name" maxlength="24"><label class="co-check" style="white-space:nowrap"><input type="checkbox" id="coNewBot">Bot</label></div>' +
             '<button class="co-btn full" data-act="addMember">＋ Add member</button>';
         } else if (coTab === 'channels') {
           body = db.channels.map(c => channelRow(c)).join('') +
@@ -4567,12 +4599,15 @@
       }
       function roleRow(r) {
         const cnt = db.members.filter(m => m.roleIds.includes(r.id)).length;
-        return '<div class="co-list-row"><div class="co-swatch" style="background:' + (r.color || '#95a5a6') + '"></div>' +
-          '<div class="grow"><input class="co-input" style="padding:6px 8px" value="' + esc(r.name) + '" data-act="roleName" data-role="' + r.id + '"' + (r.id === 'owner' ? ' disabled' : '') + '>' +
-          '<div class="r-sub">' + cnt + ' member' + (cnt === 1 ? '' : 's') + '</div>' +
-          '<div class="co-emoji-pick" style="margin-top:6px">' + SWATCHES.map(c => '<button data-act="pickRoleColor" data-role="' + r.id + '" data-color="' + c + '" style="background:' + c + ';width:24px;height:24px" class="' + (c === r.color ? 'on' : '') + '"></button>').join('') + '</div>' +
-          '<label class="co-check" style="padding:6px 0"><input type="checkbox" ' + (r.hoist ? 'checked' : '') + ' data-act="roleHoist" data-role="' + r.id + '">Show separately in member list</label></div>' +
-          (r.id === 'owner' || r.id === 'member' ? '' : '<button class="co-btn danger sm" data-act="deleteRole" data-role="' + r.id + '">Delete</button>') + '</div>';
+        return '<div class="co-list-row col">' +
+          '<div class="row-top"><div class="co-swatch" style="background:' + (r.color || '#95a5a6') + '"></div>' +
+          '<input class="co-input grow" style="padding:8px 10px" value="' + esc(r.name) + '" data-act="roleName" data-role="' + r.id + '"' + (r.id === 'owner' ? ' disabled' : '') + '>' +
+          (r.id === 'owner' ? '<span class="r-sub" style="white-space:nowrap">locked</span>' : '<button class="co-btn danger sm" data-act="deleteRole" data-role="' + r.id + '">Delete</button>') + '</div>' +
+          '<div class="r-sub" style="margin-top:2px">' + cnt + ' member' + (cnt === 1 ? '' : 's') + '</div>' +
+          '<div class="co-mini-label">Color</div>' +
+          '<div class="co-swrow">' + SWATCHES.map(c => '<button data-act="pickRoleColor" data-role="' + r.id + '" data-color="' + c + '" style="background:' + c + '" class="co-sw' + (c === r.color ? ' on' : '') + '"></button>').join('') + '</div>' +
+          '<label class="co-check" style="padding:8px 0 2px"><input type="checkbox" ' + (r.hoist ? 'checked' : '') + ' data-act="roleHoist" data-role="' + r.id + '">Show separately in member list</label>' +
+          '</div>';
       }
       function memberRow(m) {
         const chips = db.roles.filter(r => m.roleIds.includes(r.id)).map(r =>
@@ -4580,9 +4615,12 @@
           (r.id === 'owner' ? '' : '<button data-act="removeMemberRole" data-mem="' + m.id + '" data-role="' + r.id + '">✕</button>') + '</span>').join('');
         const addable = db.roles.filter(r => !m.roleIds.includes(r.id));
         const sel = addable.length ? '<select class="co-select" style="margin-top:6px" data-act="assignRole" data-mem="' + m.id + '"><option value="">＋ Add role…</option>' + addable.map(r => '<option value="' + r.id + '">' + esc(r.name) + '</option>').join('') + '</select>' : '';
-        return '<div class="co-list-row"><div class="co-swatch" style="background:' + memColor(m) + ';width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:13px">' + initials(m.name) + '</div>' +
-          '<div class="grow"><div class="r-name">' + esc(m.name) + (m.me ? ' (you)' : '') + (m.bot ? ' 🤖' : '') + '</div><div>' + chips + '</div>' + sel + '</div>' +
-          (m.me ? '' : '<button class="co-btn danger sm" data-act="removeMember" data-mem="' + m.id + '">Kick</button>') + '</div>';
+        return '<div class="co-list-row col">' +
+          '<div class="row-top"><div class="co-swatch" style="background:' + memColor(m) + ';width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px">' + initials(m.name) + '</div>' +
+          '<div class="grow"><div class="r-name">' + esc(m.name) + (m.me ? ' (you)' : '') + (m.bot ? ' 🤖' : '') + '</div></div>' +
+          (m.me ? '' : '<button class="co-btn danger sm" data-act="removeMember" data-mem="' + m.id + '">Kick</button>') + '</div>' +
+          '<div style="margin-top:8px">' + (chips || '<span class="r-sub">No roles</span>') + '</div>' + sel +
+          '</div>';
       }
       function channelRow(c) {
         const roleChecks = c.private ? '<div style="margin-top:6px">' + db.roles.map(r =>
@@ -4621,7 +4659,8 @@
           case 'newRole': { db.roles.splice(db.roles.length - 1, 0, { id: uid('r'), name: 'new role', color: SWATCHES[Math.floor(Math.random() * 10)], hoist: false }); save(); renderSettings(); renderMembers(); break; }
           case 'deleteRole': { const id = el.dataset.role; db.roles = db.roles.filter(r => r.id !== id); db.members.forEach(m => m.roleIds = m.roleIds.filter(x => x !== id)); db.channels.forEach(c => c.allow = (c.allow || []).filter(x => x !== id)); save(); renderSettings(); renderAll(); break; }
           case 'pickRoleColor': { const r = roleById(el.dataset.role); if (r) { r.color = el.dataset.color; save(); renderSettings(); renderAll(); } break; }
-          case 'addMember': { const n = ($('coNewMem').value || '').trim(); if (!n) break; db.members.push({ id: uid('m'), name: n, roleIds: ['member'], bot: $('coNewBot').checked, online: Math.random() > 0.35, me: false }); save(); renderSettings(); renderMembers(); break; }
+          case 'addMember': { if (addMemberNamed($('coNewMem').value, $('coNewBot').checked)) { renderSettings(); renderMembers(); } break; }
+          case 'addSuggested': { if (addMemberNamed(el.dataset.name, false)) { renderSettings(); renderMembers(); } break; }
           case 'removeMember': { db.members = db.members.filter(m => m.id !== el.dataset.mem); save(); renderSettings(); renderMembers(); break; }
           case 'removeMemberRole': { const m = memberById(el.dataset.mem); if (m) { m.roleIds = m.roleIds.filter(x => x !== el.dataset.role); save(); renderSettings(); renderMembers(); } break; }
         }
@@ -4659,7 +4698,7 @@
         $('coModal').addEventListener('click', e => { if (e.target.id === 'coModal') closeModal(); });
         $('coPop').addEventListener('click', e => { if (e.target.id === 'coPop') closePop(); });
         const root = $('council');
-        root.addEventListener('click', e => { const t = e.target.closest('[data-act]'); if (!t) return; e.preventDefault(); act(t.dataset.act, t, e); });
+        root.addEventListener('click', e => { const t = e.target.closest('[data-act]'); if (!t) return; if (t.matches('input,select,textarea,option')) return; /* let native toggle + change fire */ e.preventDefault(); act(t.dataset.act, t, e); });
         root.addEventListener('change', e => { const t = e.target.closest('[data-act]'); if (!t) return; change(t.dataset.act, t); });
         root.addEventListener('input', e => { if (e.target.tagName === 'TEXTAREA') { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; } });
         root.addEventListener('keydown', e => {
@@ -4670,7 +4709,7 @@
         });
       }
       $('councilApp').addEventListener('click', openCouncil);
-    })();
+    })({ fdb: db, collection: collection, getDocs: getDocs });
   })();
   </script>
 </body>
