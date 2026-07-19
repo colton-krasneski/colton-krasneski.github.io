@@ -1,0 +1,33 @@
+rules_version = '2';
+
+// ============================================================================
+//  Firebase Storage rules for colton-site
+// ----------------------------------------------------------------------------
+//  Used by The Council's /GenerateVideo: the finished Sora video is uploaded
+//  here so every member gets a shareable public URL to watch.
+//
+//  The app has no Firebase Auth, so (like the Firestore rules) these can't verify
+//  identity — they only constrain what can be written: videos only, under a
+//  size cap, in the councilVideos/ folder. Everything else is denied.
+//
+//  You must ENABLE Storage in the Firebase console first (Build -> Storage ->
+//  Get started), then deploy:  firebase deploy --only storage
+//     (or paste this into Firebase Console -> Storage -> Rules)
+// ============================================================================
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // AI-generated council videos: world-readable, write must be a video under 200 MB
+    match /councilVideos/{file} {
+      allow read: if true;
+      allow write: if request.resource.size < 200 * 1024 * 1024
+                   && request.resource.contentType.matches('video/.*');
+    }
+
+    // everything else: locked down
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

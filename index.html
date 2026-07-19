@@ -1400,6 +1400,7 @@
     getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
     query, where, orderBy, limit, onSnapshot, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+  import { getStorage, ref as storageRef, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
   import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
   const firebaseConfig = {
@@ -1412,6 +1413,7 @@
   };
   const app = initializeApp(firebaseConfig);
   const db = getFirestore(app);
+  const storage = getStorage(app);
 
   /* ===== MATRIX BACKGROUND ===== */
   const canvas = document.getElementById('matrix');
@@ -4490,7 +4492,7 @@
       /* ---------- slash commands + AI image generation ---------- */
       const SLASH = [
         { name: '/CreateImage', desc: 'Generate an AI image from a prompt', run: p => openImagePrompt(p) },
-        { name: '/GenerateVideo', desc: 'Generate an AI video (needs a fal.ai key) · /GenerateVideo <prompt>', run: p => openVideoPrompt(p) },
+        { name: '/GenerateVideo', desc: 'Generate an AI video with Sora · /GenerateVideo <prompt>', run: p => openVideoPrompt(p) },
         { name: '/spoiler', desc: 'Send hidden (spoiler) text · /spoiler <text>', run: cmdSpoiler },
         { name: '/mute', desc: 'Mute a member · /mute <user> <30s|10m|2h|1d>', mod: true, run: cmdMute },
         { name: '/giverole', desc: 'Give a member a role · /giverole <user> <role>', mod: true, run: cmdGiveRole },
@@ -4602,58 +4604,63 @@
       }
       function openLightbox(src) { if (!/^https:\/\//.test(src)) return; $('coPopInner').innerHTML = '<img class="co-lightbox" src="' + esc(src) + '" alt="image">'; $('coPop').classList.add('show'); }
 
-      /* ---------- AI video (/GenerateVideo via fal.ai) ---------- */
-      const FAL_MODELS = { fast: 'fal-ai/ltx-video', balanced: 'fal-ai/wan/v2.1/1.3b/text-to-video', quality: 'fal-ai/kling-video/v1/standard/text-to-video' };
-      function loadFalKey() { try { return localStorage.getItem('council_fal_key') || ''; } catch (e) { return ''; } }
-      function saveFalKey(k) { try { localStorage.setItem('council_fal_key', k); } catch (e) {} }
+      /* ---------- AI video (/GenerateVideo via OpenAI Sora, hosted on Firebase Storage) ---------- */
+      function loadOAIKey() { try { return localStorage.getItem('council_openai_key') || localStorage.getItem('colton_openai_key') || ''; } catch (e) { return ''; } }
+      function saveOAIKey(k) { try { localStorage.setItem('council_openai_key', k); } catch (e) {} }
       let genVidUrl = null, genVidPrompt = '';
       function openVideoPrompt(initial) {
-        genVidUrl = null; genVidPrompt = initial || ''; const hasKey = !!loadFalKey();
-        openModal('<div class="co-card-head"><h3>🎬 Generate a video</h3><p>Text-to-video via fal.ai. Uses your own fal.ai key — free credits to start, then pay-as-you-go. Takes ~1–3 min.</p></div>' +
+        genVidUrl = null; genVidPrompt = initial || ''; const hasKey = !!loadOAIKey();
+        openModal('<div class="co-card-head"><h3>🎬 Generate a video</h3><p>Text-to-video with OpenAI Sora, then hosted on your Firebase Storage so everyone can watch it. Uses your OpenAI key (needs Sora access + billing). Takes ~1–2 min.</p></div>' +
           '<div class="co-card-body"><label class="co-label">Prompt</label><textarea class="co-input" id="coVidPrompt" rows="3" placeholder="a golden retriever surfing a big wave, cinematic slow motion">' + esc(initial || '') + '</textarea>' +
-          '<label class="co-label">Model</label><select class="co-select" id="coVidModel"><option value="' + FAL_MODELS.fast + '">Fast (LTX)</option><option value="' + FAL_MODELS.balanced + '">Balanced (Wan)</option><option value="' + FAL_MODELS.quality + '">Quality (Kling, slower)</option></select>' +
-          '<div id="coFalKeyRow"' + (hasKey ? ' style="display:none"' : '') + '><label class="co-label">fal.ai API key <span style="font-weight:400;color:#949ba4">· saved only on this device</span></label><div style="display:flex;gap:8px"><input class="co-input" id="coFalKey" type="password" placeholder="paste your fal.ai key" autocomplete="off"><button class="co-btn" data-act="saveFalKey">Save</button></div><div class="co-sugg-note">Get one free at fal.ai → Dashboard → Keys.</div></div>' +
+          '<label class="co-label">Model</label><select class="co-select" id="coVidModel"><option value="sora-2">sora-2</option><option value="sora-2-pro">sora-2-pro (slower, pricier)</option></select>' +
+          '<label class="co-label">Shape &amp; length</label><div style="display:flex;gap:8px"><select class="co-select" id="coVidSize"><option value="720x1280">Portrait</option><option value="1280x720">Landscape</option></select><select class="co-select" id="coVidSecs"><option value="4">4s</option><option value="8">8s</option><option value="12">12s</option></select></div>' +
+          '<div id="coOaiKeyRow"' + (hasKey ? ' style="display:none"' : '') + '><label class="co-label">OpenAI API key <span style="font-weight:400;color:#949ba4">· saved only on this device</span></label><div style="display:flex;gap:8px"><input class="co-input" id="coOaiKey" type="password" placeholder="sk-… your OpenAI key" autocomplete="off"><button class="co-btn" data-act="saveOaiKey">Save</button></div><div class="co-sugg-note">Needs Sora API access + billing on your OpenAI account.</div></div>' +
           '<div id="coVidPreview" class="co-img-preview"></div></div>' +
           '<div class="co-card-foot"><button class="co-btn ghost" data-act="closeModal">Cancel</button><button class="co-btn" data-act="genVideo" id="coGenVidBtn">🎬 Generate</button><button class="co-btn" data-act="sendVideo" id="coSendVid" style="display:none">Send to channel</button></div>');
         setTimeout(() => { const p = $('coVidPrompt'); if (p) p.focus(); }, 60);
       }
-      function extractVideoUrl(o) {
-        const rx = /^https?:\/\/.+\.(mp4|webm|mov|m4v)(\?|$)/i; let found = null;
-        (function walk(v) { if (found) return; if (typeof v === 'string') { if (rx.test(v)) found = v; return; } if (v && typeof v === 'object') { if (typeof v.url === 'string' && rx.test(v.url)) { found = v.url; return; } for (const k in v) walk(v[k]); } })(o);
-        return found;
+      async function oaErr(resp, stage) {
+        let d = ''; try { const t = await resp.text(); try { const j = JSON.parse(t); let x = (j.error && (j.error.message || j.error.code)) || j.detail || t; d = typeof x === 'object' ? JSON.stringify(x) : String(x); } catch (_) { d = t; } } catch (e) {}
+        d = String(d || '').replace(/\s+/g, ' ').trim().slice(0, 220);
+        if (resp.status === 401) return 'OpenAI key rejected (401) — check the key.';
+        if (resp.status === 403) return 'Forbidden (403) — your account may not have Sora API access yet.' + (d ? ' ' + d : '');
+        if (resp.status === 404 && stage === 'create') return 'Sora not found (404) — your account may not have the video API enabled.' + (d ? ' ' + d : '');
+        if (resp.status === 429) return 'Rate/credit limit (429) — ' + (d || 'try again shortly.');
+        return 'OpenAI ' + stage + ' error ' + resp.status + (d ? ' — ' + d : '');
       }
       async function genVideo() {
         const pe = $('coVidPrompt'); if (!pe) return; const p = (pe.value || '').trim(); if (!p) { pe.focus(); return; }
-        const key = loadFalKey(); if (!key) { toast('Add your fal.ai key', 'Paste a key below, then Generate.', false); const kf = $('coFalKey'); if (kf) kf.focus(); return; }
+        const key = loadOAIKey(); if (!key) { toast('Add your OpenAI key', 'Paste your key below, then Generate.', false); const kf = $('coOaiKey'); if (kf) kf.focus(); return; }
         genVidPrompt = p; genVidUrl = null;
-        const model = ($('coVidModel') && $('coVidModel').value) || FAL_MODELS.fast;
+        const model = ($('coVidModel') && $('coVidModel').value) || 'sora-2';
+        const size = ($('coVidSize') && $('coVidSize').value) || '720x1280';
+        const seconds = ($('coVidSecs') && $('coVidSecs').value) || '4';
         const send = $('coSendVid'), gen = $('coGenVidBtn'); if (send) send.style.display = 'none'; if (gen) gen.disabled = true;
         const status = t => { const b = $('coVidPreview'); if (b) b.innerHTML = '<div class="co-img-loading">' + esc(t) + '</div>'; };
-        status('🎬 Submitting…');
+        const H = { 'Authorization': 'Bearer ' + key };
         try {
-          const sub = await fetch('https://queue.fal.run/' + model, { method: 'POST', headers: { 'Authorization': 'Key ' + key, 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: p }) });
-          if (!sub.ok) {
-            let detail = ''; try { const t = await sub.text(); try { const j = JSON.parse(t); let d = j.detail || j.message || (j.error && (j.error.message || j.error)) || t; detail = typeof d === 'object' ? JSON.stringify(d) : String(d); } catch (_) { detail = t; } } catch (e) {}
-            detail = detail.replace(/\s+/g, ' ').trim().slice(0, 220);
-            throw new Error(
-              sub.status === 401 ? 'Key rejected (401) — check your fal.ai key.' :
-              sub.status === 403 ? ('Forbidden (403) — this usually means fal.ai billing isn\'t enabled. Add a payment method at fal.ai → Billing, then retry.' + (detail ? ' fal says: ' + detail : '')) :
-              sub.status === 402 ? ('Out of credits (402) — top up at fal.ai → Billing.' + (detail ? ' ' + detail : '')) :
-              sub.status === 404 ? 'Model unavailable — pick a different model.' :
-              ('fal error ' + sub.status + (detail ? ' — ' + detail : '')));
+          status('🎬 Submitting to Sora…');
+          const sub = await fetch('https://api.openai.com/v1/videos', { method: 'POST', headers: Object.assign({ 'Content-Type': 'application/json' }, H), body: JSON.stringify({ model, prompt: p, size, seconds }) });
+          if (!sub.ok) throw new Error(await oaErr(sub, 'create'));
+          const job = await sub.json(); const id = job.id; if (!id) throw new Error('No video id returned by OpenAI.');
+          let st = job.status || 'queued', err = null; const start = Date.now();
+          while (st !== 'completed') {
+            if (st === 'failed') throw new Error('Sora failed: ' + ((err && err.message) || 'try a simpler prompt.'));
+            if (Date.now() - start > 300000) throw new Error('Timed out after 5 min.');
+            await new Promise(r => setTimeout(r, 4000));
+            const pr = await fetch('https://api.openai.com/v1/videos/' + id, { headers: H });
+            if (!pr.ok) throw new Error(await oaErr(pr, 'status'));
+            const jb = await pr.json(); st = jb.status; err = jb.error;
+            status('🎬 Rendering…' + (jb.progress != null ? ' ' + jb.progress + '%' : '') + ' · Sora takes a minute or two');
           }
-          const j = await sub.json(); const statusUrl = j.status_url, respUrl = j.response_url; if (!statusUrl || !respUrl) throw new Error('Unexpected response from fal.');
-          const start = Date.now(); let done = false;
-          while (Date.now() - start < 240000) {
-            await new Promise(r => setTimeout(r, 3000));
-            const st = await fetch(statusUrl, { headers: { 'Authorization': 'Key ' + key } }); const sj = await st.json();
-            if (sj.status === 'COMPLETED') { done = true; break; }
-            if (sj.status === 'FAILED' || sj.status === 'ERROR') throw new Error('Generation failed — try a simpler prompt.');
-            status('🎬 Generating…' + (sj.queue_position != null ? ' (queue ' + sj.queue_position + ')' : '') + ' · ~1–3 min');
-          }
-          if (!done) throw new Error('Timed out — try again or the Fast model.');
-          const rr = await fetch(respUrl, { headers: { 'Authorization': 'Key ' + key } }); const rj = await rr.json();
-          const url = extractVideoUrl(rj); if (!url) throw new Error('No video URL in the result.');
+          status('⬇️ Downloading…');
+          const cr = await fetch('https://api.openai.com/v1/videos/' + id + '/content', { headers: H });
+          if (!cr.ok) throw new Error(await oaErr(cr, 'download'));
+          const blob = await cr.blob();
+          status('☁️ Hosting it so everyone can watch…');
+          let url;
+          try { const sr = FS.storageRef(FS.storage, 'councilVideos/' + id + '.mp4'); await FS.uploadBytes(sr, blob, { contentType: 'video/mp4' }); url = await FS.getDownloadURL(sr); }
+          catch (se) { throw new Error('Video made, but hosting failed — enable Firebase Storage + its rules. (' + (se.code || se.message || '') + ')'); }
           genVidUrl = url; const b = $('coVidPreview'); if (b) b.innerHTML = '<video class="co-img-out" src="' + esc(url) + '" controls autoplay muted loop playsinline></video>'; if (send) send.style.display = '';
         } catch (err) { status('⚠️ ' + (err.message || 'Failed')); genVidUrl = null; }
         finally { const g = $('coGenVidBtn'); if (g) g.disabled = false; }
@@ -4794,7 +4801,7 @@
           case 'slashVid': openVideoPrompt(''); break;
           case 'genVideo': genVideo(); break;
           case 'sendVideo': sendVideo(); break;
-          case 'saveFalKey': { const kf = $('coFalKey'); if (kf && kf.value.trim()) { saveFalKey(kf.value.trim()); const row = $('coFalKeyRow'); if (row) row.style.display = 'none'; toast('Key saved', 'Saved on this device only.', false); } break; }
+          case 'saveOaiKey': { const kf = $('coOaiKey'); if (kf && kf.value.trim()) { saveOAIKey(kf.value.trim()); const row = $('coOaiKeyRow'); if (row) row.style.display = 'none'; toast('Key saved', 'Saved on this device only.', false); } break; }
           case 'men': { const inp = $('coInput'); if (inp) { inp.value = (inp.value + (inp.value && !inp.value.endsWith(' ') ? ' ' : '') + el.dataset.tok + ' ').trimStart(); inp.focus(); } break; }
           case 'member': openProfile(el.dataset.mem); break;
           case 'dm': openDMReal(el.dataset.mem); break;
@@ -4859,7 +4866,7 @@
         root.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'coInput') { e.preventDefault(); sendMessage(); } });
       }
       $('councilApp').addEventListener('click', openCouncil);
-    })({ fdb: db, collection: collection, doc: doc, getDoc: getDoc, getDocs: getDocs, setDoc: setDoc, addDoc: addDoc, updateDoc: updateDoc, deleteDoc: deleteDoc, onSnapshot: onSnapshot, query: query, orderBy: orderBy, limit: limit });
+    })({ fdb: db, collection: collection, doc: doc, getDoc: getDoc, getDocs: getDocs, setDoc: setDoc, addDoc: addDoc, updateDoc: updateDoc, deleteDoc: deleteDoc, onSnapshot: onSnapshot, query: query, orderBy: orderBy, limit: limit, storage: storage, storageRef: storageRef, uploadBytes: uploadBytes, getDownloadURL: getDownloadURL });
   })();
   </script>
 </body>
