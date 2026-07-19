@@ -802,10 +802,12 @@
       -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
     }
     .co-ov.show { display: flex; }
+    #coModalInner, #coPopInner { display: contents; }
     .co-card {
-      background: #313338; border-radius: 8px; width: min(440px, 100%); max-height: 88%;
-      overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,.5);
+      background: #313338; border-radius: 8px; width: min(440px, 100%); max-height: 85vh;
+      display: flex; flex-direction: column; overflow-y: auto; box-shadow: 0 8px 30px rgba(0,0,0,.5);
     }
+    .co-card > .co-card-body { overflow-y: auto; }
     .co-card.wide { width: min(760px, 100%); }
     .co-card-head { padding: 20px 20px 0; }
     .co-card-head h3 { color: #f2f3f5; font-size: 20px; font-weight: 700; margin-bottom: 4px; }
@@ -1376,7 +1378,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
     getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-    query, where, onSnapshot, serverTimestamp
+    query, where, orderBy, limit, onSnapshot, serverTimestamp
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
@@ -4244,95 +4246,98 @@
     $('dsOvMenu').addEventListener('click', () => toMenu());
     window.addEventListener('resize', () => { if (running && $('dsGame').style.display !== 'none') sizeCanvas(); });
 
-    /* ================= THE COUNCIL ================= */
+    /* ================= THE COUNCIL (shared, Firestore-backed) ================= */
     (function (FS) {
-      const CO_KEY = 'council_v1';
+      const CADMIN = 'realcolton_onpc';                 // only this account can found / own the council
       const EMOJIS = ['🏛️','⚔️','👑','🐉','🔥','🎮','🎧','🚀','🛡️','🌙','🍕','🐺','💎','🌀','⚽','🎯'];
+      const PFP_EMOJIS = ['😀','😎','🤠','🥳','🤖','👑','🐺','🦊','🐉','🦁','🐸','🐼','👻','💀','🎃','🦄','🌟','🔥','⚡','🎧','⚽','🏆','🍕','🌙'];
       const SWATCHES = ['#f04747','#e67e22','#faa61a','#f1c40f','#2ecc71','#1abc9c','#3498db','#5865f2','#9b59b6','#e91e63','#95a5a6','#ffffff'];
       const AV_COLORS = ['#5865f2','#3ba55d','#faa81a','#ed4245','#eb459e','#9b59b6','#1abc9c','#e67e22'];
-      const DM_REPLIES = ['sounds good 👍','on it, chief','lol fr','wait what','yeah I saw the ping','give me a sec','council business never sleeps','copy that','🫡','say less','I second that motion','be there in a bit'];
 
-      let db = null;                          // the one server (or null)
-      const cur = { channel: null, dm: null };
+      const ref = FS.doc(FS.fdb, 'council', 'main');
+      const msgsCol = FS.collection(FS.fdb, 'councilMsgs');
+      let db = null;                    // structure: { name, icon, owner, roles, members, channels, pfps }
+      let msgs = {};                    // { channelId: [msg] } from the councilMsgs collection
+      const cur = { channel: null };
       let coTab = 'overview';
-      let inited = false;
-      let siteUsers = null, siteUsersLoading = false; // registered accounts on the site
+      let inited = false, ready = false;
+      let seen = null;                  // Set of message ids already notified (null until first msg load)
+      let siteUsers = null, siteUsersLoading = false;
 
+      const uid = p => (p || 'i') + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
+      const nowMs = () => Date.now();
+      const hash = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
+      const canonName = s => String(s || '').trim().toLowerCase();
+
+      function isOwner() { return !!db && db.owner === me; }
+      function amMember() { return !!db && (db.owner === me || db.members.some(m => m.name === me)); }
+      function canFound() { return me === CADMIN; }
+
+      const memberByName = n => db.members.find(m => m.name === n);
+      const roleById = id => db.roles.find(r => r.id === id);
+      const myMember = () => db.members.find(m => m.name === me) || (isOwner() ? db.members.find(m => m.roleIds.includes('owner')) : null);
+      function topRole(m) { for (const r of db.roles) if (m.roleIds.includes(r.id)) return r; return null; }
+      function memColor(m) { const r = topRole(m); return (r && r.color) ? r.color : AV_COLORS[hash(m.name || '?') % AV_COLORS.length]; }
+      const initials = n => ((n || '?').trim()[0] || '?').toUpperCase();
+      function memberCanView(m, ch) { if (!ch.private) return true; if (!m) return false; if (m.name === db.owner) return true; if (m.roleIds.includes('owner')) return true; return (ch.allow || []).some(r => m.roleIds.includes(r)); }
+      function viewableChannels() { if (isOwner()) return db.channels.slice(); const me2 = myMember(); return db.channels.filter(c => memberCanView(me2, c)); }
+      function fmt(ts) { const d = new Date(ts); return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
+      const pfpOf = m => db.pfps && db.pfps[m.name];
+      const isImg = v => typeof v === 'string' && v.indexOf('data:image/') === 0;
+      function avStyle(m) { const p = pfpOf(m); if (isImg(p)) return 'background-image:url("' + p + '");background-size:cover;background-position:center'; return 'background:' + memColor(m); }
+      function avText(m) { const p = pfpOf(m); if (p) { if (isImg(p)) return ''; return p; } return initials(m.name); }
+
+      /* ---------- sound + toast ---------- */
+      function notifySound(strong) { try { beep(660, 0.12); setTimeout(() => beep(880, 0.14), 110); if (strong) setTimeout(() => beep(990, 0.16), 240); } catch (e) {} }
+      function toast(title, body, everyone) {
+        const wrap = $('coToasts'); if (!wrap) return;
+        const t = document.createElement('div');
+        t.className = 'co-toast' + (everyone ? ' everyone' : '');
+        t.innerHTML = '<div class="ti">' + (everyone ? '📢' : '🔔') + '</div><div><div class="tt">' + esc(title) + '</div><div class="tb">' + esc(body) + '</div></div>';
+        wrap.appendChild(t);
+        setTimeout(() => { t.style.transition = 'opacity .3s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 320); }, 4200);
+      }
+
+      /* ---------- site users (for Add member suggestions) ---------- */
       function fetchSiteUsers() {
-        if (siteUsers || siteUsersLoading || !FS || !FS.getDocs) { if (!FS || !FS.getDocs) siteUsers = []; return; }
+        if (siteUsers || siteUsersLoading || !FS.getDocs) { if (!FS.getDocs) siteUsers = []; return; }
         siteUsersLoading = true;
         FS.getDocs(FS.collection(FS.fdb, 'users')).then(snap => {
-          const names = [];
-          snap.forEach(d => { const n = (d.data() && d.data().username) || d.id; if (n) names.push(String(n)); });
-          siteUsers = [...new Set(names)].sort((a, b) => a.localeCompare(b));
-          siteUsersLoading = false;
+          const names = []; snap.forEach(d => { const n = (d.data() && d.data().username) || d.id; if (n) names.push(String(n)); });
+          siteUsers = [...new Set(names)].sort((a, b) => a.localeCompare(b)); siteUsersLoading = false;
           if ($('coModal').classList.contains('show') && coTab === 'members') renderSettings();
         }).catch(() => { siteUsers = []; siteUsersLoading = false; if ($('coModal').classList.contains('show') && coTab === 'members') renderSettings(); });
       }
 
-      const uid = p => (p || 'i') + Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
-      const now = () => Date.now();
-      const hash = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
-      function load() { try { return JSON.parse(localStorage.getItem(CO_KEY) || 'null'); } catch (e) { return null; } }
-      function save() { try { localStorage.setItem(CO_KEY, JSON.stringify(db)); } catch (e) {} }
-
-      function ensureShape(d) {
-        d.roles = d.roles || []; d.members = d.members || []; d.channels = d.channels || [];
-        d.msgs = d.msgs || {}; d.dms = d.dms || {}; d.settings = d.settings || { sound: true };
-        d.channels.forEach(c => { if (!d.msgs[c.id]) d.msgs[c.id] = []; });
-        return d;
-      }
-      const memberById = id => db.members.find(m => m.id === id);
-      const roleById = id => db.roles.find(r => r.id === id);
-      const meMember = () => db.members.find(m => m.me) || db.members[0];
-      const curChannel = () => db.channels.find(c => c.id === cur.channel) || db.channels[0];
-      function topRole(m) { for (const r of db.roles) if (m.roleIds.includes(r.id)) return r; return null; }
-      function memColor(m) { const r = topRole(m); return (r && r.color) ? r.color : AV_COLORS[hash(m.name || '?') % AV_COLORS.length]; }
-      const initials = n => ((n || '?').trim()[0] || '?').toUpperCase();
-      function memberCanView(m, ch) { if (!ch.private) return true; if (m.me) return true; if (m.roleIds.includes('owner')) return true; return (ch.allow || []).some(r => m.roleIds.includes(r)); }
-      function fmt(ts) { const d = new Date(ts); return 'Today at ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
-
-      /* ---------- sound + toast ---------- */
-      function notifySound(strong) {
-        try { beep(660, 0.12); setTimeout(() => beep(880, 0.14), 110); if (strong) setTimeout(() => beep(990, 0.16), 240); } catch (e) {}
-      }
-      function toast(title, body, everyone) {
-        const t = document.createElement('div');
-        t.className = 'co-toast' + (everyone ? ' everyone' : '');
-        t.innerHTML = '<div class="ti">' + (everyone ? '📢' : '🔔') + '</div><div><div class="tt">' + esc(title) + '</div><div class="tb">' + esc(body) + '</div></div>';
-        $('coToasts').appendChild(t);
-        setTimeout(() => { t.style.transition = 'opacity .3s'; t.style.opacity = '0'; setTimeout(() => t.remove(), 320); }, 4200);
-        if (!db || db.settings.sound !== false) notifySound(everyone);
-        vibrate(everyone ? [90, 50, 90, 50, 90] : [70, 40, 70]);
-      }
-
-      /* ---------- create / delete server ---------- */
+      /* ---------- Firestore writes ---------- */
+      function persist() { if (!db || !isOwner()) return; FS.setDoc(ref, db).catch(e => toast('Sync error', e.message || 'offline', false)); }
+      function setMyPfp(v) { if (!amMember()) return; FS.updateDoc(ref, { ['pfps.' + me]: v }).catch(() => {}); }
       function createServer(name, icon) {
-        const owner = me || 'You';
-        name = (name || '').trim() || 'The Council';
-        db = ensureShape({
+        if (!canFound()) return;
+        name = (name || '').trim() || 'The Council'; const owner = me;
+        const fresh = {
           name, icon: icon || '🏛️', owner,
-          roles: [
-            { id: 'owner', name: 'Owner', color: '#f1c40f', hoist: true },
-            { id: 'elder', name: 'Council Elder', color: '#5865f2', hoist: true },
-            { id: 'member', name: 'Member', color: '#95a5a6', hoist: false }
-          ],
-          members: [{ id: 'you', name: owner, roleIds: ['owner'], bot: false, online: true, me: true }],
-          channels: [
-            { id: 'general', name: 'general', private: false, allow: [] },
-            { id: 'announcements', name: 'announcements', private: false, allow: [] }
-          ],
-          msgs: { general: [{ id: uid(), sys: true, text: 'Welcome to ' + name + '! This is the beginning of the council. 🏛️', ts: now() }], announcements: [] },
-          dms: {}, settings: { sound: true }
-        });
-        cur.channel = 'general'; save(); renderAll();
+          roles: [{ id: 'owner', name: 'Owner', color: '#f1c40f', hoist: true }, { id: 'elder', name: 'Council Elder', color: '#5865f2', hoist: true }, { id: 'member', name: 'Member', color: '#95a5a6', hoist: false }],
+          members: [{ id: 'you', name: owner, roleIds: ['owner'], bot: false }],
+          channels: [{ id: 'general', name: 'general', private: false, allow: [] }, { id: 'announcements', name: 'announcements', private: false, allow: [] }],
+          pfps: {}, createdAt: nowMs()
+        };
+        cur.channel = 'general'; closeModal();
+        FS.setDoc(ref, fresh).then(() => FS.addDoc(msgsCol, { channel: 'general', author: owner, text: 'Welcome to ' + name + '! The council is now in session. 🏛️', ts: nowMs(), mentions: [], sys: true }).catch(() => {}))
+          .catch(e => toast('Could not create', e.message || 'offline', false));
       }
-      function deleteServer() { db = null; cur.channel = cur.dm = null; try { localStorage.removeItem(CO_KEY); } catch (e) {} closeModal(); renderAll(); }
+      function deleteServer() {
+        if (!isOwner()) return;
+        const ids = []; Object.values(msgs).forEach(a => a.forEach(m => m._id && ids.push(m._id)));
+        ids.forEach(id => FS.deleteDoc(FS.doc(FS.fdb, 'councilMsgs', id)).catch(() => {}));
+        FS.deleteDoc(ref).catch(() => {}); cur.channel = null; closeModal();
+      }
       function addMemberNamed(name, bot) {
-        name = (name || '').trim(); if (!name) return false;
-        if (db.members.some(m => m.name.toLowerCase() === name.toLowerCase())) { toast('Already added', name + ' is already in the council.', false); return false; }
-        db.members.push({ id: uid('m'), name, roleIds: roleById('member') ? ['member'] : [], bot: !!bot, online: Math.random() > 0.35, me: false });
-        save(); return true;
+        if (!isOwner()) return false;
+        name = canonName(name); if (!name) return false;
+        if (db.members.some(m => m.name.toLowerCase() === name)) { toast('Already added', name + ' is already in the council.', false); return false; }
+        db.members.push({ id: uid('m'), name, roleIds: roleById('member') ? ['member'] : [], bot: !!bot });
+        persist(); return true;
       }
 
       /* ---------- rendering ---------- */
@@ -4340,231 +4345,186 @@
 
       function renderRail() {
         const box = $('coRailServers'); box.innerHTML = '';
-        if (db) {
-          const b = document.createElement('button');
-          b.className = 'co-rail-btn server active'; b.textContent = db.icon; b.title = db.name;
-          b.dataset.act = 'openSettings'; box.appendChild(b);
-          $('coAddServer').style.display = 'none';
-        } else { $('coAddServer').style.display = ''; }
+        if (db && amMember()) { const b = document.createElement('button'); b.className = 'co-rail-btn server active'; b.textContent = db.icon; b.title = db.name; b.dataset.act = isOwner() ? 'openSettings' : 'openMe'; box.appendChild(b); }
+        $('coAddServer').style.display = (!db && canFound()) ? '' : 'none';
       }
 
       function renderSide() {
-        const hide = !db;
-        $('coSide').style.visibility = hide ? 'hidden' : 'visible';
-        if (hide) return;
+        const show = db && amMember();
+        $('coSide').style.visibility = show ? 'visible' : 'hidden';
+        if (!show) return;
         $('coServerName').textContent = db.name;
-        const you = meMember();
-        $('coMeAv').textContent = initials(you.name); $('coMeAv').style.background = memColor(you);
-        $('coMeName').textContent = you.name;
-        const yr = topRole(you); $('coMeSub').textContent = yr ? yr.name : 'Member';
+        const you = myMember() || { name: me, roleIds: [] };
+        $('coMeAv').style.cssText = avStyle(you); $('coMeAv').textContent = avText(you);
+        $('coMeName').textContent = me; const yr = topRole(you); $('coMeSub').textContent = yr ? yr.name : (isOwner() ? 'Owner' : 'Member');
         const scroll = $('coChanScroll'); scroll.innerHTML = '';
         const cat = document.createElement('div'); cat.className = 'co-cat';
-        cat.innerHTML = '<span>Text Channels</span><button data-act="newChannel" title="Create channel">＋</button>';
+        cat.innerHTML = '<span>Channels</span>' + (isOwner() ? '<button data-act="newChannel" title="Create channel">＋</button>' : '');
         scroll.appendChild(cat);
-        db.channels.forEach(c => {
-          const el = document.createElement('div');
-          el.className = 'co-chan' + (c.id === cur.channel ? ' active' : '');
+        viewableChannels().forEach(c => {
+          const el = document.createElement('div'); el.className = 'co-chan' + (c.id === cur.channel ? ' active' : '');
           el.dataset.act = 'openChannel'; el.dataset.ch = c.id;
           el.innerHTML = '<span class="hash">' + (c.private ? '🔒' : '#') + '</span><span class="cname">' + esc(c.name) + '</span>';
           scroll.appendChild(el);
         });
       }
 
+      function emptyState(icon, title, text) { return '<div class="co-hero"><div class="logo">' + icon + '</div><h1>' + title + '</h1><p>' + text + '</p></div>'; }
       function renderMain() {
         const main = $('coMain');
+        if (!ready) { main.innerHTML = emptyState('🏛️', 'The Council', 'Loading…'); return; }
         if (!db) {
           $('coApp').classList.remove('nav-open', 'mem-open');
-          main.innerHTML = '<div class="co-hero"><div class="logo">🏛️</div><h1>The Council</h1><p>No council exists yet. Found one, add your people, hand out roles, and start pinging.</p><button class="co-btn" data-act="addServer">Create The Council</button></div>';
+          if (canFound()) main.innerHTML = '<div class="co-hero"><div class="logo">🏛️</div><h1>The Council</h1><p>No council exists yet. Found one, add your people, hand out roles, and start pinging.</p><button class="co-btn" data-act="addServer">Create The Council</button></div>';
+          else main.innerHTML = emptyState('🏛️', 'The Council', 'There is no council yet. Only the council founder can create one.');
           return;
         }
-        if (!curChannel()) cur.channel = db.channels[0] && db.channels[0].id;
-        const ch = curChannel();
+        if (!amMember()) { $('coApp').classList.remove('nav-open', 'mem-open'); main.innerHTML = emptyState('🔒', db.name, "You haven't been added to the council. Ask " + esc(db.owner) + ' to add you.'); return; }
+        const chans = viewableChannels();
+        if (!chans.some(c => c.id === cur.channel)) cur.channel = (chans[0] || db.channels[0] || {}).id;
+        const ch = db.channels.find(c => c.id === cur.channel) || chans[0];
+        if (!ch) { main.innerHTML = emptyState('#', db.name, 'No channels you can see yet.'); return; }
         main.innerHTML =
           '<div class="co-topbar">' +
             '<button class="co-icon-btn only-narrow" data-act="toggleNav">☰</button>' +
             '<span class="hash">' + (ch.private ? '🔒' : '#') + '</span><span class="ttl">' + esc(ch.name) + '</span>' +
-            '<span class="topic">' + (ch.private ? 'Private — visible to selected roles' : 'Council channel') + '</span>' +
+            '<span class="topic">' + (ch.private ? 'Private — selected roles only' : 'Council channel') + '</span>' +
             '<button class="co-icon-btn" data-act="toggleMem" title="Members">👥</button>' +
           '</div>' +
           '<div class="co-msgs" id="coMsgs"></div>' +
-          '<div class="co-composer">' +
-            '<div class="co-mrow" id="coMrow"></div>' +
+          '<div class="co-composer"><div class="co-mrow" id="coMrow"></div>' +
             '<div class="box"><textarea id="coInput" rows="1" placeholder="Message #' + esc(ch.name) + '"></textarea>' +
-            '<button class="send" data-act="send" title="Send">➤</button></div>' +
-          '</div>';
-        renderMessages();
-        renderMentionRow();
+            '<button class="send" data-act="send" title="Send">➤</button></div></div>';
+        renderMessages(); renderMentionRow();
       }
 
       function renderMentionRow() {
         const row = $('coMrow'); if (!row) return; row.innerHTML = '';
         const ev = document.createElement('button'); ev.className = 'co-mchip'; ev.textContent = '@everyone'; ev.dataset.act = 'men'; ev.dataset.tok = '@everyone'; row.appendChild(ev);
-        db.members.filter(m => !m.me).slice(0, 8).forEach(m => {
-          const c = document.createElement('button'); c.className = 'co-mchip'; c.textContent = '@' + m.name; c.dataset.act = 'men'; c.dataset.tok = '@' + m.name; row.appendChild(c);
-        });
+        db.members.filter(m => m.name !== me).slice(0, 10).forEach(m => { const c = document.createElement('button'); c.className = 'co-mchip'; c.textContent = '@' + m.name; c.dataset.act = 'men'; c.dataset.tok = '@' + m.name; row.appendChild(c); });
       }
 
-      function messageHTML(msg) {
-        if (msg.sys) return '<div class="co-sys">' + renderText(msg.text, []) + '</div>';
-        const a = memberById(msg.author) || { name: 'Unknown', roleIds: [] };
-        const mine = msg.mentions && msg.mentions.length && (msg.mentions.includes('everyone') || msg.mentions.some(id => { const m = memberById(id); return m && m.me; }));
+      function messageHTML(m) {
+        if (m.sys) return '<div class="co-sys">' + renderText(m.text, m.mentions || []) + '</div>';
+        const a = memberByName(m.author) || { name: m.author, roleIds: [], id: '' };
+        const mine = (m.mentions || []).includes('everyone') || (m.mentions || []).includes(me);
         return '<div class="co-msg' + (mine ? ' mentionsMe' : '') + '">' +
-          '<div class="av" style="background:' + memColor(a) + '" data-act="member" data-mem="' + a.id + '">' + initials(a.name) + '</div>' +
+          '<div class="av" style="' + avStyle(a) + '" data-act="member" data-mem="' + esc(a.name) + '">' + avText(a) + '</div>' +
           '<div class="body"><div class="head">' +
-            '<span class="author" style="color:' + memColor(a) + '" data-act="member" data-mem="' + a.id + '">' + esc(a.name) + '</span>' +
-            (a.bot ? '<span class="badge-bot">Bot</span>' : '') +
-            '<span class="time">' + fmt(msg.ts) + '</span>' +
-          '</div><div class="text">' + renderText(msg.text, msg.mentions || []) + '</div></div></div>';
+            '<span class="author" style="color:' + memColor(a) + '" data-act="member" data-mem="' + esc(a.name) + '">' + esc(a.name) + '</span>' +
+            (a.bot ? '<span class="badge-bot">Bot</span>' : '') + '<span class="time">' + fmt(m.ts) + '</span>' +
+          '</div><div class="text">' + renderText(m.text, m.mentions || []) + '</div></div></div>';
       }
       function renderMessages() {
-        const ch = curChannel(); const box = $('coMsgs'); if (!box) return;
-        const list = db.msgs[ch.id] || [];
+        const box = $('coMsgs'); if (!box || !db) return; const ch = db.channels.find(c => c.id === cur.channel); if (!ch) return;
+        const list = msgs[ch.id] || [];
         let html = '<div class="co-welcome"><div class="big">' + (ch.private ? '🔒' : '#') + '</div><h2>Welcome to #' + esc(ch.name) + '</h2><p>This is the start of the #' + esc(ch.name) + ' channel.</p></div>';
         html += list.map(messageHTML).join('');
-        box.innerHTML = html;
-        box.scrollTop = box.scrollHeight;
+        box.innerHTML = html; box.scrollTop = box.scrollHeight;
       }
       function renderText(text, mentions) {
         let html = esc(text);
         html = html.replace(/@everyone/g, '<span class="co-mention everyone">@everyone</span>');
-        db.members.forEach(m => {
-          if (mentions.includes(m.id)) {
-            const tok = '@' + esc(m.name);
-            html = html.split(tok).join('<span class="co-mention" data-act="member" data-mem="' + m.id + '">@' + esc(m.name) + '</span>');
-          }
-        });
+        db.members.forEach(m => { if (mentions.includes(m.name)) { const tok = '@' + esc(m.name); html = html.split(tok).join('<span class="co-mention" data-act="member" data-mem="' + esc(m.name) + '">@' + esc(m.name) + '</span>'); } });
         return html;
       }
 
       function renderMembers() {
-        const box = $('coMembers'); box.innerHTML = ''; if (!db) { box.style.visibility = 'hidden'; return; } box.style.visibility = 'visible';
-        const ch = curChannel();
-        const visible = db.members.filter(m => memberCanView(m, ch));
-        const shown = new Set();
-        const groups = [];
-        db.roles.filter(r => r.hoist).forEach(r => {
-          const mem = visible.filter(m => topRole(m) === r);
-          if (mem.length) { mem.forEach(m => shown.add(m.id)); groups.push({ name: r.name, mem }); }
-        });
-        const rest = visible.filter(m => !shown.has(m.id));
-        if (rest.length) groups.push({ name: 'Members', mem: rest });
+        const box = $('coMembers'); if (!box) return; box.innerHTML = '';
+        if (!db || !amMember()) { box.style.visibility = 'hidden'; return; } box.style.visibility = 'visible';
+        const ch = db.channels.find(c => c.id === cur.channel) || db.channels[0];
+        const visible = db.members.filter(m => !ch || memberCanView(m, ch));
+        const shown = new Set(); const groups = [];
+        db.roles.filter(r => r.hoist).forEach(r => { const mem = visible.filter(m => topRole(m) === r); if (mem.length) { mem.forEach(m => shown.add(m.id)); groups.push({ name: r.name, mem }); } });
+        const rest = visible.filter(m => !shown.has(m.id)); if (rest.length) groups.push({ name: 'Members', mem: rest });
         groups.forEach(g => {
           const cat = document.createElement('div'); cat.className = 'co-mem-cat'; cat.textContent = g.name + ' — ' + g.mem.length; box.appendChild(cat);
-          g.mem.sort((a, b) => (b.online ? 1 : 0) - (a.online ? 1 : 0)).forEach(m => {
-            const el = document.createElement('div'); el.className = 'co-mem' + (m.roleIds.includes('owner') ? ' owner' : '');
-            el.dataset.act = 'member'; el.dataset.mem = m.id;
-            el.innerHTML = '<div class="av" style="background:' + memColor(m) + '">' + initials(m.name) +
-              '<span class="dot" style="background:' + (m.online ? '#23a55a' : '#80848e') + '"></span></div>' +
+          g.mem.forEach(m => {
+            const el = document.createElement('div'); el.className = 'co-mem' + (m.name === db.owner ? ' owner' : ''); el.dataset.act = 'member'; el.dataset.mem = m.name;
+            el.innerHTML = '<div class="av" style="' + avStyle(m) + '">' + avText(m) + '</div>' +
               '<span class="nm" style="color:' + (topRole(m) && topRole(m).color ? memColor(m) : '#dbdee1') + '">' + esc(m.name) + '</span>' +
-              (m.roleIds.includes('owner') ? '<span class="crown">👑</span>' : (m.bot ? '<span class="badge-bot">Bot</span>' : ''));
+              (m.name === db.owner ? '<span class="crown">👑</span>' : (m.bot ? '<span class="badge-bot">Bot</span>' : ''));
             box.appendChild(el);
           });
         });
       }
 
-      /* ---------- sending + pings ---------- */
-      function parseMentions(text) {
-        const ids = []; let everyone = /@everyone\b/.test(text);
-        db.members.forEach(m => { if (!m.me && text.includes('@' + m.name)) ids.push(m.id); });
-        return { ids, everyone };
-      }
-      function notifyPing(ch, ment, fromName) {
-        const recips = new Set(ment.ids);
-        if (ment.everyone) db.members.forEach(m => { if (!m.me && memberCanView(m, ch)) recips.add(m.id); });
-        const names = [...recips].map(memberById).filter(Boolean).map(m => m.name);
-        if (ment.everyone) toast('@everyone · #' + ch.name, names.length ? (fromName + ' pinged everyone (' + names.length + ' notified)') : 'No members can see this channel yet', true);
-        else if (names.length) toast('Ping · #' + ch.name, fromName + ' pinged ' + names.join(', '), false);
-      }
+      /* ---------- messages: send + pings + notifications ---------- */
+      function parseMentions(text) { const names = []; const everyone = /@everyone\b/.test(text); db.members.forEach(m => { if (m.name !== me && text.includes('@' + m.name)) names.push(m.name); }); return { names, everyone }; }
       function sendMessage() {
         const inp = $('coInput'); if (!inp) return; const text = inp.value.trim(); if (!text) return;
-        const ch = curChannel(); const ment = parseMentions(text);
-        const msg = { id: uid(), author: meMember().id, text, ts: now(), mentions: ment.everyone ? ['everyone', ...ment.ids] : ment.ids };
-        (db.msgs[ch.id] = db.msgs[ch.id] || []).push(msg);
-        inp.value = ''; inp.style.height = 'auto'; save(); renderMessages();
-        if (ment.everyone || ment.ids.length) notifyPing(ch, ment, meMember().name);
+        const ch = db.channels.find(c => c.id === cur.channel); if (!ch) return;
+        const ment = parseMentions(text); inp.value = ''; inp.style.height = 'auto';
+        FS.addDoc(msgsCol, { channel: ch.id, author: me, text, ts: nowMs(), mentions: ment.everyone ? ['everyone', ...ment.names] : ment.names }).catch(e => toast('Not sent', e.message || 'offline', false));
       }
-      function pingMember(id) {
-        const m = memberById(id); const ch = curChannel(); if (!m || !ch) return;
-        const msg = { id: uid(), author: meMember().id, text: '@' + m.name, ts: now(), mentions: [m.id] };
-        (db.msgs[ch.id] = db.msgs[ch.id] || []).push(msg); save();
-        if (cur.dm) closePop();
-        if (!db.channels.some(c => c.id === cur.channel)) cur.channel = ch.id;
-        renderMessages(); toast('Ping · #' + ch.name, 'You pinged ' + m.name, false);
+      function pingMember(name) {
+        const m = memberByName(name); const ch = db.channels.find(c => c.id === cur.channel); if (!m || !ch) return; closePop();
+        FS.addDoc(msgsCol, { channel: ch.id, author: me, text: '@' + m.name, ts: nowMs(), mentions: [m.name] }).catch(() => {});
+        toast('Ping sent', 'You pinged ' + m.name + ' in #' + ch.name, false);
+      }
+      function handleMsgSnap(list) {
+        msgs = {}; list.forEach(m => { (msgs[m.channel] = msgs[m.channel] || []).push(m); });
+        if (seen === null) { seen = new Set(list.map(m => m._id)); }
+        else list.forEach(m => { if (!seen.has(m._id)) { seen.add(m._id); maybeNotify(m); } });
+        if (ready && db && amMember() && !$('council').classList.contains('inactive')) renderMessages();
+      }
+      function maybeNotify(m) {
+        if (!db || !amMember() || m.author === me) return;
+        const ch = db.channels.find(c => c.id === m.channel); if (!ch) return;
+        if (!memberCanView(myMember(), ch)) return;
+        const everyone = (m.mentions || []).includes('everyone');
+        const mentioned = everyone || (m.mentions || []).includes(me);
+        if (!mentioned) return;
+        notifySound(everyone); try { vibrate(everyone ? [90, 50, 90, 50, 90] : [70, 40, 70]); } catch (e) {}
+        toast((everyone ? '@everyone · #' : 'Ping · #') + ch.name, m.author + ': ' + m.text, everyone);
       }
 
       /* ---------- profile popout ---------- */
-      function openProfile(id) {
-        const m = memberById(id); if (!m) return; cur.dm = null;
-        const col = memColor(m);
-        const roleChips = db.roles.filter(r => m.roleIds.includes(r.id)).map(r =>
-          '<span class="co-role-chip"><span class="rd" style="background:' + (r.color || '#95a5a6') + '"></span>' + esc(r.name) + '</span>').join('') || '<span class="co-role-chip">No roles</span>';
-        const acts = m.me ? '' :
-          '<div class="pacts"><button class="co-btn full" data-act="dm" data-mem="' + m.id + '">💬 Message</button>' +
-          '<button class="co-btn full ghost" data-act="pingMem" data-mem="' + m.id + '">🔔 Ping</button></div>';
+      function openProfile(name) {
+        const m = memberByName(name); if (!m) return; const col = memColor(m);
+        const roleChips = db.roles.filter(r => m.roleIds.includes(r.id)).map(r => '<span class="co-role-chip"><span class="rd" style="background:' + (r.color || '#95a5a6') + '"></span>' + esc(r.name) + '</span>').join('') || '<span class="co-role-chip">No roles</span>';
+        const acts = (m.name === me)
+          ? '<div class="pacts"><button class="co-btn full" data-act="editPfp">🖼️ Edit profile picture</button></div>'
+          : '<div class="pacts"><button class="co-btn full" data-act="dm" data-mem="' + esc(m.name) + '">💬 Message</button><button class="co-btn full ghost" data-act="pingMem" data-mem="' + esc(m.name) + '">🔔 Ping</button></div>';
         $('coPopInner').innerHTML =
           '<div class="co-profile"><div class="banner" style="background:' + col + '"></div><div class="pbody">' +
-            '<div class="pav" style="background:' + col + '">' + initials(m.name) + '</div>' +
-            '<div class="pcard"><div class="pname">' + esc(m.name) + (m.roleIds.includes('owner') ? ' 👑' : '') + '</div>' +
-            '<div class="phandle">' + (m.bot ? 'Bot · ' : '') + (m.online ? '🟢 Online' : '⚫ Offline') + '</div>' +
+            '<div class="pav" style="' + avStyle(m) + '">' + avText(m) + '</div>' +
+            '<div class="pcard"><div class="pname">' + esc(m.name) + (m.name === db.owner ? ' 👑' : '') + '</div>' +
+            '<div class="phandle">' + (m.bot ? 'Bot' : (m.name === db.owner ? 'Owner' : 'Member')) + '</div>' +
             '<div class="psec">Roles</div><div>' + roleChips + '</div>' + acts + '</div></div></div>';
         $('coPop').classList.add('show');
       }
-      function closePop() { $('coPop').classList.remove('show'); cur.dm = null; }
+      function closePop() { $('coPop').classList.remove('show'); }
+      function openDMReal(name) { closePop(); closeModal(); $('menuBtn').style.display = 'none'; showScreen('messages'); try { openChat(canonName(name)); } catch (e) {} }
 
-      /* ---------- DMs ---------- */
-      function openDM(id) {
-        const m = memberById(id); if (!m) return; cur.dm = id;
-        renderDM(id); $('coPop').classList.add('show');
+      /* ---------- profile picture editor ---------- */
+      function openPfpEditor() {
+        openModal('<div class="co-card-head"><h3>Your profile picture</h3><p>Pick an emoji or upload an image.</p></div>' +
+          '<div class="co-card-body"><div class="co-emoji-pick">' + PFP_EMOJIS.map(e => '<button data-act="setPfpEmoji" data-e="' + e + '">' + e + '</button>').join('') + '</div>' +
+          '<label class="co-label">Or upload an image</label><input type="file" accept="image/*" id="coPfpFile" class="co-input"><button class="co-btn ghost full" data-act="clearPfp">Remove picture</button></div>' +
+          '<div class="co-card-foot"><button class="co-btn" data-act="closeModal">Done</button></div>');
+        const f = $('coPfpFile'); if (f) f.addEventListener('change', onPfpFile);
       }
-      function renderDM(id) {
-        const m = memberById(id); const thread = db.dms[id] || [];
-        const body = thread.map(t =>
-          '<div class="co-msg"><div class="av" style="background:' + (t.mine ? memColor(meMember()) : memColor(m)) + '">' + initials(t.mine ? meMember().name : m.name) + '</div>' +
-          '<div class="body"><div class="head"><span class="author" style="color:' + (t.mine ? memColor(meMember()) : memColor(m)) + '">' + esc(t.mine ? meMember().name : m.name) + '</span><span class="time">' + fmt(t.ts) + '</span></div>' +
-          '<div class="text">' + esc(t.text) + '</div></div></div>').join('') ||
-          '<div class="co-welcome" style="padding:24px 12px"><div class="big" style="background:' + memColor(m) + '">' + initials(m.name) + '</div><h2>' + esc(m.name) + '</h2><p>This is the beginning of your direct messages with ' + esc(m.name) + '.</p></div>';
-        $('coPopInner').innerHTML =
-          '<div class="co-card" style="height:min(560px,88%);display:flex;flex-direction:column">' +
-            '<div class="co-topbar" style="border-radius:8px 8px 0 0"><span class="hash">@</span><span class="ttl">' + esc(m.name) + '</span>' +
-            '<button class="co-icon-btn" data-act="backProfile" data-mem="' + m.id + '" title="Profile">👤</button>' +
-            '<button class="co-icon-btn" data-act="closePop" title="Close">✕</button></div>' +
-            '<div class="co-msgs" id="coDmMsgs" style="flex:1">' + body + '</div>' +
-            '<div class="co-composer" style="padding:0 12px 12px"><div class="box"><textarea id="coDmInput" rows="1" placeholder="Message @' + esc(m.name) + '"></textarea>' +
-            '<button class="send" data-act="dmSend" data-mem="' + m.id + '">➤</button></div></div>' +
-          '</div>';
-        const dm = $('coDmMsgs'); if (dm) dm.scrollTop = dm.scrollHeight;
-      }
-      function dmSend(id) {
-        const inp = $('coDmInput'); if (!inp) return; const t = inp.value.trim(); if (!t) return;
-        (db.dms[id] = db.dms[id] || []).push({ id: uid(), mine: true, text: t, ts: now() });
-        inp.value = ''; save(); renderDM(id);
-        const m = memberById(id); if (!m) return;
-        setTimeout(() => {
-          if (!db || !memberById(id)) return;
-          const rep = m.bot ? 'beep boop — ' + DM_REPLIES[Math.floor(Math.random() * DM_REPLIES.length)] : DM_REPLIES[Math.floor(Math.random() * DM_REPLIES.length)];
-          (db.dms[id] = db.dms[id] || []).push({ id: uid(), mine: false, text: rep, ts: now() }); save();
-          if ($('coPop').classList.contains('show') && cur.dm === id) renderDM(id);
-          else toast('New message', m.name + ': ' + rep, false);
-        }, 1100 + Math.random() * 900);
+      function onPfpFile(e) {
+        const file = e.target.files && e.target.files[0]; if (!file) return;
+        const rd = new FileReader();
+        rd.onload = () => { const img = new Image(); img.onload = () => {
+            let data; try { const c = document.createElement('canvas'); const S = 128; c.width = c.height = S; const g = c.getContext('2d'); const scale = Math.max(S / img.width, S / img.height); const w = img.width * scale, h = img.height * scale; g.drawImage(img, (S - w) / 2, (S - h) / 2, w, h); data = c.toDataURL('image/jpeg', 0.72); } catch (err) { data = rd.result; }
+            setMyPfp(data); closeModal(); toast('Profile updated', 'Your picture is set.', false);
+          }; img.src = rd.result; };
+        rd.readAsDataURL(file);
       }
 
       /* ---------- modals ---------- */
       function openModal(html, wide) { $('coModalInner').innerHTML = '<div class="co-card' + (wide ? ' wide' : '') + '">' + html + '</div>'; $('coModal').classList.add('show'); }
       function closeModal() { $('coModal').classList.remove('show'); }
-
       function emojiPicker(sel) { return '<div class="co-emoji-pick">' + EMOJIS.map(e => '<button data-act="pickEmoji" data-e="' + e + '" class="' + (e === sel ? 'on' : '') + '">' + e + '</button>').join('') + '</div>'; }
       let newIcon = '🏛️';
-      function openCreate() {
-        newIcon = '🏛️';
-        openModal('<div class="co-card-head"><h3>Create your council</h3><p>Only one council at a time — you can delete it later.</p></div>' +
-          '<div class="co-card-body"><label class="co-label">Server name</label><input class="co-input" id="coCreateName" placeholder="The Council" maxlength="40">' +
-          '<label class="co-label">Icon</label><div id="coIconPick">' + emojiPicker(newIcon) + '</div></div>' +
-          '<div class="co-card-foot"><button class="co-btn ghost" data-act="closeModal">Cancel</button><button class="co-btn" data-act="doCreate">Create</button></div>');
-      }
+      function openCreate() { if (!canFound()) return; newIcon = '🏛️'; openModal('<div class="co-card-head"><h3>Create your council</h3><p>One council, shared with everyone you add.</p></div><div class="co-card-body"><label class="co-label">Server name</label><input class="co-input" id="coCreateName" placeholder="The Council" maxlength="40"><label class="co-label">Icon</label><div id="coIconPick">' + emojiPicker(newIcon) + '</div></div><div class="co-card-foot"><button class="co-btn ghost" data-act="closeModal">Cancel</button><button class="co-btn" data-act="doCreate">Create</button></div>'); }
 
-      function openSettings(tab) { coTab = tab || 'overview'; renderSettings(); $('coModal').classList.add('show'); }
+      function openSettings(tab) { if (!isOwner()) return; coTab = tab || 'overview'; renderSettings(); $('coModal').classList.add('show'); }
       function renderSettings() {
-        if (!db) return;
+        if (!db || !isOwner()) return;
         const tabs = [['overview', 'Overview'], ['roles', 'Roles'], ['members', 'Members'], ['channels', 'Channels'], ['notif', 'Notifications']];
         let body = '';
         if (coTab === 'overview') {
@@ -4573,72 +4533,47 @@
             '<label class="co-label">Owner</label><div class="co-list-row"><div class="co-swatch" style="background:#f1c40f"></div><div class="grow"><div class="r-name">' + esc(db.owner) + '</div><div class="r-sub">Founder of the council</div></div></div>' +
             '<label class="co-label" style="color:#f04747">Danger zone</label><button class="co-btn danger full" data-act="confirmDelete">Delete this council</button>';
         } else if (coTab === 'roles') {
-          body = db.roles.map(r => roleRow(r)).join('') +
-            '<button class="co-btn full" data-act="newRole">＋ Create role</button>';
+          body = db.roles.map(roleRow).join('') + '<button class="co-btn full" data-act="newRole">＋ Create role</button>';
         } else if (coTab === 'members') {
           const existing = new Set(db.members.map(m => m.name.toLowerCase()));
           let sugg;
           if (siteUsers === null) { fetchSiteUsers(); sugg = '<div class="co-sugg-note">Loading people from the site…</div>'; }
           else { const avail = siteUsers.filter(u => !existing.has(u.toLowerCase())); sugg = avail.length ? '<div class="co-sugg">' + avail.map(u => '<button class="co-mchip" data-act="addSuggested" data-name="' + esc(u) + '">＋ ' + esc(u) + '</button>').join('') + '</div>' : '<div class="co-sugg-note">Everyone from the site is already in the council.</div>'; }
-          body = db.members.map(m => memberRow(m)).join('') +
-            '<label class="co-label">People on the site</label>' + sugg +
-            '<label class="co-label">Add someone new</label><div style="display:flex;gap:8px"><input class="co-input" id="coNewMem" placeholder="Name" maxlength="24"><label class="co-check" style="white-space:nowrap"><input type="checkbox" id="coNewBot">Bot</label></div>' +
-            '<button class="co-btn full" data-act="addMember">＋ Add member</button>';
+          body = db.members.map(memberRow).join('') + '<label class="co-label">People on the site</label>' + sugg +
+            '<label class="co-label">Add someone new</label><div style="display:flex;gap:8px"><input class="co-input" id="coNewMem" placeholder="Name" maxlength="24"><label class="co-check" style="white-space:nowrap"><input type="checkbox" id="coNewBot">Bot</label></div><button class="co-btn full" data-act="addMember">＋ Add member</button>';
         } else if (coTab === 'channels') {
-          body = db.channels.map(c => channelRow(c)).join('') +
-            '<label class="co-label">Create channel</label><input class="co-input" id="coNewChan" placeholder="new-channel" maxlength="24">' +
-            '<label class="co-check"><input type="checkbox" id="coNewPriv">Make private (choose roles after)</label>' +
-            '<button class="co-btn full" data-act="createChannel">＋ Create channel</button>';
+          body = db.channels.map(channelRow).join('') + '<label class="co-label">Create channel</label><input class="co-input" id="coNewChan" placeholder="new-channel" maxlength="24"><label class="co-check"><input type="checkbox" id="coNewPriv">Make private (choose roles after)</label><button class="co-btn full" data-act="createChannel">＋ Create channel</button>';
         } else if (coTab === 'notif') {
-          body = '<label class="co-check"><input type="checkbox" id="coSound" ' + (db.settings.sound !== false ? 'checked' : '') + ' data-act="soundToggle">Play a sound on pings &amp; DMs</label>' +
-            '<p style="color:#949ba4;font-size:13px;margin-top:8px">Pings notify every member who can see the channel. @everyone hits everyone with access; private channels only alert their allowed roles.</p>';
+          body = '<p style="color:#949ba4;font-size:13px">Pings notify every member who can see the channel — with a sound and an alert on their device. @everyone hits everyone with access; private channels only alert their allowed roles.</p>';
         }
-        openModal('<div class="co-card-head"><h3>' + esc(db.name) + ' · Settings</h3></div>' +
-          '<div class="co-card-body"><div class="co-tabs">' + tabs.map(t => '<button class="co-tab' + (coTab === t[0] ? ' on' : '') + '" data-act="setTab" data-tab="' + t[0] + '">' + t[1] + '</button>').join('') + '</div>' + body + '</div>' +
-          '<div class="co-card-foot"><button class="co-btn" data-act="closeModal">Done</button></div>', true);
+        openModal('<div class="co-card-head"><h3>' + esc(db.name) + ' · Settings</h3></div><div class="co-card-body"><div class="co-tabs">' + tabs.map(t => '<button class="co-tab' + (coTab === t[0] ? ' on' : '') + '" data-act="setTab" data-tab="' + t[0] + '">' + t[1] + '</button>').join('') + '</div>' + body + '</div><div class="co-card-foot"><button class="co-btn" data-act="closeModal">Done</button></div>', true);
       }
       function roleRow(r) {
         const cnt = db.members.filter(m => m.roleIds.includes(r.id)).length;
-        return '<div class="co-list-row col">' +
-          '<div class="row-top"><div class="co-swatch" style="background:' + (r.color || '#95a5a6') + '"></div>' +
-          '<input class="co-input grow" style="padding:8px 10px" value="' + esc(r.name) + '" data-act="roleName" data-role="' + r.id + '"' + (r.id === 'owner' ? ' disabled' : '') + '>' +
-          (r.id === 'owner' ? '<span class="r-sub" style="white-space:nowrap">locked</span>' : '<button class="co-btn danger sm" data-act="deleteRole" data-role="' + r.id + '">Delete</button>') + '</div>' +
-          '<div class="r-sub" style="margin-top:2px">' + cnt + ' member' + (cnt === 1 ? '' : 's') + '</div>' +
-          '<div class="co-mini-label">Color</div>' +
-          '<div class="co-swrow">' + SWATCHES.map(c => '<button data-act="pickRoleColor" data-role="' + r.id + '" data-color="' + c + '" style="background:' + c + '" class="co-sw' + (c === r.color ? ' on' : '') + '"></button>').join('') + '</div>' +
-          '<label class="co-check" style="padding:8px 0 2px"><input type="checkbox" ' + (r.hoist ? 'checked' : '') + ' data-act="roleHoist" data-role="' + r.id + '">Show separately in member list</label>' +
-          '</div>';
+        return '<div class="co-list-row col"><div class="row-top"><div class="co-swatch" style="background:' + (r.color || '#95a5a6') + '"></div><input class="co-input grow" style="padding:8px 10px" value="' + esc(r.name) + '" data-act="roleName" data-role="' + r.id + '"' + (r.id === 'owner' ? ' disabled' : '') + '>' + (r.id === 'owner' ? '<span class="r-sub" style="white-space:nowrap">locked</span>' : '<button class="co-btn danger sm" data-act="deleteRole" data-role="' + r.id + '">Delete</button>') + '</div>' +
+          '<div class="r-sub" style="margin-top:2px">' + cnt + ' member' + (cnt === 1 ? '' : 's') + '</div><div class="co-mini-label">Color</div><div class="co-swrow">' + SWATCHES.map(c => '<button data-act="pickRoleColor" data-role="' + r.id + '" data-color="' + c + '" style="background:' + c + '" class="co-sw' + (c === r.color ? ' on' : '') + '"></button>').join('') + '</div>' +
+          '<label class="co-check" style="padding:8px 0 2px"><input type="checkbox" ' + (r.hoist ? 'checked' : '') + ' data-act="roleHoist" data-role="' + r.id + '">Show separately in member list</label></div>';
       }
       function memberRow(m) {
-        const chips = db.roles.filter(r => m.roleIds.includes(r.id)).map(r =>
-          '<span class="co-role-chip"><span class="rd" style="background:' + (r.color || '#95a5a6') + '"></span>' + esc(r.name) +
-          (r.id === 'owner' ? '' : '<button data-act="removeMemberRole" data-mem="' + m.id + '" data-role="' + r.id + '">✕</button>') + '</span>').join('');
+        const chips = db.roles.filter(r => m.roleIds.includes(r.id)).map(r => '<span class="co-role-chip"><span class="rd" style="background:' + (r.color || '#95a5a6') + '"></span>' + esc(r.name) + (r.id === 'owner' ? '' : '<button data-act="removeMemberRole" data-mem="' + esc(m.name) + '" data-role="' + r.id + '">✕</button>') + '</span>').join('');
         const addable = db.roles.filter(r => !m.roleIds.includes(r.id));
-        const sel = addable.length ? '<select class="co-select" style="margin-top:6px" data-act="assignRole" data-mem="' + m.id + '"><option value="">＋ Add role…</option>' + addable.map(r => '<option value="' + r.id + '">' + esc(r.name) + '</option>').join('') + '</select>' : '';
-        return '<div class="co-list-row col">' +
-          '<div class="row-top"><div class="co-swatch" style="background:' + memColor(m) + ';width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px">' + initials(m.name) + '</div>' +
-          '<div class="grow"><div class="r-name">' + esc(m.name) + (m.me ? ' (you)' : '') + (m.bot ? ' 🤖' : '') + '</div></div>' +
-          (m.me ? '' : '<button class="co-btn danger sm" data-act="removeMember" data-mem="' + m.id + '">Kick</button>') + '</div>' +
-          '<div style="margin-top:8px">' + (chips || '<span class="r-sub">No roles</span>') + '</div>' + sel +
-          '</div>';
+        const sel = addable.length ? '<select class="co-select" style="margin-top:6px" data-act="assignRole" data-mem="' + esc(m.name) + '"><option value="">＋ Add role…</option>' + addable.map(r => '<option value="' + r.id + '">' + esc(r.name) + '</option>').join('') + '</select>' : '';
+        return '<div class="co-list-row col"><div class="row-top"><div class="co-swatch" style="' + avStyle(m) + ';width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px">' + avText(m) + '</div><div class="grow"><div class="r-name">' + esc(m.name) + (m.name === me ? ' (you)' : '') + (m.bot ? ' 🤖' : '') + '</div></div>' + (m.name === db.owner ? '' : '<button class="co-btn danger sm" data-act="removeMember" data-mem="' + esc(m.name) + '">Kick</button>') + '</div><div style="margin-top:8px">' + (chips || '<span class="r-sub">No roles</span>') + '</div>' + sel + '</div>';
       }
       function channelRow(c) {
-        const roleChecks = c.private ? '<div style="margin-top:6px">' + db.roles.map(r =>
-          '<label class="co-check" style="padding:4px 0;font-size:13px"><input type="checkbox" ' + ((c.allow || []).includes(r.id) ? 'checked' : '') + (r.id === 'owner' ? ' checked disabled' : '') + ' data-act="chanAllow" data-ch="' + c.id + '" data-role="' + r.id + '"><span class="co-swatch" style="background:' + (r.color || '#95a5a6') + ';width:12px;height:12px"></span>' + esc(r.name) + '</label>').join('') + '</div>' : '';
-        return '<div class="co-list-row"><span class="hash" style="font-size:18px;color:#80848e">' + (c.private ? '🔒' : '#') + '</span>' +
-          '<div class="grow"><div class="r-name">' + esc(c.name) + '</div>' +
-          '<label class="co-check" style="padding:4px 0"><input type="checkbox" ' + (c.private ? 'checked' : '') + ' data-act="chanPrivate" data-ch="' + c.id + '">Private channel</label>' + roleChecks + '</div>' +
-          (db.channels.length > 1 ? '<button class="co-btn danger sm" data-act="deleteChannel" data-ch="' + c.id + '">Delete</button>' : '') + '</div>';
+        const roleChecks = c.private ? '<div style="margin-top:6px">' + db.roles.map(r => '<label class="co-check" style="padding:4px 0;font-size:13px"><input type="checkbox" ' + ((c.allow || []).includes(r.id) ? 'checked' : '') + (r.id === 'owner' ? ' checked disabled' : '') + ' data-act="chanAllow" data-ch="' + c.id + '" data-role="' + r.id + '"><span class="co-swatch" style="background:' + (r.color || '#95a5a6') + ';width:12px;height:12px"></span>' + esc(r.name) + '</label>').join('') + '</div>' : '';
+        return '<div class="co-list-row col"><div class="row-top"><span class="hash" style="font-size:18px;color:#80848e">' + (c.private ? '🔒' : '#') + '</span><div class="grow"><div class="r-name">' + esc(c.name) + '</div></div>' + (db.channels.length > 1 ? '<button class="co-btn danger sm" data-act="deleteChannel" data-ch="' + c.id + '">Delete</button>' : '') + '</div><label class="co-check" style="padding:6px 0"><input type="checkbox" ' + (c.private ? 'checked' : '') + ' data-act="chanPrivate" data-ch="' + c.id + '">Private channel</label>' + roleChecks + '</div>';
       }
 
       /* ---------- action dispatch ---------- */
-      function act(a, el, e) {
+      function act(a, el) {
         switch (a) {
           case 'addServer': case 'openCreate': openCreate(); break;
-          case 'pickEmoji': newIcon = el.dataset.e; if (db && $('coModal').classList.contains('show') && coTab === 'overview') { db.icon = newIcon; save(); renderSettings(); renderRail(); } else { $('coIconPick').innerHTML = emojiPicker(newIcon); } break;
-          case 'doCreate': createServer($('coCreateName').value, newIcon); closeModal(); break;
+          case 'pickEmoji': newIcon = el.dataset.e; if (isOwner() && $('coModal').classList.contains('show') && coTab === 'overview') { db.icon = newIcon; persist(); renderSettings(); renderRail(); } else { $('coIconPick').innerHTML = emojiPicker(newIcon); } break;
+          case 'doCreate': createServer($('coCreateName').value, newIcon); break;
           case 'openChannel': cur.channel = el.dataset.ch; $('coApp').classList.remove('nav-open'); renderSide(); renderMain(); renderMembers(); break;
           case 'openSettings': openSettings('overview'); break;
+          case 'openMe': openProfile(me); break;
           case 'setTab': openSettings(el.dataset.tab); break;
           case 'closeModal': closeModal(); break;
           case 'toggleNav': $('coApp').classList.toggle('nav-open'); $('coApp').classList.remove('mem-open'); break;
@@ -4646,70 +4581,69 @@
           case 'send': sendMessage(); break;
           case 'men': { const inp = $('coInput'); if (inp) { inp.value = (inp.value + (inp.value && !inp.value.endsWith(' ') ? ' ' : '') + el.dataset.tok + ' ').trimStart(); inp.focus(); } break; }
           case 'member': openProfile(el.dataset.mem); break;
-          case 'dm': openDM(el.dataset.mem); break;
-          case 'backProfile': openProfile(el.dataset.mem); break;
+          case 'dm': openDMReal(el.dataset.mem); break;
           case 'pingMem': pingMember(el.dataset.mem); break;
-          case 'dmSend': dmSend(el.dataset.mem); break;
           case 'closePop': closePop(); break;
-          case 'confirmDelete': openModal('<div class="co-card-head"><h3>Delete ' + esc(db.name) + '?</h3><p>This wipes the whole council — channels, members, roles, messages. Cannot be undone.</p></div><div class="co-card-foot"><button class="co-btn ghost" data-act="openSettings">Cancel</button><button class="co-btn danger" data-act="doDelete">Delete forever</button></div>'); break;
+          case 'editPfp': openPfpEditor(); break;
+          case 'setPfpEmoji': setMyPfp(el.dataset.e); closeModal(); toast('Profile updated', 'Your picture is set.', false); break;
+          case 'clearPfp': setMyPfp(''); closeModal(); break;
+          case 'confirmDelete': openModal('<div class="co-card-head"><h3>Delete ' + esc(db.name) + '?</h3><p>This wipes the whole council for everyone — channels, members, roles, messages. Cannot be undone.</p></div><div class="co-card-foot"><button class="co-btn ghost" data-act="openSettings">Cancel</button><button class="co-btn danger" data-act="doDelete">Delete forever</button></div>'); break;
           case 'doDelete': deleteServer(); break;
           case 'newChannel': openSettings('channels'); break;
-          case 'createChannel': { const n = ($('coNewChan').value || '').trim().toLowerCase().replace(/\s+/g, '-'); if (!n) break; const id = uid('c'); const priv = $('coNewPriv').checked; db.channels.push({ id, name: n, private: priv, allow: priv ? ['owner'] : [] }); db.msgs[id] = []; save(); renderSide(); renderSettings(); break; }
-          case 'deleteChannel': { const id = el.dataset.ch; db.channels = db.channels.filter(c => c.id !== id); delete db.msgs[id]; if (cur.channel === id) cur.channel = db.channels[0] && db.channels[0].id; save(); renderSide(); renderMain(); renderSettings(); break; }
-          case 'newRole': { db.roles.splice(db.roles.length - 1, 0, { id: uid('r'), name: 'new role', color: SWATCHES[Math.floor(Math.random() * 10)], hoist: false }); save(); renderSettings(); renderMembers(); break; }
-          case 'deleteRole': { const id = el.dataset.role; db.roles = db.roles.filter(r => r.id !== id); db.members.forEach(m => m.roleIds = m.roleIds.filter(x => x !== id)); db.channels.forEach(c => c.allow = (c.allow || []).filter(x => x !== id)); save(); renderSettings(); renderAll(); break; }
-          case 'pickRoleColor': { const r = roleById(el.dataset.role); if (r) { r.color = el.dataset.color; save(); renderSettings(); renderAll(); } break; }
+          case 'createChannel': { if (!isOwner()) break; const n = ($('coNewChan').value || '').trim().toLowerCase().replace(/\s+/g, '-'); if (!n) break; const id = uid('c'); const priv = $('coNewPriv').checked; db.channels.push({ id, name: n, private: priv, allow: priv ? ['owner'] : [] }); persist(); renderSide(); renderSettings(); break; }
+          case 'deleteChannel': { if (!isOwner()) break; const id = el.dataset.ch; db.channels = db.channels.filter(c => c.id !== id); if (cur.channel === id) cur.channel = db.channels[0] && db.channels[0].id; persist(); renderSide(); renderMain(); renderSettings(); break; }
+          case 'newRole': { if (!isOwner()) break; db.roles.splice(db.roles.length - 1, 0, { id: uid('r'), name: 'new role', color: SWATCHES[Math.floor(Math.random() * 10)], hoist: false }); persist(); renderSettings(); renderMembers(); break; }
+          case 'deleteRole': { if (!isOwner()) break; const id = el.dataset.role; db.roles = db.roles.filter(r => r.id !== id); db.members.forEach(m => m.roleIds = m.roleIds.filter(x => x !== id)); db.channels.forEach(c => c.allow = (c.allow || []).filter(x => x !== id)); persist(); renderSettings(); renderAll(); break; }
+          case 'pickRoleColor': { if (!isOwner()) break; const r = roleById(el.dataset.role); if (r) { r.color = el.dataset.color; persist(); renderSettings(); renderAll(); } break; }
           case 'addMember': { if (addMemberNamed($('coNewMem').value, $('coNewBot').checked)) { renderSettings(); renderMembers(); } break; }
           case 'addSuggested': { if (addMemberNamed(el.dataset.name, false)) { renderSettings(); renderMembers(); } break; }
-          case 'removeMember': { db.members = db.members.filter(m => m.id !== el.dataset.mem); save(); renderSettings(); renderMembers(); break; }
-          case 'removeMemberRole': { const m = memberById(el.dataset.mem); if (m) { m.roleIds = m.roleIds.filter(x => x !== el.dataset.role); save(); renderSettings(); renderMembers(); } break; }
+          case 'removeMember': { if (!isOwner()) break; db.members = db.members.filter(m => m.name !== el.dataset.mem); persist(); renderSettings(); renderMembers(); break; }
+          case 'removeMemberRole': { if (!isOwner()) break; const m = memberByName(el.dataset.mem); if (m) { m.roleIds = m.roleIds.filter(x => x !== el.dataset.role); persist(); renderSettings(); renderMembers(); } break; }
         }
       }
       function change(a, el) {
+        if (!isOwner()) return;
         switch (a) {
-          case 'renameServer': db.name = el.value.trim() || 'The Council'; save(); renderSide(); renderRail(); break;
-          case 'roleName': { const r = roleById(el.dataset.role); if (r) { r.name = el.value.trim() || 'role'; save(); renderMembers(); renderSide(); } break; }
-          case 'roleHoist': { const r = roleById(el.dataset.role); if (r) { r.hoist = el.checked; save(); renderMembers(); } break; }
-          case 'chanPrivate': { const c = db.channels.find(x => x.id === el.dataset.ch); if (c) { c.private = el.checked; if (c.private && !(c.allow || []).includes('owner')) c.allow = ['owner']; save(); renderSide(); renderSettings(); renderMembers(); } break; }
-          case 'chanAllow': { const c = db.channels.find(x => x.id === el.dataset.ch); if (c) { const set = new Set(c.allow || []); el.checked ? set.add(el.dataset.role) : set.delete(el.dataset.role); c.allow = [...set]; save(); renderMembers(); } break; }
-          case 'assignRole': { const m = memberById(el.dataset.mem); if (m && el.value) { if (!m.roleIds.includes(el.value)) m.roleIds.push(el.value); m.roleIds = db.roles.filter(r => m.roleIds.includes(r.id)).map(r => r.id); save(); renderSettings(); renderMembers(); } break; }
-          case 'soundToggle': db.settings.sound = el.checked; save(); break;
+          case 'renameServer': db.name = el.value.trim() || 'The Council'; persist(); renderSide(); renderRail(); break;
+          case 'roleName': { const r = roleById(el.dataset.role); if (r) { r.name = el.value.trim() || 'role'; persist(); renderMembers(); renderSide(); } break; }
+          case 'roleHoist': { const r = roleById(el.dataset.role); if (r) { r.hoist = el.checked; persist(); renderMembers(); } break; }
+          case 'chanPrivate': { const c = db.channels.find(x => x.id === el.dataset.ch); if (c) { c.private = el.checked; if (c.private && !(c.allow || []).includes('owner')) c.allow = ['owner']; persist(); renderSide(); renderSettings(); renderMembers(); } break; }
+          case 'chanAllow': { const c = db.channels.find(x => x.id === el.dataset.ch); if (c) { const set = new Set(c.allow || []); el.checked ? set.add(el.dataset.role) : set.delete(el.dataset.role); c.allow = [...set]; persist(); renderMembers(); } break; }
+          case 'assignRole': { const m = memberByName(el.dataset.mem); if (m && el.value) { if (!m.roleIds.includes(el.value)) m.roleIds.push(el.value); m.roleIds = db.roles.filter(r => m.roleIds.includes(r.id)).map(r => r.id); persist(); renderSettings(); renderMembers(); } break; }
         }
       }
 
-      /* ---------- entry / wiring ---------- */
-      function openCouncil() {
-        db = load(); if (db) ensureShape(db);
-        if (db && !cur.channel) cur.channel = db.channels[0] && db.channels[0].id;
-        $('menuBtn').style.display = 'none';
-        showScreen('council');
-        if (!inited) { wire(); inited = true; }
-        renderAll();
+      /* ---------- entry / realtime ---------- */
+      function subscribe() {
+        FS.onSnapshot(ref, snap => {
+          db = snap.exists() ? snap.data() : null;
+          if (db) { db.pfps = db.pfps || {}; db.members = db.members || []; db.roles = db.roles || []; db.channels = db.channels || []; if (!cur.channel || !db.channels.some(c => c.id === cur.channel)) cur.channel = (viewableChannels()[0] || db.channels[0] || {}).id; }
+          ready = true;
+          if (!$('council').classList.contains('inactive')) renderAll(); else renderRail();
+        }, () => { ready = true; });
+        const q = FS.query(msgsCol, FS.orderBy('ts'), FS.limit(400));
+        FS.onSnapshot(q, snap => { const list = []; snap.forEach(d => list.push({ _id: d.id, ...d.data() })); handleMsgSnap(list); }, () => {});
       }
+      function openCouncil() { $('menuBtn').style.display = 'none'; showScreen('council'); if (!inited) { wire(); subscribe(); inited = true; } renderAll(); }
       function exitCouncil() { $('coApp').classList.remove('nav-open', 'mem-open'); closeModal(); closePop(); $('menuBtn').style.display = ''; showScreen('home'); }
-      function onAddServer() { if (db) { toast('One council at a time', 'Delete the current council first (Settings ▸ Overview).', false); return; } openCreate(); }
+      function onAddServer() { if (db) { toast('One council only', 'A council already exists.', false); return; } if (!canFound()) { toast('Not allowed', 'Only the founder can create the council.', false); return; } openCreate(); }
 
       function wire() {
         $('coHome').addEventListener('click', exitCouncil);
         $('coAddServer').addEventListener('click', onAddServer);
-        $('coServerHead').addEventListener('click', () => { if (db) openSettings('overview'); });
-        $('coMeGear').addEventListener('click', () => { if (db) openSettings('overview'); });
+        $('coServerHead').addEventListener('click', () => { if (isOwner()) openSettings('overview'); else if (amMember()) openProfile(me); });
+        $('coMeGear').addEventListener('click', () => { if (isOwner()) openSettings('overview'); else if (amMember()) openProfile(me); });
         $('coScrim').addEventListener('click', () => $('coApp').classList.remove('nav-open', 'mem-open'));
         $('coModal').addEventListener('click', e => { if (e.target.id === 'coModal') closeModal(); });
         $('coPop').addEventListener('click', e => { if (e.target.id === 'coPop') closePop(); });
         const root = $('council');
-        root.addEventListener('click', e => { const t = e.target.closest('[data-act]'); if (!t) return; if (t.matches('input,select,textarea,option')) return; /* let native toggle + change fire */ e.preventDefault(); act(t.dataset.act, t, e); });
+        root.addEventListener('click', e => { const t = e.target.closest('[data-act]'); if (!t) return; if (t.matches('input,select,textarea,option')) return; e.preventDefault(); act(t.dataset.act, t); });
         root.addEventListener('change', e => { const t = e.target.closest('[data-act]'); if (!t) return; change(t.dataset.act, t); });
         root.addEventListener('input', e => { if (e.target.tagName === 'TEXTAREA') { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px'; } });
-        root.addEventListener('keydown', e => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            if (e.target.id === 'coInput') { e.preventDefault(); sendMessage(); }
-            else if (e.target.id === 'coDmInput' && cur.dm) { e.preventDefault(); dmSend(cur.dm); }
-          }
-        });
+        root.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey && e.target.id === 'coInput') { e.preventDefault(); sendMessage(); } });
       }
       $('councilApp').addEventListener('click', openCouncil);
-    })({ fdb: db, collection: collection, getDocs: getDocs });
+    })({ fdb: db, collection: collection, doc: doc, getDoc: getDoc, getDocs: getDocs, setDoc: setDoc, addDoc: addDoc, updateDoc: updateDoc, deleteDoc: deleteDoc, onSnapshot: onSnapshot, query: query, orderBy: orderBy, limit: limit });
   })();
   </script>
 </body>
