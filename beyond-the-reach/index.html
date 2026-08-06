@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>BEYOND THE REACH — ODYSSEA</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ══════════════════ BROWSE ══════════════════ -->
+<div id="browse">
+
+  <header id="topnav">
+    <div class="brand">ODYSSEA</div>
+    <nav><a class="on">Home</a><a>Series</a><a>Films</a><a>New &amp; Popular</a><a>My List</a></nav>
+    <div class="navright">
+      <button id="navvoice" title="Voice Studio">🎙 <span>Voice Studio</span></button>
+      <div class="avatar"></div>
+    </div>
+  </header>
+
+  <section id="hero">
+    <div id="heroart"></div>
+    <div class="heroshade"></div>
+    <div class="herobody">
+      <div class="badge">ODYSSEA ORIGINAL SERIES</div>
+      <div class="herologo logo">
+        <span class="l1">BEYOND</span>
+        <span class="l2">THE&nbsp;REACH</span>
+      </div>
+      <div class="herometa">
+        <span class="match">98% Match</span><span>2026</span><span class="rating">TV-14</span>
+        <span>1 Season</span><span class="hd">HD</span><span>Anime · Adventure · Seafaring</span>
+      </div>
+      <p class="herodesc">
+        Two hundred miles west, the ocean stands up in a wall of cold light and no ship has ever crossed it.
+        Rook Vantier has a dead pirate's compass, a half-built boat, and one sentence he has been saving for eight years.
+      </p>
+      <div class="herobtns">
+        <button id="heroplay" class="play">▶ Play</button>
+        <button id="heroinfo" class="info">ⓘ More Info</button>
+      </div>
+      <div class="herotags"><b>Starring:</b> Rook Vantier, Nell Ostrand, Capt. Iris Thorne &nbsp;·&nbsp; <b>Tone:</b> Defiant, sea-salt, hard-won</div>
+    </div>
+  </section>
+
+  <section class="row">
+    <h2>Episodes &nbsp;<span class="season">Season 1</span></h2>
+    <div class="cards" id="eplist"></div>
+  </section>
+
+  <section class="row">
+    <h2>Because you want to be a pirate</h2>
+    <div class="cards" id="morelist"></div>
+  </section>
+
+  <footer id="foot">
+    <div>ODYSSEA · BEYOND THE REACH · Episode 1 “Raise Your Colors” · 23:00</div>
+    <div class="dim">Every frame, every note and every wave on this page is generated in your browser. Voices are yours to cast in Voice Studio.</div>
+  </footer>
+</div>
+
+<!-- ══════════════════ PLAYER ══════════════════ -->
+<div id="player">
+  <div id="stage">
+    <div id="frame">
+
+      <div id="worldwrap">
+        <div id="world">
+          <div class="sceneslot" id="sceneA"></div>
+          <div class="sceneslot" id="sceneB"></div>
+          <div class="charlayer" id="chars"></div>
+        </div>
+      </div>
+
+      <canvas id="fx"></canvas>
+      <div id="flash"></div>
+      <div id="grain"></div>
+      <div id="vig"></div>
+
+      <div id="cards">
+        <div id="loccard"><span></span></div>
+        <div id="titlecard"></div>
+      </div>
+
+      <div id="subs">
+        <div id="subname"></div>
+        <div id="subline"></div>
+      </div>
+
+      <div id="bars"><i class="bar top"></i><i class="bar bot"></i></div>
+
+      <div id="bigplay"><div class="tri">▶</div></div>
+    </div>
+  </div>
+
+  <div id="playertop">
+    <button id="btnback">← &nbsp;Back to browse</button>
+    <div class="nowplaying"><b>BEYOND THE REACH</b> &nbsp;·&nbsp; S1:E1 “Raise Your Colors”</div>
+  </div>
+
+  <div id="hud">
+    <button id="btnplay" title="Play / Pause">▶</button>
+    <button id="btnrw" title="Back 10s">⟲</button>
+    <button id="btnff" title="Forward 10s">⟳</button>
+    <div id="scrubwrap"><div id="scrub"><div id="played"></div><div id="chapters"></div><div id="knob"></div></div></div>
+    <div id="time">0:00 / 23:00</div>
+    <button id="btnskipop" class="wide hidden">Skip Intro</button>
+    <button id="btnvoice" title="Voice Studio">🎙</button>
+    <button id="btnsub" title="Subtitles" class="act">CC</button>
+    <button id="btnscript" title="Screenplay">☰</button>
+    <button id="btnfull" title="Fullscreen">⛶</button>
+  </div>
+</div>
+
+<!-- ══════════════════ VOICE STUDIO ══════════════════ -->
+<div id="voicepanel" class="panel">
+  <div class="panelhead"><h2>Voice Studio</h2><button class="x" data-close>✕</button></div>
+  <div class="panelbody">
+
+    <section>
+      <h3>1 · Provider</h3>
+      <div class="row">
+        <select id="provider">
+          <option value="elevenlabs">ElevenLabs — best acting (recommended)</option>
+          <option value="openai">OpenAI TTS — good, cheaper</option>
+          <option value="browser">Browser speech — free, robotic</option>
+        </select>
+      </div>
+      <div class="row" id="keyrow">
+        <input id="apikey" type="password" placeholder="API key — stored only in this browser">
+        <button id="savekey">Save</button>
+      </div>
+      <div class="row" id="modelrow"><label>Model</label><select id="model"></select></div>
+      <p class="hint" id="provhint"></p>
+    </section>
+
+    <section>
+      <h3>2 · Casting</h3>
+      <p class="hint">Pull the voices on your account, then cast the roles. Each character carries its own
+        delivery profile, and lines are rendered with the previous takes attached so the performance
+        continues across cuts instead of resetting to neutral.</p>
+      <div class="row"><button id="loadvoices">Load voices from my account</button><span id="vcount" class="hint"></span></div>
+      <div id="cast"></div>
+    </section>
+
+    <section>
+      <h3>3 · Render</h3>
+      <p class="hint">Renders each line once and caches it here (IndexedDB), so replays are instant and offline.
+        <span id="lncount">0</span> spoken lines in this episode.</p>
+      <div class="row">
+        <button id="renderall" class="primary">Render all voices</button>
+        <button id="renderstop" class="ghost">Stop</button>
+        <button id="clearcache" class="ghost danger">Clear cache</button>
+      </div>
+      <p class="hint">Already rendered from the CLI? Import those takes instead of paying for them
+        twice — open <code>voices/</code>, select all (Ctrl+A), done.</p>
+      <div class="row">
+        <button id="importbtn" class="ghost">Import rendered .mp3 files</button>
+        <input id="importinput" type="file" accept="audio/mpeg,.mp3" multiple hidden>
+      </div>
+      <div id="renderbar"><div></div></div>
+      <div id="renderlog"></div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ══════════════════ SCREENPLAY ══════════════════ -->
+<div id="scriptpanel" class="panel">
+  <div class="panelhead"><h2>Screenplay — S1:E1 “Raise Your Colors”</h2><button class="x" data-close>✕</button></div>
+  <div class="panelbody" id="scriptbody"></div>
+</div>
+
+<div id="scrim"></div>
+
+<script src="js/fx.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/art.js"></script>
+<script src="js/episode-01.js"></script>
+<script src="js/engine.js"></script>
+</body>
+</html>

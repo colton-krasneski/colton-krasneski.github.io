@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Red Rebellion — S1:E1 "Storyline"</title>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/player.css">
+</head>
+<body>
+
+<div class="rr-player" id="player">
+  <div class="rr-frame">
+
+    <div class="rr-stage"></div>
+    <div class="rr-overlay"></div>
+
+    <div class="rr-caption">
+      <span class="rr-caption-who"></span>
+      <span class="rr-caption-txt"></span>
+    </div>
+
+    <!-- top bar -->
+    <div class="rr-top">
+      <a class="rr-back" href="index.html">
+        <svg viewBox="0 0 24 24"><path d="M20 11H7.8l5.6-5.6L12 4l-8 8 8 8 1.4-1.4L7.8 13H20z"/></svg>
+        Hub
+      </a>
+      <div class="rr-top-title">The Red Rebellion<small>S1:E1 · STORYLINE</small></div>
+      <div class="rr-scenelabel"></div>
+    </div>
+
+    <button class="rr-skip" id="skipIntro">Skip Intro</button>
+
+    <!-- controls -->
+    <div class="rr-controls">
+      <div class="rr-progress"><div class="rr-progress-fill"></div></div>
+      <div class="rr-ctrlrow">
+        <button class="rr-ic" id="btnPlay" title="Play / Pause (Space)">
+          <svg id="icPlay" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+        </button>
+        <button class="rr-ic" id="btnPrev" title="Previous line (←)">
+          <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+        </button>
+        <button class="rr-ic" id="btnNext" title="Next line (→)">
+          <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>
+        </button>
+        <button class="rr-ic" id="btnRestart" title="Restart (R)">
+          <svg viewBox="0 0 24 24"><path d="M12 5V1L7 6l5 5V7a5 5 0 11-5 5H5a7 7 0 107-7z"/></svg>
+        </button>
+        <span class="rr-time"></span>
+
+        <span class="rr-spacer"></span>
+
+        <button class="rr-chip" id="btnCaps" title="Captions (C)">Captions</button>
+        <button class="rr-chip" id="btnVoice" title="Voices (V)">Voices</button>
+        <button class="rr-chip" id="btnMusic" title="Music (M)">Music</button>
+        <span class="rr-vol">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="#ded7cf"><path d="M3 9v6h4l5 5V4L7 9zm13.5 3a4.5 4.5 0 00-2.5-4v8a4.5 4.5 0 002.5-4z"/></svg>
+          <input type="range" id="vol" min="0" max="1" step="0.01" value="0.75" aria-label="Volume">
+        </span>
+        <button class="rr-ic" id="btnFull" title="Fullscreen (F)">
+          <svg viewBox="0 0 24 24"><path d="M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- start gate -->
+    <div class="rr-gate" id="gate">
+      <div class="rr-gate-inner">
+        <img src="assets/icon.svg" alt="">
+        <h1>The Red <em>Rebellion</em></h1>
+        <p class="ep">Season 1 · Episode 1 — "Storyline"</p>
+        <div class="rr-gate-actions">
+          <button class="rr-btn rr-btn-primary" id="gatePlay">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+            Play Episode
+          </button>
+          <button class="rr-btn" id="gateResume" hidden>Resume</button>
+          <a class="rr-btn" href="index.html">Back to Hub</a>
+        </div>
+        <p class="note">
+          Voices use your device's built-in speech engine — turn your sound on.
+          Captions are on by default. Space = play/pause, ← → = step through lines.
+        </p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script src="assets/js/audio.js"></script>
+<script src="assets/js/cast.js"></script>
+<script src="assets/js/episode-s1e1.js"></script>
+<script src="assets/js/player.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var params = new URLSearchParams(location.search);
+  var epId = params.get('ep') || 's1e1';
+  var ep = window.RREpisodes[epId] || window.RREpisodes.s1e1;
+
+  var root = document.getElementById('player');
+  var player = new RRPlayer(root, ep);
+
+  var icPlay = document.getElementById('icPlay');
+  var PLAY_PATH = 'M8 5v14l11-7z';
+  var PAUSE_PATH = 'M6 5h4v14H6zm8 0h4v14h-4z';
+
+  function syncChips() {
+    document.getElementById('btnCaps').classList.toggle('is-off', !player.captionsOn);
+    document.getElementById('btnVoice').classList.toggle('is-off', !player.voicesOn);
+    document.getElementById('btnMusic').classList.toggle('is-off', !player.musicOn);
+    root.classList.toggle('no-captions', !player.captionsOn);
+  }
+  function syncPlayIcon() {
+    icPlay.innerHTML = '<path d="' + (player.playing ? PAUSE_PATH : PLAY_PATH) + '"/>';
+  }
+
+  /* keep the Skip Intro button visible only during the title scene */
+  var origRunBeat = RRPlayer.prototype.runBeat;
+  player.runBeat = function (i) {
+    origRunBeat.call(this, i);
+    root.classList.toggle('at-intro', this.beats[this.index] && this.beats[this.index].sceneIndex === 0);
+    syncPlayIcon();
+  };
+
+  /* ---- start gate ---- */
+  var saved = player.loadSaved();
+  if (saved && saved.beat > 0 && !saved.done) {
+    var r = document.getElementById('gateResume');
+    r.hidden = false;
+    r.textContent = 'Resume from ' + Math.round((saved.beat + 1) / saved.total * 100) + '%';
+    r.addEventListener('click', function () {
+      start(); player.index = saved.beat; player.play();
+    });
+  }
+
+  function start() {
+    root.classList.add('is-started');
+    RRAudio.unlock();
+    RRAudio.setVolume(player.volume);
+    RRAudio.setMusic(player.musicOn);
+    document.getElementById('vol').value = player.volume;
+    syncChips();
+    showUI();
+  }
+
+  document.getElementById('gatePlay').addEventListener('click', function () {
+    start(); player.restart();
+  });
+
+
+  /* ---- transport ---- */
+  document.getElementById('btnPlay').addEventListener('click', function () { player.toggle(); syncPlayIcon(); });
+  document.getElementById('btnNext').addEventListener('click', function () { player.next(); });
+  document.getElementById('btnPrev').addEventListener('click', function () { player.prev(); });
+  document.getElementById('btnRestart').addEventListener('click', function () { player.restart(); });
+  document.getElementById('skipIntro').addEventListener('click', function () { player.skipIntro(); });
+
+  document.getElementById('btnCaps').addEventListener('click', function () {
+    player.captionsOn = !player.captionsOn; player.setPref('captions', player.captionsOn); syncChips();
+  });
+  document.getElementById('btnVoice').addEventListener('click', function () {
+    player.voicesOn = !player.voicesOn; player.setPref('voices', player.voicesOn);
+    if (!player.voicesOn && window.speechSynthesis) { try { speechSynthesis.cancel(); } catch (e) {} }
+    syncChips();
+  });
+  document.getElementById('btnMusic').addEventListener('click', function () {
+    player.musicOn = !player.musicOn; player.setPref('music', player.musicOn);
+    RRAudio.setMusic(player.musicOn); syncChips();
+  });
+  document.getElementById('vol').addEventListener('input', function () {
+    player.volume = parseFloat(this.value);
+    player.setPref('volume', player.volume);
+    RRAudio.setVolume(player.volume);
+  });
+  document.getElementById('btnFull').addEventListener('click', function () {
+    if (document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen && document.documentElement.requestFullscreen();
+  });
+
+  /* seek by clicking the progress bar */
+  var bar = root.querySelector('.rr-progress');
+  bar.addEventListener('click', function (e) {
+    var rect = bar.getBoundingClientRect();
+    var pct = (e.clientX - rect.left) / rect.width;
+    player.seek(Math.floor(pct * player.total));
+  });
+
+  /* watch-again button inside the end card */
+  root.addEventListener('click', function (e) {
+    var t = e.target.closest('[data-act="restart"]');
+    if (t) { root.classList.remove('is-finished'); player.restart(); }
+  });
+
+  /* ---- ui auto-hide ---- */
+  var hideTimer;
+  function showUI() {
+    root.classList.add('show-ui');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(function () {
+      if (player.playing) root.classList.remove('show-ui');
+    }, 2800);
+  }
+  ['mousemove', 'touchstart', 'keydown'].forEach(function (ev) {
+    document.addEventListener(ev, showUI, { passive: true });
+  });
+
+  /* ---- keyboard ---- */
+  document.addEventListener('keydown', function (e) {
+    if (!root.classList.contains('is-started')) return;
+    switch (e.key) {
+      case ' ': e.preventDefault(); player.toggle(); syncPlayIcon(); break;
+      case 'ArrowRight': player.next(); break;
+      case 'ArrowLeft': player.prev(); break;
+      case 'r': case 'R': player.restart(); break;
+      case 'c': case 'C': document.getElementById('btnCaps').click(); break;
+      case 'v': case 'V': document.getElementById('btnVoice').click(); break;
+      case 'm': case 'M': document.getElementById('btnMusic').click(); break;
+      case 'f': case 'F': document.getElementById('btnFull').click(); break;
+    }
+  });
+
+  /* stop the speech engine if the tab goes away */
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden && player.playing) { player.pause(); syncPlayIcon(); }
+  });
+  window.addEventListener('pagehide', function () {
+    if (window.speechSynthesis) { try { speechSynthesis.cancel(); } catch (e) {} }
+  });
+
+  /* first frame so the gate has something behind it */
+  player.renderScene(0);
+  syncChips();
+  syncPlayIcon();
+  document.getElementById('vol').value = player.volume;
+
+  /* deep link: watch.html?ep=s1e1&beat=12 opens straight on a moment */
+  var deep = parseInt(params.get('beat'), 10);
+  if (!isNaN(deep)) {
+    start();
+    player.seek(deep);
+    var b = player.beats[player.index];
+    if (b && (b.t === 'line' || b.t === 'narr')) player.caption(b.who || 'narrator', b.text, b.shout);
+    else player.caption(null, null);
+  }
+})();
+</script>
+</body>
+</html>

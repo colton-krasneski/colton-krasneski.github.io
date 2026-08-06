@@ -1,0 +1,11 @@
+# API keys — never commit these
+.env
+.env.local
+
+# rendered voice takes (regenerate with tools/render-voices.mjs)
+voices/*.mp3
+
+# screenshot output from tools/shots.mjs
+_shots/
+
+node_modules/

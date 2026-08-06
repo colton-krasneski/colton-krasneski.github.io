@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Red Rebellion Hub</title>
+<meta name="description" content="The Red Rebellion Hub — stream the animated adaptation of the comic. Season 1, Episode 1: Storyline.">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="assets/css/hub.css">
+</head>
+<body>
+
+<header class="nav" id="nav">
+  <a class="nav-brand" href="index.html">
+    <img src="assets/icon.svg" alt="">
+    <span>Red Rebellion</span>
+  </a>
+  <nav class="nav-links">
+    <a href="index.html" class="is-active">Home</a>
+    <a href="#episodes">Episodes</a>
+    <a href="#cast">Cast</a>
+    <a href="#pages">The Pages</a>
+  </nav>
+  <div class="nav-spacer"></div>
+  <div class="nav-profile">RR</div>
+</header>
+
+<!-- ───────────────── billboard ───────────────── -->
+<section class="hero">
+  <div class="hero-art" id="heroArt"></div>
+  <div class="hero-inner">
+    <div class="hero-kicker"><b>RR</b> SERIES</div>
+    <h1 class="hero-title">The Red<em>Rebellion</em></h1>
+    <p class="hero-arc">Enter the Skyline&nbsp;I</p>
+    <div class="hero-meta">
+      <span class="pill match">98% Match</span>
+      <span>2026</span>
+      <span class="pill">TV-Y7</span>
+      <span>1 Season</span>
+      <span class="pill">HAND-DRAWN</span>
+    </div>
+    <p class="hero-syn">
+      The evil cat pirates roam the ocean and nobody can stop them — or can they?
+      A crew sails on, a pirate is stripped of his rank, a ship is blown apart, and a
+      bounty poster starts something nobody can call back.
+    </p>
+    <div class="hero-actions">
+      <button class="btn btn-play" id="heroPlay">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        Play
+      </button>
+      <button class="btn btn-ghost" id="heroInfo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9a10 10 0 100 20 10 10 0 000-20zm0 18a8 8 0 110-16 8 8 0 010 16z"/></svg>
+        More Info
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ───────────────── rows ───────────────── -->
+<main class="rows">
+
+  <section class="row" id="continue" hidden>
+    <div class="row-head"><h2>Continue Watching</h2><span class="row-note" id="continueNote"></span></div>
+    <div class="row-scroll" id="continueRow"></div>
+  </section>
+
+  <section class="row" id="episodes">
+    <div class="row-head"><h2>Season 1</h2><span class="row-note">Adapted panel-for-panel from the original pages</span></div>
+    <div class="row-scroll" id="epRow"></div>
+  </section>
+
+  <section class="row" id="cast">
+    <div class="row-head"><h2>The Cast</h2><span class="row-note">Everyone who appears or speaks in Episode 1</span></div>
+    <div class="row-scroll" id="castRow"></div>
+  </section>
+
+  <section class="row" id="pages">
+    <div class="row-head"><h2>The Pages</h2><span class="row-note">Eight sheets, in order — the whole source of the episode</span></div>
+    <div class="row-scroll" id="pageRow"></div>
+  </section>
+
+</main>
+
+<footer class="foot">
+  <p><b>The Red Rebellion Hub</b> — a private, offline viewer for the comic
+     "The Red Rebellion: Enter the Skyline I".</p>
+  <p>Everything here runs in your browser: the artwork is drawn as vector line-work,
+     the voices use your system's speech engine, and the score and sound effects are
+     synthesised live. No files are downloaded and nothing is sent anywhere.</p>
+</footer>
+
+<!-- ───────────────── info modal ───────────────── -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-art" id="modalArt">
+      <button class="modal-close" id="modalClose" aria-label="Close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <h3>The Red Rebellion</h3>
+      <div class="modal-meta">
+        <span class="pill match">98% Match</span><span>2026</span>
+        <span class="pill">TV-Y7</span><span>Season 1 · 1 Episode</span>
+      </div>
+      <p id="modalSyn"></p>
+      <div class="modal-grid">
+        <div><h4>Cast</h4><p id="modalCast"></p></div>
+        <div><h4>Genres</h4><p>Adventure, Pirates, Hand-Drawn Animation</p></div>
+        <div><h4>This show is</h4><p>Scrappy, seafaring, ends on a cliffhanger.</p></div>
+      </div>
+      <div class="hero-actions" style="margin-top:22px">
+        <a class="btn btn-red" href="watch.html?ep=s1e1">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Play S1:E1
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/audio.js"></script>
+<script src="assets/js/cast.js"></script>
+<script src="assets/js/episode-s1e1.js"></script>
+<script>
+(function () {
+  'use strict';
+  var ep = window.RREpisodes.s1e1;
+
+  function svg(inner, vb, fit) {
+    return '<svg viewBox="' + (vb || '0 0 1600 900') + '" preserveAspectRatio="xMidYMid ' +
+      (fit || 'slice') + '">' + inner + '</svg>';
+  }
+
+  /* ---- hero art: the deck, crew aboard ---- */
+  document.getElementById('heroArt').innerHTML = svg(
+    RRCast.set('deck') +
+    RRCast.figure('virakshan', { x: 150, y: 303, scale: 2.2, pose: 'steer' }) +
+    RRCast.figure('redrix',  { x: 600, y: 320, scale: 2.1, pose: 'read' }) +
+    RRCast.figure('crew1',   { x: 1180, y: 320, scale: 2.1, pose: 'cheer', flip: true }) +
+    RRCast.figure('catcap',  { x: 1520, y: 312, scale: 2.15, pose: 'point', flip: true })
+  );
+
+  document.getElementById('modalArt').insertAdjacentHTML('afterbegin', svg(
+    RRCast.set('wreck') +
+    RRCast.figure('crew1', { x: 1240, y: 288, scale: 2.0, pose: 'shock', flip: true })
+  ));
+
+  /* ---- episode row ---- */
+  var EPISODES = [{
+    key: 's1e1', num: 1, title: 'Storyline', href: 'watch.html?ep=s1e1',
+    art: RRCast.set('attack'),
+    desc: 'The cat pirates rule the ocean. Redrix and the crew set out anyway — and by the end of the day somebody is in chains.',
+    runtime: '~3 min', badge: 'NEW'
+  }];
+
+  function epCard(e, progress) {
+    var bar = progress ? '<div class="card-bar"><i style="width:' +
+      Math.round((progress.beat + 1) / progress.total * 100) + '%"></i></div>' : '';
+    return '<a class="card" href="' + e.href + '">' +
+      '<div class="card-art">' +
+        (e.badge ? '<span class="card-badge">' + e.badge + '</span>' : '') +
+        svg(e.art) +
+        '<span class="card-runtime">' + e.runtime + '</span>' + bar +
+      '</div>' +
+      '<div class="card-body">' +
+        '<div class="card-title"><h3>' + e.num + '. ' + e.title + '</h3><span>' + e.runtime + '</span></div>' +
+        '<p class="card-desc">' + e.desc + '</p>' +
+      '</div></a>';
+  }
+
+  document.getElementById('epRow').innerHTML = EPISODES.map(function (e) { return epCard(e); }).join('');
+
+  /* ---- continue watching ---- */
+  try {
+    var raw = localStorage.getItem('rr.progress.s1e1');
+    if (raw) {
+      var p = JSON.parse(raw);
+      if (p && p.beat > 0 && !p.done) {
+        document.getElementById('continue').hidden = false;
+        document.getElementById('continueNote').textContent =
+          Math.round((p.beat + 1) / p.total * 100) + '% through';
+        document.getElementById('continueRow').innerHTML = epCard(EPISODES[0], p);
+      }
+    }
+  } catch (err) {}
+
+  /* ---- cast row ---- */
+  var ROLES = {
+    redrix:    'The lead. Reads a bounty on the deck and really wants to be a pirate. The pages never say his name.',
+    virakshan: 'Gets Redrix out when the cat pirates come over the side, then calls the course. "Let\'s continue our journey!"',
+    catcap:    'Leads the cat pirates. "Ah, the cat pirates rule these waters!"',
+    tophat:    'Stripped of his rank as a top hat pirate.',
+    crew1:    'Sees the Jolly Roger go down.',
+    crew2:    'First to shout that they are being attacked.',
+    escapee:  'Worth 20,000,000 berry. Gets out, then gets caught.',
+    cellmate: '"What kind of a cellmate would I be if I didn\'t help out?"',
+    hunter:   'Marine officer. Hunting, and reporting back.',
+    marinecap:'Orders the capture and the execution.',
+    rescuer:  '"Don\'t worry, sir, I got you!"',
+    unknown:  'Two words, at the very last second: "Hold it."'
+  };
+  var castHtml = Object.keys(ROLES).map(function (id) {
+    var ch = RRCast.CHARACTERS[id];
+    return '<div class="cast-card">' +
+      '<div class="cast-art">' + svg(RRCast.figure(id, { x: 6, y: 4, scale: 1, pose: 'idle' }), '0 0 132 194', 'meet') + '</div>' +
+      '<p class="cast-name" style="color:' + ch.color + '">' + ch.name + '</p>' +
+      '<p class="cast-role">' + ROLES[id] + '</p>' +
+    '</div>';
+  }).join('');
+  document.getElementById('castRow').innerHTML = castHtml;
+
+  /* ---- the pages ---- */
+  /* the running order of the episode — sheet order is not story order */
+  var PAGES = [
+    { n: 7, set: 'dark',      t: 'The Execution',    d: '"Capture him for execution immediately!"' },
+    { n: 8, set: 'stocks',    t: 'Chains',           d: 'A click, a rescue, and something breaking. "HOLD IT."' },
+    { n: 6, set: 'justice',   t: 'It Makes the Paper', d: 'He is gone. 20,000,000 berry, and the cellmate who helped.' },
+    { n: 5, set: 'deck',      t: 'Redrix Reads It',  d: '"A pirate?!" The crew laugh at him for wanting it.' },
+    { n: 4, set: 'attack',    t: 'BOOM',             d: 'The cat pirates attack. The ship and the Jolly Roger are hit.' },
+    { n: 3, set: 'crowsnest', t: 'These Waters',     d: 'The cat pirates rule them. Virakshan gets Redrix out.' },
+    { n: 2, set: 'island',    t: 'Ranashakoren',     d: 'The island, and the journey on. Full speed ahead.' },
+    { n: 1, set: 'cover',     t: 'Cover',            d: 'The Red Rebellion: Enter the Skyline I.' }
+  ];
+  /* draw each page thumbnail with the cast that stands on it */
+  function pageArt(p) {
+    var art = RRCast.set(p.set);
+    var sc = ep.scenes.filter(function (s) {
+      return s.page === p.n && s.set === p.set && (s.actors || []).length;
+    })[0];
+    if (sc) sc.actors.forEach(function (a) {
+      art += RRCast.figure(a.id, { x: a.x, y: a.y, scale: a.scale, pose: a.pose || 'idle', flip: a.flip });
+    });
+    return art;
+  }
+
+  document.getElementById('pageRow').innerHTML = PAGES.map(function (p) {
+    return '<div class="page-card">' +
+      '<div class="page-art">' + svg(pageArt(p), '0 0 1600 900', 'meet') + '</div>' +
+      '<div class="page-cap"><h4>Page ' + p.n + ' — ' + p.t + '</h4><p>' + p.d + '</p></div>' +
+    '</div>';
+  }).join('');
+
+  /* ---- modal ---- */
+  document.getElementById('modalSyn').textContent = ep.synopsis;
+  document.getElementById('modalCast').textContent =
+    Object.keys(ROLES).map(function (id) { return RRCast.CHARACTERS[id].name; }).join(', ');
+
+  var modal = document.getElementById('modal');
+  function openModal() { modal.classList.add('is-open'); RRAudio.unlock(); RRAudio.sfx('tadum'); }
+  function closeModal() { modal.classList.remove('is-open'); }
+  document.getElementById('heroInfo').addEventListener('click', openModal);
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  modal.addEventListener('click', function (e) { if (e.target === modal) closeModal(); });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModal(); });
+
+  document.getElementById('heroPlay').addEventListener('click', function () {
+    RRAudio.unlock(); RRAudio.sfx('tadum');
+    setTimeout(function () { location.href = 'watch.html?ep=s1e1'; }, 620);
+  });
+
+  /* ---- sticky nav ---- */
+  var nav = document.getElementById('nav');
+  window.addEventListener('scroll', function () {
+    nav.classList.toggle('is-stuck', window.scrollY > 40);
+  }, { passive: true });
+})();
+</script>
+</body>
+</html>
