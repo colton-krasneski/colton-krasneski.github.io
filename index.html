@@ -282,7 +282,7 @@
     .soc-strike-live { color: #00ff4188; font-size: 0.7rem; text-align: center; max-width: 320px; line-height: 1.4; }
 
     /* ---- Musicfy ---- */
-    .mf-wrap { width: min(100%, 500px); height: 100%; margin: 0 auto; display: flex; flex-direction: column; background: rgba(0,6,10,0.6); }
+    .mf-wrap { position: relative; width: min(100%, 500px); height: 100%; margin: 0 auto; display: flex; flex-direction: column; background: rgba(0,6,10,0.6); }
     .mf-top { display: flex; align-items: center; gap: 0.8rem; padding: 1rem; padding-top: calc(1rem + env(safe-area-inset-top)); border-bottom: 1px solid #00ff4133; }
     .mf-top .back { cursor: pointer; font-size: 1.3rem; color: #00ff41; background: none; border: none; font-family: inherit; }
     .mf-title { color: #00ff41; letter-spacing: 0.1em; text-shadow: 0 0 10px #00ff41; }
@@ -291,6 +291,10 @@
     .mf-tab.on { color: #00ff41; border-bottom-color: #00ff41; }
     .mf-view { flex: 1; overflow-y: auto; padding: 0.8rem; }
     .mf-searchbar { display: flex; gap: 0.5rem; margin-bottom: 0.7rem; }
+    .mf-help { margin-left: auto; background: none; border: 1px solid #ffd24a88; color: #ffd24a; border-radius: 50%; width: 28px; height: 28px; font-size: 0.95rem; flex: none; }
+    .mf-usage { margin: 0.6rem 0.8rem 0; padding: 0.6rem 1.6rem 0.6rem 0.8rem; border: 1px solid #ffd24a66; background: rgba(255,210,74,0.08); border-radius: 10px; color: #ffd24a; font-size: 0.8rem; line-height: 1.5; position: relative; }
+    .mf-usage b { color: #ffe58a; }
+    .mf-usage .x { position: absolute; top: 0.25rem; right: 0.35rem; background: none; border: none; color: #ffd24a; font-size: 0.95rem; }
     .mf-searchbar input { flex: 1; padding: 0.7rem 1rem; background: rgba(0,0,0,0.5); border: 1px solid #00ff4155; border-radius: 20px; color: #d6ffe4; font-family: inherit; font-size: 16px; outline: none; }
     .mf-searchbar button { padding: 0 1rem; background: #00ff41; color: #000; border: none; border-radius: 20px; cursor: pointer; font-size: 1rem; }
     .mf-list { display: flex; flex-direction: column; gap: 0.4rem; }
@@ -335,6 +339,10 @@
     #mfNowArtist { color: #00ff4188; font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     #mfNow button { background: none; border: 1px solid #00ff4155; border-radius: 50%; width: 40px; height: 40px; color: #00ff41; cursor: pointer; font-size: 1.1rem; flex: 0 0 40px; }
     #mfBinge { border-color: #ffd24a !important; }
+    #mfInfoBox { position: absolute; inset: 10% 6%; z-index: 8; background: rgba(0,10,5,0.97); border: 1px solid #00ff4155; border-radius: 12px; padding: 1rem; overflow-y: auto; color: #baffcf; font-size: 0.9rem; line-height: 1.55; }
+    #mfInfoBox .x { position: absolute; top: 0.4rem; right: 0.5rem; background: none; border: none; color: #00ff41; font-size: 1.1rem; }
+    #mfInfoBox h3 { color: #00ff41; margin: 0 1.4rem 0.15rem 0; }
+    #mfInfoBox .tag { display: inline-block; border: 1px solid #00ff4155; border-radius: 999px; padding: 0.1rem 0.6rem; margin: 0.4rem 0.3rem 0 0; font-size: 0.75rem; color: #00ff41; }
     .mf-kar-top { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 0.8rem; }
     .mf-kar-top .back { cursor: pointer; font-size: 1.3rem; color: #00ff41; background: none; border: none; }
     .mf-kar-title { flex: 1; color: #00ff41; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1019,6 +1027,8 @@
         <div class="app" id="passgameApp"><span class="icon">🔑</span><span class="label">Password Game</span></div>
         <div class="app" id="drivesadApp"><span class="icon">😔</span><span class="label">Drive Sad</span></div>
         <div class="app" id="councilApp"><span class="icon">🏛️</span><span class="label">The Council</span></div>
+        <div class="app" id="bitlifeApp"><span class="icon">🌆</span><span class="label">BitLife Online</span></div>
+        <div class="app" id="aitalkApp"><span class="icon">🤖</span><span class="label">AI Talk</span></div>
       </div>
     </div>
   </div>
@@ -1333,16 +1343,33 @@
       <div class="mf-top">
         <button class="back" id="mfBack">‹</button>
         <div class="mf-title">🎵 Musicfy</div>
+        <button class="mf-help" id="mfHelpBtn" title="How to use">?</button>
       </div>
       <div class="mf-tabs">
         <button class="mf-tab on" id="mfTabSearch">Search</button>
+        <button class="mf-tab" id="mfTabLibrary">My Music</button>
         <button class="mf-tab" id="mfTabPlaylists">Playlists</button>
       </div>
+      <div class="mf-usage" id="mfUsage">
+        <b>How Musicfy works</b><br>
+        🔍 <b>Search</b> — any song, full length, from YouTube. Heads up: YouTube music stops when you lock your phone or leave Safari.<br>
+        📁 <b>My Music</b> — add song files you own (Files app, iTunes buys, CDs). FULL songs that keep playing when you lock your phone or leave the app.<br>
+        🎵 Music keeps going while you use the rest of the site. Closing the Safari tab stops it.
+        <button class="x" id="mfUsageHide">✕</button>
+      </div>
       <div id="mfPlayerBox" style="display:none;"><div id="mfYT"></div></div>
+      <audio id="mfAudio" preload="none"></audio>
 
       <div class="mf-view" id="mfSearch">
         <div class="mf-searchbar"><input id="mfQuery" type="text" placeholder="Search any song or artist…"><button id="mfGo">🔍</button></div>
-        <div class="mf-list" id="mfResults"><div class="mf-note">Search for a song to begin. (30-second previews)</div></div>
+        <div class="mf-list" id="mfResults"><div class="mf-note">Search any song or artist — full songs from YouTube.</div></div>
+      </div>
+
+      <div class="mf-view" id="mfLibrary" style="display:none;">
+        <input id="mfFileIn" type="file" accept="audio/*" multiple style="display:none;">
+        <button class="mf-btn" id="mfAddFiles">+ Add song files</button>
+        <div class="mf-note">Full songs, and they keep playing when you lock your phone. Add MP3/M4A files you own — from the Files app, iTunes purchases, or ripped CDs. They save onto this device.</div>
+        <div class="mf-list" id="mfLibList"></div>
       </div>
 
       <div class="mf-view" id="mfPlaylists" style="display:none;">
@@ -1364,8 +1391,13 @@
       <div id="mfNow" style="display:none;">
         <img id="mfNowArt" alt="">
         <div class="mf-now-meta"><div id="mfNowTitle"></div><div id="mfNowArtist"></div></div>
+        <button id="mfInfo" title="Song info">ℹ️</button>
         <button id="mfBinge" title="Teacher Binge (sing along)">🎤</button>
         <button id="mfPlay">⏸️</button>
+      </div>
+      <div id="mfInfoBox" style="display:none;">
+        <button class="x" id="mfInfoClose">✕</button>
+        <div id="mfInfoBody"></div>
       </div>
     </div>
   </div>
@@ -2282,19 +2314,32 @@
 
   /* ===== MUSICFY ===== */
   (function () {
-    const YT_KEY = 'AIzaSyCd25Ha3T19bSFdyW-6j8yokBMjt1vVPAA';
     let current = null, results = [], karInt = null, mfMic = null;
     let ytPlayer = null, ytReady = false, pendingId = null;
+    let mode = null, queue = [], qIdx = -1;
+    const mfAudio = $('mfAudio');
     function plKey() { return 'mf_pl_' + (me || 'guest'); }
     function loadPls() { try { return JSON.parse(localStorage.getItem(plKey()) || '[]'); } catch (e) { return []; } }
     function savePls(p) { try { localStorage.setItem(plKey(), JSON.stringify(p)); } catch (e) {} }
 
-    function mfView(id) { ['mfSearch', 'mfPlaylists', 'mfPlaylist', 'mfKaraoke'].forEach(v => $(v).style.display = 'none'); $(id).style.display = 'block'; }
-    function setTab(t) { $('mfTabSearch').classList.toggle('on', t === 'search'); $('mfTabPlaylists').classList.toggle('on', t === 'playlists'); }
+    function mfView(id) { ['mfSearch', 'mfLibrary', 'mfPlaylists', 'mfPlaylist', 'mfKaraoke'].forEach(v => $(v).style.display = 'none'); $(id).style.display = 'block'; }
+    function setTab(t) { $('mfTabSearch').classList.toggle('on', t === 'search'); $('mfTabLibrary').classList.toggle('on', t === 'library'); $('mfTabPlaylists').classList.toggle('on', t === 'playlists'); }
     function openMusicfy() { $('menuBtn').style.display = 'none'; showScreen('musicfy'); setTab('search'); mfView('mfSearch'); loadYT(); }
     $('musicfyApp').addEventListener('click', openMusicfy);
-    $('mfBack').addEventListener('click', () => { stopKaraoke(); if (ytPlayer && ytPlayer.pauseVideo) ytPlayer.pauseVideo(); $('menuBtn').style.display = ''; showScreen('home'); });
+    /* Back does NOT stop the music — it keeps playing while you use the rest of the site */
+    $('mfBack').addEventListener('click', () => { stopKaraoke(); $('menuBtn').style.display = ''; showScreen('home'); });
     $('mfTabSearch').addEventListener('click', () => { setTab('search'); mfView('mfSearch'); });
+    $('mfTabLibrary').addEventListener('click', () => { setTab('library'); renderLibrary(); mfView('mfLibrary'); });
+    /* yellow usage guide: shown until dismissed, "?" brings it back */
+    const USAGE_KEY = 'mf_usage_hidden';
+    function showUsage(v) { $('mfUsage').style.display = v ? 'block' : 'none'; }
+    showUsage(!localStorage.getItem(USAGE_KEY));
+    $('mfUsageHide').addEventListener('click', () => { try { localStorage.setItem(USAGE_KEY, '1'); } catch (e) {} showUsage(false); });
+    $('mfHelpBtn').addEventListener('click', () => {
+      const open = $('mfUsage').style.display !== 'none';
+      try { if (!open) localStorage.removeItem(USAGE_KEY); else localStorage.setItem(USAGE_KEY, '1'); } catch (e) {}
+      showUsage(!open);
+    });
     $('mfTabPlaylists').addEventListener('click', () => { setTab('playlists'); renderPlaylists(); mfView('mfPlaylists'); });
 
     /* YouTube IFrame player (full songs) */
@@ -2314,10 +2359,13 @@
         }
       });
     }
+    /* YouTube search: every real song, full length, plays in the app.
+       (YouTube pauses when the phone locks or Safari is left — their rule, not ours.) */
+    const YT_KEY = 'AIzaSyCd25Ha3T19bSFdyW-6j8yokBMjt1vVPAA';
     function decodeHtml(s) { const t = document.createElement('textarea'); t.innerHTML = s || ''; return t.value; }
     function quotaFace(d) {
       const quota = /quota|dailyLimit/i.test(JSON.stringify((d && d.error) || ''));
-      $('mfResults').innerHTML = '<div class="mf-frown">😞</div><div class="mf-note">' + (quota ? 'Out of searches for today — they reset tomorrow. You can still play songs from your Playlists (free & unlimited)!' : 'Search error — try again.') + '</div>';
+      $('mfResults').innerHTML = '<div class="mf-frown">😞</div><div class="mf-note">' + (quota ? 'Out of searches for today — they reset tomorrow. You can still play songs from your Playlists and My Music!' : 'Search error — try again.') + '</div>';
     }
     async function doSearch(q) {
       const box = $('mfResults'); box.innerHTML = '<div class="mf-note">Searching…</div>';
@@ -2332,22 +2380,135 @@
     function renderResults() {
       const box = $('mfResults'); box.innerHTML = '';
       if (!results.length) { box.innerHTML = '<div class="mf-note">No results.</div>'; return; }
-      results.forEach(song => box.appendChild(songRow(song, true)));
+      results.forEach(song => box.appendChild(songRow(song, true, results)));
     }
-    function songRow(song, withAdd) {
+    const MF_NOART = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 44"><rect width="44" height="44" rx="8" fill="%2300331a"/><text x="22" y="30" font-size="22" text-anchor="middle">🎵</text></svg>';
+    function songRow(song, withAdd, list) {
       const row = document.createElement('div'); row.className = 'mf-row';
-      row.innerHTML = `<img src="${song.art}" alt=""><div class="mf-meta"><div class="mf-t">${esc(song.title)}</div><div class="mf-a">${esc(song.artist)}</div></div>`;
-      const p = document.createElement('button'); p.textContent = '▶'; p.onclick = () => playSong(song); row.appendChild(p);
+      row.innerHTML = `<img src="${song.art || MF_NOART}" alt=""><div class="mf-meta"><div class="mf-t">${esc(song.title)}</div><div class="mf-a">${esc(song.artist)}</div></div>`;
+      const p = document.createElement('button'); p.textContent = '▶'; p.onclick = () => playSong(song, list); row.appendChild(p);
       if (withAdd) { const a = document.createElement('button'); a.textContent = '+'; a.onclick = () => addToPlaylist(song); row.appendChild(a); }
       return row;
     }
     $('mfGo').addEventListener('click', () => { const q = $('mfQuery').value.trim(); if (q) doSearch(q); });
     $('mfQuery').addEventListener('keydown', e => { if (e.key === 'Enter') { const q = $('mfQuery').value.trim(); if (q) doSearch(q); } });
 
-    function playSong(song) { current = song; showNow(); if (ytReady && ytPlayer) { ytPlayer.loadVideoById(song.id); ytPlayer.setVolume(100); } else { pendingId = song.id; loadYT(); } }
-    function showNow() { if (!current) return; $('mfPlayerBox').style.display = 'block'; $('mfNow').style.display = 'flex'; $('mfNowArt').src = current.art; $('mfNowTitle').textContent = current.title; $('mfNowArtist').textContent = current.artist; $('mfPlay').textContent = '⏸️'; }
-    $('mfPlay').addEventListener('click', () => { if (!ytPlayer) return; const st = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : -1; if (st === 1) ytPlayer.pauseVideo(); else { ytPlayer.playVideo(); ytPlayer.setVolume(100); } });
+    function playSong(song, list) {
+      current = song;
+      queue = (list && list.length) ? list : [song];
+      qIdx = Math.max(0, queue.indexOf(song));
+      showNow();
+      if (song.preview || song.file) {
+        mode = 'audio';
+        if (ytPlayer && ytPlayer.pauseVideo) { try { ytPlayer.pauseVideo(); } catch (e) {} }
+        $('mfPlayerBox').style.display = 'none';
+        if (song.file) playLib(song);
+        else { mfAudio.src = song.preview; mfAudio.play().catch(() => {}); setMediaSession(song); }
+      } else {
+        if (!song.id) return;
+        mode = 'yt';
+        mfAudio.pause();
+        $('mfPlayerBox').style.display = 'block';
+        if (ytReady && ytPlayer) { ytPlayer.loadVideoById(song.id); ytPlayer.setVolume(100); } else { pendingId = song.id; loadYT(); }
+      }
+    }
+
+    /* My Music: full-length song files saved on this device (IndexedDB) */
+    let libDBP = null, libURL = null;
+    function libDB() {
+      if (!libDBP) libDBP = new Promise((res, rej) => {
+        const r = indexedDB.open('mf_library', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('songs', { keyPath: 'key' });
+        r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+      });
+      return libDBP;
+    }
+    async function libAll() { const db = await libDB(); return new Promise((res, rej) => { const rq = db.transaction('songs').objectStore('songs').getAll(); rq.onsuccess = () => res(rq.result || []); rq.onerror = () => rej(rq.error); }); }
+    async function libPut(rec) { const db = await libDB(); return new Promise((res, rej) => { const tx = db.transaction('songs', 'readwrite'); tx.objectStore('songs').put(rec); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); }
+    async function libDel(key) { const db = await libDB(); return new Promise((res, rej) => { const tx = db.transaction('songs', 'readwrite'); tx.objectStore('songs').delete(key); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); }
+    async function playLib(song) {
+      try {
+        const db = await libDB();
+        const rec = await new Promise((res, rej) => { const rq = db.transaction('songs').objectStore('songs').get(song.file); rq.onsuccess = () => res(rq.result); rq.onerror = () => rej(rq.error); });
+        if (!rec) return;
+        if (libURL) URL.revokeObjectURL(libURL);
+        libURL = URL.createObjectURL(rec.blob);
+        mfAudio.src = libURL; mfAudio.play().catch(() => {}); setMediaSession(song);
+      } catch (e) {}
+    }
+    $('mfAddFiles').addEventListener('click', () => $('mfFileIn').click());
+    $('mfFileIn').addEventListener('change', async e => {
+      const files = Array.from(e.target.files || []);
+      for (const f of files) {
+        const title = f.name.replace(/\.[^.]+$/, '');
+        try { await libPut({ key: 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2), title, blob: f }); }
+        catch (err) { alert('Couldn’t save "' + title + '" — the device may be out of storage.'); break; }
+      }
+      e.target.value = '';
+      renderLibrary();
+    });
+    async function renderLibrary() {
+      const box = $('mfLibList'); box.innerHTML = '<div class="mf-note">Loading…</div>';
+      try {
+        const recs = await libAll();
+        box.innerHTML = '';
+        if (!recs.length) { box.innerHTML = '<div class="mf-note">No songs yet — tap "+ Add song files".</div>'; return; }
+        const list = recs.map(r => ({ file: r.key, title: r.title, artist: 'My Music', art: '' }));
+        list.forEach(song => {
+          const row = songRow(song, false, list);
+          const del = document.createElement('button'); del.textContent = '🗑';
+          del.onclick = async () => { if (confirm('Delete "' + song.title + '"?')) { await libDel(song.file); renderLibrary(); } };
+          row.appendChild(del);
+          box.appendChild(row);
+        });
+      } catch (e) { box.innerHTML = '<div class="mf-note">Couldn’t open the music library on this device.</div>'; }
+    }
+    /* Lock-screen title/art + play/pause/skip buttons (like Spotify) */
+    function setMediaSession(song) {
+      if (!('mediaSession' in navigator)) return;
+      try {
+        navigator.mediaSession.metadata = new MediaMetadata({ title: song.title, artist: song.artist, artwork: song.art ? [{ src: song.art, sizes: '150x150', type: 'image/jpeg' }] : [] });
+        navigator.mediaSession.setActionHandler('play', () => mfAudio.play().catch(() => {}));
+        navigator.mediaSession.setActionHandler('pause', () => mfAudio.pause());
+        navigator.mediaSession.setActionHandler('previoustrack', () => step(-1));
+        navigator.mediaSession.setActionHandler('nexttrack', () => step(1));
+      } catch (e) {}
+    }
+    function step(d) { if (!queue.length) return; qIdx = (qIdx + d + queue.length) % queue.length; playSong(queue[qIdx], queue); }
+    mfAudio.addEventListener('ended', () => { if (queue.length > 1) step(1); else $('mfPlay').textContent = '▶️'; });
+    mfAudio.addEventListener('play', () => { $('mfPlay').textContent = '⏸️'; });
+    mfAudio.addEventListener('pause', () => { $('mfPlay').textContent = '▶️'; });
+    function showNow() { if (!current) return; $('mfNow').style.display = 'flex'; $('mfNowArt').src = current.art || MF_NOART; $('mfNowTitle').textContent = current.title; $('mfNowArtist').textContent = current.artist; $('mfPlay').textContent = '⏸️'; }
+    $('mfPlay').addEventListener('click', () => {
+      if (mode === 'audio') { if (mfAudio.paused) mfAudio.play().catch(() => {}); else mfAudio.pause(); return; }
+      if (!ytPlayer) return; const st = ytPlayer.getPlayerState ? ytPlayer.getPlayerState() : -1; if (st === 1) ytPlayer.pauseVideo(); else { ytPlayer.playVideo(); ytPlayer.setVolume(100); }
+    });
     $('mfBinge').addEventListener('click', () => { if (current) startKaraoke(); });
+
+    /* ℹ️ Song info from TheAudioDB (facts, story, genre — it's a database, not a music source) */
+    const infoCache = {};
+    $('mfInfo').addEventListener('click', async () => {
+      if (!current) return;
+      const body = $('mfInfoBody');
+      $('mfInfoBox').style.display = 'block';
+      const key = (current.artist || '') + '|' + current.title;
+      if (infoCache[key]) { body.innerHTML = infoCache[key]; return; }
+      body.innerHTML = '<div class="mf-note">Looking up this song…</div>';
+      let t = null;
+      try {
+        const d = await (await fetch('https://www.theaudiodb.com/api/v1/json/2/searchtrack.php?s=' + encodeURIComponent(current.artist || '') + '&t=' + encodeURIComponent(current.title))).json();
+        t = d.track && d.track[0];
+      } catch (e) {}
+      if (!t) { body.innerHTML = '<div class="mf-note">No info found for this version — it may be a fan upload rather than the official release.</div>'; return; }
+      const mins = t.intDuration ? (Math.round(t.intDuration / 6000) / 10) : null;
+      let h = '<h3>' + esc(t.strTrack) + '</h3><div style="color:#00ff41aa;">' + esc(t.strArtist) + (t.strAlbum ? ' · ' + esc(t.strAlbum) : '') + '</div>';
+      [t.strGenre, t.strMood, t.strStyle, mins ? mins + ' min' : null, t.intTempo ? t.intTempo + ' BPM' : null, t.strKey ? 'Key of ' + t.strKey : null]
+        .filter(Boolean).forEach(x => h += '<span class="tag">' + esc(String(x)) + '</span>');
+      if (t.strDescriptionEN) h += '<p style="margin-top:0.6rem;">' + esc(t.strDescriptionEN) + '</p>';
+      infoCache[key] = h;
+      body.innerHTML = h;
+    });
+    $('mfInfoClose').addEventListener('click', () => { $('mfInfoBox').style.display = 'none'; });
 
     function addToPlaylist(song) {
       let name = prompt('Add to which playlist? Type a new name to create one:'); if (!name) return; name = name.trim(); if (!name) return;
@@ -2373,7 +2534,7 @@
       $('mfPlName').textContent = pl.name;
       const box = $('mfPlSongs'); box.innerHTML = '';
       if (!pl.songs.length) box.innerHTML = '<div class="mf-note">Empty — add songs from Search.</div>';
-      else pl.songs.forEach(song => { const row = songRow(song, false); const del = document.createElement('button'); del.textContent = '🗑'; del.onclick = () => { const p = loadPls(); p[i].songs = p[i].songs.filter(s => s.id !== song.id); savePls(p); openPlaylist(i); }; row.appendChild(del); box.appendChild(row); });
+      else pl.songs.forEach(song => { const row = songRow(song, false, pl.songs); const del = document.createElement('button'); del.textContent = '🗑'; del.onclick = () => { const p = loadPls(); p[i].songs = p[i].songs.filter(s => s.id !== song.id); savePls(p); openPlaylist(i); }; row.appendChild(del); box.appendChild(row); });
       mfView('mfPlaylist');
     }
     $('mfPlBack').addEventListener('click', () => { setTab('playlists'); renderPlaylists(); mfView('mfPlaylists'); });
@@ -2387,7 +2548,8 @@
     async function startKaraoke() {
       mfView('mfKaraoke'); $('mfKarTitle').textContent = current.title;
       $('mfLyrics').innerHTML = '<div class="mf-note">Loading lyrics…</div>';
-      if (ytPlayer && ytReady) { try { ytPlayer.seekTo(0); ytPlayer.playVideo(); ytPlayer.setVolume(100); } catch (e) {} }
+      if (mode === 'audio') { try { mfAudio.currentTime = 0; mfAudio.play().catch(() => {}); } catch (e) {} }
+      else if (ytPlayer && ytReady) { try { ytPlayer.seekTo(0); ytPlayer.playVideo(); ytPlayer.setVolume(100); } catch (e) {} }
       startKarMic();
       const at = guessAT();
       let lyrics = null;
@@ -4784,6 +4946,18 @@
     $('dsOvNext').addEventListener('click', () => { if (lvl < LEVELS) startLevel(lvl + 1); });
     $('dsOvMenu').addEventListener('click', () => toMenu());
     window.addEventListener('resize', () => { if (running && $('dsGame').style.display !== 'none') sizeCanvas(); });
+
+    /* ================= STANDALONE APPS =================
+       BitLife Online and AI Talk live in their own folders rather than inline:
+       each is big enough that adding it here would bloat this page for every
+       visitor. Hand the logged-in username across first so their local saves
+       are per-account. */
+    function launchApp(path) {
+      if (me) localStorage.setItem('colton_last_user', me);
+      location.href = path;
+    }
+    $('bitlifeApp').addEventListener('click', () => launchApp('bitlife/'));
+    $('aitalkApp').addEventListener('click', () => launchApp('ai-talk/'));
 
     /* ================= THE COUNCIL (shared, Firestore-backed) ================= */
     (function (FS) {
