@@ -516,108 +516,218 @@
     .app.locked .icon { opacity: 0.45; filter: grayscale(0.4); }
     .app.locked .label { color: #00ff4155; }
 
-    /* ---- Messages app ---- */
+    /* ---- Messages app ----
+       Every colour below comes from a --m-* variable so the whole app can be
+       reskinned by swapping one attribute on <body>. Matrix is the default and
+       is what every account gets until they pick something else in ⚙ Settings. */
+    body[data-msgtheme="matrix"], body:not([data-msgtheme]) {
+      --m-app: rgba(0, 8, 3, 0.9);      --m-panel: rgba(0, 12, 4, 0.98);
+      --m-line: #00ff4133;              --m-line-soft: #00ff4118;
+      --m-edge: #00ff4155;              --m-accent: #00ff41;
+      --m-ink: #000;                    --m-text: #baffcf;
+      --m-dim: #00ff4188;               --m-faint: #00ff4177;
+      --m-glow: 0 0 10px #00ff41;       --m-hover: rgba(0,255,65,0.08);
+      --m-field: rgba(0,0,0,0.5);       --m-focus: 0 0 10px rgba(0,255,65,0.4);
+      --m-shadow: 0 0 20px rgba(0,255,65,0.4);
+      --m-scrim: rgba(0,4,1,0.93);      --m-pattern: rgba(0,255,65,0.16);
+      --m-me: #00662a;                  --m-me-text: #d6ffe4;
+      --m-them: rgba(0,255,65,0.12);    --m-them-text: #baffcf;
+    }
+    body[data-msgtheme="midnight"] {
+      --m-app: #0f1218;                 --m-panel: #171b24;
+      --m-line: #ffffff1f;              --m-line-soft: #ffffff12;
+      --m-edge: #ffffff33;              --m-accent: #6ea8fe;
+      --m-ink: #06101f;                 --m-text: #dde3ee;
+      --m-dim: #9aa6bb;                 --m-faint: #7b869b;
+      --m-glow: none;                   --m-hover: rgba(255,255,255,0.06);
+      --m-field: rgba(255,255,255,0.06);--m-focus: 0 0 0 2px rgba(110,168,254,0.35);
+      --m-shadow: 0 8px 26px rgba(0,0,0,0.6);
+      --m-scrim: rgba(8,10,14,0.9);     --m-pattern: rgba(255,255,255,0.09);
+      --m-me: #2f6fd0;                  --m-me-text: #ffffff;
+      --m-them: #232936;                --m-them-text: #dde3ee;
+    }
+    body[data-msgtheme="daylight"] {
+      --m-app: #f4f6fa;                 --m-panel: #ffffff;
+      --m-line: #0f172a1f;              --m-line-soft: #0f172a12;
+      --m-edge: #0f172a33;              --m-accent: #2563eb;
+      --m-ink: #ffffff;                 --m-text: #16202e;
+      --m-dim: #5b6779;                 --m-faint: #7b8798;
+      --m-glow: none;                   --m-hover: rgba(37,99,235,0.07);
+      --m-field: #eef1f7;               --m-focus: 0 0 0 2px rgba(37,99,235,0.3);
+      --m-shadow: 0 8px 26px rgba(15,23,42,0.18);
+      --m-scrim: rgba(244,246,250,0.94);--m-pattern: rgba(15,23,42,0.09);
+      --m-me: #2563eb;                  --m-me-text: #ffffff;
+      --m-them: #e7ebf3;                --m-them-text: #16202e;
+    }
+    body[data-msgtheme="bubblegum"] {
+      --m-app: #1d0a1e;                 --m-panel: #2a0f2b;
+      --m-line: #ff6ec733;              --m-line-soft: #ff6ec71c;
+      --m-edge: #ff6ec755;              --m-accent: #ff6ec7;
+      --m-ink: #2a0016;                 --m-text: #ffd9f2;
+      --m-dim: #ff6ec7aa;               --m-faint: #ff6ec788;
+      --m-glow: 0 0 12px #ff6ec7aa;     --m-hover: rgba(255,110,199,0.1);
+      --m-field: rgba(0,0,0,0.35);      --m-focus: 0 0 10px rgba(255,110,199,0.45);
+      --m-shadow: 0 0 20px rgba(255,110,199,0.35);
+      --m-scrim: rgba(20,4,20,0.93);    --m-pattern: rgba(255,110,199,0.16);
+      --m-me: #b0247a;                  --m-me-text: #ffe7f6;
+      --m-them: rgba(255,110,199,0.14); --m-them-text: #ffd9f2;
+    }
+    body[data-msgtheme="sunset"] {
+      --m-app: #190c07;                 --m-panel: #24110a;
+      --m-line: #ff9a3c33;              --m-line-soft: #ff9a3c1c;
+      --m-edge: #ff9a3c55;              --m-accent: #ff9a3c;
+      --m-ink: #24110a;                 --m-text: #ffe1c2;
+      --m-dim: #ff9a3caa;               --m-faint: #ff9a3c88;
+      --m-glow: 0 0 12px #ff9a3caa;     --m-hover: rgba(255,154,60,0.1);
+      --m-field: rgba(0,0,0,0.35);      --m-focus: 0 0 10px rgba(255,154,60,0.45);
+      --m-shadow: 0 0 20px rgba(255,154,60,0.35);
+      --m-scrim: rgba(18,8,4,0.93);     --m-pattern: rgba(255,154,60,0.16);
+      --m-me: #b1521a;                  --m-me-text: #fff2e0;
+      --m-them: rgba(255,154,60,0.13);  --m-them-text: #ffe1c2;
+    }
+    body[data-msgtheme="amber"] {
+      --m-app: #0c0a03;                 --m-panel: #151005;
+      --m-line: #ffb00033;              --m-line-soft: #ffb0001c;
+      --m-edge: #ffb00055;              --m-accent: #ffb000;
+      --m-ink: #1a1200;                 --m-text: #ffdf9e;
+      --m-dim: #ffb000aa;               --m-faint: #ffb00088;
+      --m-glow: 0 0 10px #ffb000;       --m-hover: rgba(255,176,0,0.1);
+      --m-field: rgba(0,0,0,0.45);      --m-focus: 0 0 10px rgba(255,176,0,0.4);
+      --m-shadow: 0 0 20px rgba(255,176,0,0.35);
+      --m-scrim: rgba(10,8,2,0.94);     --m-pattern: rgba(255,176,0,0.15);
+      --m-me: #6b4a00;                  --m-me-text: #ffe9b8;
+      --m-them: rgba(255,176,0,0.12);   --m-them-text: #ffdf9e;
+    }
+
     .msg-app {
       width: min(100%, 480px); height: 100%; margin: 0 auto;
-      background: rgba(0, 8, 3, 0.9);
-      border-left: 1px solid #00ff4133; border-right: 1px solid #00ff4133;
+      background: var(--m-app);
+      border-left: 1px solid var(--m-line); border-right: 1px solid var(--m-line);
       display: flex; flex-direction: column; position: relative;
     }
     .msg-top {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 1rem; border-bottom: 1px solid #00ff4133;
+      padding: 1rem; border-bottom: 1px solid var(--m-line);
       padding-top: calc(1rem + env(safe-area-inset-top));
       position: relative; z-index: 5;   /* keeps the ⋯ menu above the thread */
+      background: var(--m-panel);
     }
-    .msg-top .back { cursor: pointer; font-size: 1.3rem; color: #00ff41; background: none; border: none; font-family: inherit; }
-    .msg-top .heading { font-size: 1.2rem; letter-spacing: 0.15em; color: #00ff41; text-shadow: 0 0 10px #00ff41; }
+    .msg-top .back { cursor: pointer; font-size: 1.3rem; color: var(--m-accent); background: none; border: none; font-family: inherit; }
+    .msg-top .heading { font-size: 1.2rem; letter-spacing: 0.15em; color: var(--m-accent); text-shadow: var(--m-glow); }
     .msg-top .plus {
-      cursor: pointer; font-size: 1.5rem; color: #00ff41;
-      background: none; border: 1px solid #00ff4155; border-radius: 50%;
+      cursor: pointer; font-size: 1.5rem; color: var(--m-accent);
+      background: none; border: 1px solid var(--m-edge); border-radius: 50%;
       width: 34px; height: 34px; line-height: 1; font-family: inherit;
     }
-    .msg-top .plus:hover { background: #00ff41; color: #000; }
+    .msg-top .plus:hover { background: var(--m-accent); color: var(--m-ink); }
     .conv-list { flex: 1; overflow-y: auto; }
     .conv {
-      padding: 0.9rem 1rem; border-bottom: 1px solid #00ff4118; cursor: pointer;
+      padding: 0.9rem 1rem; border-bottom: 1px solid var(--m-line-soft); cursor: pointer;
       display: flex; flex-direction: column; gap: 0.2rem;
     }
-    .conv:hover { background: rgba(0,255,65,0.06); }
-    .conv .name { color: #00ff41; font-size: 1.05rem; }
-    .conv .preview { color: #00ff4188; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .conv .name .tag { font-size: 0.68rem; color: #00ff4188; margin-left: 0.45rem; }
-    .empty-note { padding: 2rem 1rem; text-align: center; color: #00ff4177; font-size: 0.9rem; line-height: 1.5; }
+    .conv:hover { background: var(--m-hover); }
+    .conv .name { color: var(--m-accent); font-size: 1.05rem; }
+    .conv .preview { color: var(--m-dim); font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conv .name .tag { font-size: 0.68rem; color: var(--m-dim); margin-left: 0.45rem; }
+    .empty-note { padding: 2rem 1rem; text-align: center; color: var(--m-faint); font-size: 0.9rem; line-height: 1.5; }
     .callbtn { background: none; border: none; cursor: pointer; font-size: 1.2rem; }
 
     /* ---- group chats ---- */
     .chat-id { flex: 1; min-width: 0; text-align: center; padding: 0 0.4rem; }
     .chat-id .heading { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .chat-sub {
-      color: #00ff4177; font-size: 0.68rem; letter-spacing: 0.04em; margin-top: 3px;
+      color: var(--m-faint); font-size: 0.68rem; letter-spacing: 0.04em; margin-top: 3px;
       white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     }
     .chat-tools { display: flex; align-items: center; gap: 0.3rem; flex: none; }
     #grpMenu {
       position: absolute; top: 100%; right: 10px; z-index: 30; display: none;
       flex-direction: column; min-width: 200px; margin-top: 6px;
-      background: rgba(0, 12, 4, 0.98); border: 1px solid #00ff4166; border-radius: 12px;
-      padding: 0.35rem; box-shadow: 0 0 18px rgba(0, 255, 65, 0.4);
+      background: var(--m-panel); border: 1px solid var(--m-edge); border-radius: 12px;
+      padding: 0.35rem; box-shadow: var(--m-shadow);
     }
     #grpMenu.open { display: flex; }
     #grpMenu button {
-      background: none; border: none; color: #baffcf; font-family: inherit; font-size: 0.85rem;
+      background: none; border: none; color: var(--m-text); font-family: inherit; font-size: 0.85rem;
       text-align: left; padding: 0.6rem 0.7rem; border-radius: 8px; cursor: pointer;
     }
-    #grpMenu button:hover { background: rgba(0, 255, 65, 0.12); color: #00ff41; }
+    #grpMenu button:hover { background: var(--m-hover); color: var(--m-accent); }
     #grpMenu button.danger { color: #ff6b81; }
     #grpMenu button.danger:hover { background: rgba(255, 0, 51, 0.16); color: #ff8fa1; }
-    .msg-wrap .who { font-size: 0.68rem; color: #00ff41aa; letter-spacing: 0.06em; margin: 0 0.4rem 3px; }
-    .sys-note { align-self: center; font-size: 0.7rem; color: #00ff4177; text-align: center; padding: 0.2rem 0.6rem; }
+    #grpMenu.dm .group-only { display: none; }   /* one-on-one chats only get the wallpaper item */
+    .msg-wrap .who { font-size: 0.68rem; color: var(--m-dim); letter-spacing: 0.06em; margin: 0 0.4rem 3px; }
+    .sys-note { align-self: center; font-size: 0.7rem; color: var(--m-faint); text-align: center; padding: 0.2rem 0.6rem; }
     .sheet {
       position: absolute; inset: 0; z-index: 40; display: none;
       align-items: center; justify-content: center; padding: 1rem;
-      background: rgba(0, 4, 1, 0.93);
+      background: var(--m-scrim);
     }
     .sheet.open { display: flex; }
     .sheet-card {
       width: 100%; max-width: 380px; max-height: 100%;
       display: flex; flex-direction: column; gap: 0.6rem;
-      background: rgba(0, 12, 4, 0.98); border: 1px solid #00ff4166;
-      border-radius: 14px; padding: 1rem; box-shadow: 0 0 25px rgba(0, 255, 65, 0.35);
+      background: var(--m-panel); border: 1px solid var(--m-edge);
+      border-radius: 14px; padding: 1rem; box-shadow: var(--m-shadow);
     }
-    .sheet-title { color: #00ff41; font-size: 1.05rem; letter-spacing: 0.1em; text-shadow: 0 0 10px #00ff41; }
-    .sheet-sub { color: #00ff4188; font-size: 0.75rem; line-height: 1.45; }
-    .sheet input {
-      background: rgba(0, 0, 0, 0.5); border: 1px solid #00ff4144; border-radius: 8px;
-      color: #d6ffe4; font-family: inherit; font-size: 0.9rem; padding: 0.55rem 0.7rem; outline: none;
+    .sheet-title { color: var(--m-accent); font-size: 1.05rem; letter-spacing: 0.1em; text-shadow: var(--m-glow); }
+    .sheet-sub { color: var(--m-dim); font-size: 0.75rem; line-height: 1.45; }
+    .sheet input[type="text"] {
+      background: var(--m-field); border: 1px solid var(--m-line); border-radius: 8px;
+      color: var(--m-text); font-family: inherit; font-size: 0.9rem; padding: 0.55rem 0.7rem; outline: none;
     }
-    .sheet input:focus { border-color: #00ff41; }
+    .sheet input[type="text"]:focus { border-color: var(--m-accent); }
     .pick-list {
       flex: 1; overflow-y: auto; min-height: 110px; max-height: 44vh;
-      border: 1px solid #00ff4122; border-radius: 8px;
+      border: 1px solid var(--m-line); border-radius: 8px;
     }
     .pick {
       display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.7rem;
-      border-bottom: 1px solid #00ff4114; cursor: pointer; color: #baffcf; font-size: 0.9rem;
+      border-bottom: 1px solid var(--m-line-soft); cursor: pointer; color: var(--m-text); font-size: 0.9rem;
     }
     .pick:last-child { border-bottom: none; }
-    .pick:hover { background: rgba(0, 255, 65, 0.06); }
+    .pick:hover { background: var(--m-hover); }
     .pick .box {
-      width: 18px; height: 18px; flex: none; border: 1px solid #00ff4166; border-radius: 5px;
+      width: 18px; height: 18px; flex: none; border: 1px solid var(--m-edge); border-radius: 5px;
       display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: transparent;
     }
-    .pick.on { color: #00ff41; }
-    .pick.on .box { background: #00ff41; border-color: #00ff41; color: #000; }
-    .pick .me-tag { margin-left: auto; font-size: 0.68rem; color: #00ff4188; }
+    .pick.on { color: var(--m-accent); }
+    .pick.on .box { background: var(--m-accent); border-color: var(--m-accent); color: var(--m-ink); }
+    .pick .me-tag { margin-left: auto; font-size: 0.68rem; color: var(--m-dim); }
     .pick.static { cursor: default; }
     .pick.static:hover { background: none; }
     .sheet-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
     .sheet-btn {
-      background: #00ff41; color: #000; border: none; border-radius: 8px;
+      background: var(--m-accent); color: var(--m-ink); border: none; border-radius: 8px;
       padding: 0.55rem 1.1rem; font-family: inherit; font-weight: bold; cursor: pointer; font-size: 0.85rem;
     }
-    .sheet-btn.ghost { background: none; color: #00ff41; border: 1px solid #00ff4166; font-weight: normal; }
+    .sheet-btn.ghost { background: none; color: var(--m-accent); border: 1px solid var(--m-edge); font-weight: normal; }
     .sheet-btn:disabled { opacity: 0.35; cursor: default; }
+
+    /* ---- theme + wallpaper pickers ----
+       these two sit at the bottom and skip the dimming scrim, so the chat
+       behind them repaints in real time as you tap through the options */
+    .sheet.bottom { align-items: flex-end; background: transparent; padding: 0; }
+    .sheet.bottom .sheet-card {
+      max-width: 100%; border-radius: 16px 16px 0 0; border-bottom: none;
+      padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+    .sheet.bottom .swatches { max-height: 40vh; }
+    .swatches {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.55rem;
+      overflow-y: auto; max-height: 52vh; padding: 2px;
+    }
+    .swatch {
+      border: 1px solid var(--m-line); border-radius: 10px; overflow: hidden;
+      cursor: pointer; background: var(--m-field); padding: 0;
+      font-family: inherit; display: flex; flex-direction: column; text-align: center;
+    }
+    .swatch.on { border-color: var(--m-accent); box-shadow: 0 0 0 2px var(--m-accent) inset; }
+    .swatch .sw-art { height: 62px; position: relative; display: block; }
+    .swatch .sw-name { font-size: 0.66rem; color: var(--m-dim); padding: 4px 2px; }
+    .swatch.on .sw-name { color: var(--m-accent); }
+    .sw-bub { position: absolute; height: 9px; border-radius: 5px; }
+    .sw-bub.a { left: 7px; top: 16px; width: 42%; }
+    .sw-bub.b { right: 7px; top: 32px; width: 52%; }
     .call-overlay {
       position: fixed; inset: 0; z-index: 60; display: none;
       align-items: center; justify-content: center; background: rgba(0,4,1,0.9);
@@ -646,72 +756,83 @@
     #callWidget button { background: none; border: 1px solid #00ff4155; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; font-size: 0.95rem; }
     #callWidget #hangBtn { border-color: #ff0033; }
     .mic-help-text { color: #baffcf; font-size: 0.9rem; max-width: 280px; margin-bottom: 1.2rem; line-height: 1.5; }
-    .thread { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .thread {
+      flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;
+      background-size: cover; background-position: center;
+    }
+    /* on a wallpaper the bubbles frost over so text stays readable on any photo */
+    .thread.walled .bubble { backdrop-filter: blur(7px); -webkit-backdrop-filter: blur(7px); }
+    .thread.walled .who { text-shadow: 0 1px 3px rgba(0,0,0,0.85); }
+    .thread.walled .sys-note {
+      background: var(--m-panel); border-radius: 10px; align-self: center;
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    }
     .msg-wrap { display: flex; flex-direction: column; max-width: 100%; }
     .msg-wrap.mine { align-items: flex-end; }
     .msg-wrap.theirs { align-items: flex-start; }
     .bubble { max-width: 75%; padding: 0.6rem 0.9rem; border-radius: 14px; font-size: 0.95rem; line-height: 1.35; word-wrap: break-word; cursor: pointer; user-select: none; }
-    .bubble.me { background: #00662a; color: #d6ffe4; border-bottom-right-radius: 4px; }
-    .bubble.them { background: rgba(0,255,65,0.12); color: #baffcf; border: 1px solid #00ff4133; border-bottom-left-radius: 4px; }
+    .bubble.me { background: var(--m-me); color: var(--m-me-text); border-bottom-right-radius: 4px; }
+    .bubble.them { background: var(--m-them); color: var(--m-them-text); border: 1px solid var(--m-line); border-bottom-left-radius: 4px; }
     .reacts { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
     .chip {
-      font-size: 0.72rem; background: rgba(0,0,0,0.5); border: 1px solid #00ff4144;
-      border-radius: 10px; padding: 1px 6px; cursor: pointer; color: #baffcf; user-select: none;
+      font-size: 0.72rem; background: var(--m-panel); border: 1px solid var(--m-line);
+      border-radius: 10px; padding: 1px 6px; cursor: pointer; color: var(--m-text); user-select: none;
     }
-    .chip.mine { border-color: #00ff41; background: rgba(0,255,65,0.18); }
+    .chip.mine { border-color: var(--m-accent); background: var(--m-hover); }
     #reactBar {
       position: fixed; display: none; gap: 4px; z-index: 20;
-      background: rgba(0,12,4,0.96); border: 1px solid #00ff4166;
-      border-radius: 22px; padding: 6px 9px; box-shadow: 0 0 16px rgba(0,255,65,0.45);
+      background: var(--m-panel); border: 1px solid var(--m-edge);
+      border-radius: 22px; padding: 6px 9px; box-shadow: var(--m-shadow);
     }
     #reactBar button { background: none; border: none; font-size: 1.35rem; cursor: pointer; line-height: 1; padding: 2px 3px; transition: transform 0.12s ease; }
     #reactBar button:hover { transform: scale(1.3); }
     .composer {
-      display: flex; gap: 0.5rem; padding: 0.8rem; border-top: 1px solid #00ff4133;
+      display: flex; gap: 0.5rem; padding: 0.8rem; border-top: 1px solid var(--m-line);
       padding-bottom: calc(0.8rem + env(safe-area-inset-bottom));
+      background: var(--m-panel);
     }
     .composer input {
-      flex: 1; padding: 0.7rem 1rem; background: rgba(0,0,0,0.5);
-      border: 1px solid #00ff4155; border-radius: 20px; color: #d6ffe4;
+      flex: 1; padding: 0.7rem 1rem; background: var(--m-field);
+      border: 1px solid var(--m-edge); border-radius: 20px; color: var(--m-text);
       font-family: inherit; font-size: 16px; outline: none;
     }
-    .composer input:focus { box-shadow: 0 0 10px rgba(0,255,65,0.4); }
+    .composer input:focus { box-shadow: var(--m-focus); }
     .composer button#sendBtn {
-      padding: 0 1.2rem; background: #00ff41; color: #000; border: none;
+      padding: 0 1.2rem; background: var(--m-accent); color: var(--m-ink); border: none;
       border-radius: 20px; font-family: inherit; font-weight: bold; cursor: pointer;
     }
     .gif-btn {
       flex: 0 0 40px; width: 40px; height: 40px; border-radius: 50%;
-      border: 2px solid #00ff41; background: rgba(0,0,0,0.4); color: #00ff41;
+      border: 2px solid var(--m-accent); background: var(--m-field); color: var(--m-accent);
       font-size: 1.5rem; line-height: 1; cursor: pointer; font-family: inherit;
       display: flex; align-items: center; justify-content: center; padding: 0;
-      box-shadow: 0 0 8px rgba(0,255,65,0.3); transition: all 0.15s ease;
+      transition: all 0.15s ease;
     }
-    .gif-btn:hover { background: #00ff41; color: #000; }
-    .gif-btn.active { background: #00ff41; color: #000; transform: rotate(45deg); }
-    #gifPanel { display: none; flex-direction: column; border-top: 1px solid #00ff4133; max-height: 42vh; }
+    .gif-btn:hover { background: var(--m-accent); color: var(--m-ink); }
+    .gif-btn.active { background: var(--m-accent); color: var(--m-ink); transform: rotate(45deg); }
+    #gifPanel { display: none; flex-direction: column; border-top: 1px solid var(--m-line); max-height: 42vh; background: var(--m-panel); }
     #gifPanel.open { display: flex; }
     #gifSearch {
-      margin: 0.6rem; padding: 0.6rem 0.9rem; background: rgba(0,0,0,0.5);
-      border: 1px solid #00ff4155; border-radius: 16px; color: #d6ffe4;
+      margin: 0.6rem; padding: 0.6rem 0.9rem; background: var(--m-field);
+      border: 1px solid var(--m-edge); border-radius: 16px; color: var(--m-text);
       font-family: inherit; font-size: 16px; outline: none;
     }
-    #gifSearch:focus { box-shadow: 0 0 10px rgba(0,255,65,0.4); }
+    #gifSearch:focus { box-shadow: var(--m-focus); }
     #gifPresets {
       display: flex; gap: 6px; overflow-x: auto; padding: 0 0.6rem 0.5rem; flex: 0 0 auto;
     }
     #gifPresets button {
       flex: 0 0 auto; white-space: nowrap; cursor: pointer; font-family: inherit;
-      font-size: 0.8rem; color: #baffcf; background: rgba(0,0,0,0.5);
-      border: 1px solid #00ff4155; border-radius: 14px; padding: 4px 10px;
+      font-size: 0.8rem; color: var(--m-text); background: var(--m-field);
+      border: 1px solid var(--m-edge); border-radius: 14px; padding: 4px 10px;
     }
-    #gifPresets button:hover { background: #00ff41; color: #000; }
+    #gifPresets button:hover { background: var(--m-accent); color: var(--m-ink); }
     #gifResults {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
       padding: 0 0.6rem 0.6rem; overflow-y: auto;
     }
     #gifResults img { width: 100%; border-radius: 8px; cursor: pointer; display: block; aspect-ratio: 1; object-fit: cover; }
-    #gifResults .note { grid-column: 1 / -1; color: #00ff4188; text-align: center; padding: 1rem; font-size: 0.85rem; }
+    #gifResults .note { grid-column: 1 / -1; color: var(--m-dim); text-align: center; padding: 1rem; font-size: 0.85rem; }
     .bubble.gif { padding: 3px; background: transparent; border: none; }
     .bubble.gif img { max-width: 200px; width: 55vw; border-radius: 10px; display: block; }
 
@@ -1111,7 +1232,10 @@
         <div class="msg-top">
           <button class="back" id="msgHome">‹</button>
           <div class="heading">Messages</div>
-          <button class="plus" id="newChatBtn">+</button>
+          <div class="chat-tools">
+            <button class="callbtn" id="msgSettingsBtn" title="Messages settings">⚙️</button>
+            <button class="plus" id="newChatBtn">+</button>
+          </div>
         </div>
         <div class="conv-list" id="convList"></div>
       </div>
@@ -1128,10 +1252,11 @@
             <button class="callbtn danger" id="grpTrashBtn" title="Delete this group for everyone" style="display:none;">🗑️</button>
           </div>
           <div id="grpMenu">
-            <button id="gmMembers">👥 See who's in it</button>
-            <button id="gmAdd">➕ Add people</button>
-            <button id="gmRename">✏️ Rename group</button>
-            <button class="danger" id="gmLeave">🚪 Leave group</button>
+            <button id="gmWall">🖼️ Chat wallpaper</button>
+            <button class="group-only" id="gmMembers">👥 See who's in it</button>
+            <button class="group-only" id="gmAdd">➕ Add people</button>
+            <button class="group-only" id="gmRename">✏️ Rename group</button>
+            <button class="group-only danger" id="gmLeave">🚪 Leave group</button>
           </div>
         </div>
         <div class="thread" id="thread"></div>
@@ -1168,6 +1293,28 @@
           <div class="pick-list" id="grpMembersList"></div>
           <div class="sheet-actions">
             <button class="sheet-btn ghost" id="grpMembersClose">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet bottom" id="msgSettings">
+        <div class="sheet-card">
+          <div class="sheet-title">Messages settings</div>
+          <div class="sheet-sub">Pick a style. Tap one and Messages changes straight away — it is saved for you on this device, so nobody else's chats move.</div>
+          <div class="swatches" id="themeSwatches"></div>
+          <div class="sheet-actions"><button class="sheet-btn" id="msgSettingsClose">Done</button></div>
+        </div>
+      </div>
+
+      <div class="sheet bottom" id="wallSheet">
+        <div class="sheet-card">
+          <div class="sheet-title">Chat wallpaper</div>
+          <div class="sheet-sub" id="wallSub">Just for this chat, and only you see it.</div>
+          <div class="swatches" id="wallSwatches"></div>
+          <input type="file" id="wallFile" accept="image/*" style="display:none;">
+          <div class="sheet-actions">
+            <button class="sheet-btn ghost" id="wallPhoto">📷 Use a photo</button>
+            <button class="sheet-btn" id="wallClose">Done</button>
           </div>
         </div>
       </div>
@@ -1895,6 +2042,7 @@
   function enterHome() {
     $('homeUser').textContent = me;
     showScreen('home');
+    applyTheme();               // this account's Messages style
     startCallListener();
     $('soccerApp').style.display = ''; // Soccer Trainer is open to every account now
   }
@@ -2104,7 +2252,8 @@
     $('chatName').textContent = name;
     $('chatSub').textContent = '';
     $('callBtn').style.display = '';
-    $('grpMenuBtn').style.display = 'none';
+    $('grpMenuBtn').style.display = '';        // one-on-one: wallpaper only
+    $('grpMenu').classList.add('dm');
     $('grpTrashBtn').style.display = 'none';
     showChatView();
     startThread();
@@ -2116,6 +2265,7 @@
     paintGroupHeader();
     $('callBtn').style.display = 'none';       // calls are one-to-one only
     $('grpMenuBtn').style.display = '';
+    $('grpMenu').classList.remove('dm');
     $('grpTrashBtn').style.display = '';
     showChatView();
     watchGroup(gid);
@@ -2267,8 +2417,184 @@
     await deleteDoc(doc(db, 'messages', gid));
   }
 
+  /* ===== LOOK & FEEL =====
+     Not everybody wants green-on-black. The theme repaints the whole Messages
+     app, the wallpaper repaints one chat's thread. Both are personal: they live
+     in localStorage per account, so picking Bubblegum never touches what anyone
+     else sees. */
+  const MSG_THEMES = [
+    { id: 'matrix',    name: 'Matrix',    app: '#020a05', them: '#0c3b1c', me: '#00662a' },
+    { id: 'midnight',  name: 'Midnight',  app: '#0f1218', them: '#232936', me: '#2f6fd0' },
+    { id: 'daylight',  name: 'Daylight',  app: '#f4f6fa', them: '#e7ebf3', me: '#2563eb' },
+    { id: 'bubblegum', name: 'Bubblegum', app: '#1d0a1e', them: '#3b1b39', me: '#b0247a' },
+    { id: 'sunset',    name: 'Sunset',    app: '#190c07', them: '#3a2013', me: '#b1521a' },
+    { id: 'amber',     name: 'Amber',     app: '#0c0a03', them: '#332400', me: '#6b4a00' }
+  ];
+
+  const themeKey = () => 'colton_msgtheme_' + (me || 'guest');
+  function currentTheme() {
+    let v = null;
+    try { v = localStorage.getItem(themeKey()); } catch (e) {}
+    return MSG_THEMES.some(t => t.id === v) ? v : 'matrix';
+  }
+  function applyTheme() { document.body.setAttribute('data-msgtheme', currentTheme()); }
+  function setTheme(id) {
+    try { localStorage.setItem(themeKey(), id); } catch (e) {}
+    applyTheme();
+    renderThemeSwatches();
+  }
+
+  $('msgSettingsBtn').addEventListener('click', () => { renderThemeSwatches(); $('msgSettings').classList.add('open'); });
+  $('msgSettingsClose').addEventListener('click', () => $('msgSettings').classList.remove('open'));
+  closeOnBackdrop('msgSettings');
+  closeOnBackdrop('wallSheet');
+  function closeOnBackdrop(id) {
+    $(id).addEventListener('click', e => { if (e.target === $(id)) $(id).classList.remove('open'); });
+  }
+
+  function renderThemeSwatches() {
+    const box = $('themeSwatches');
+    const cur = currentTheme();
+    box.innerHTML = '';
+    MSG_THEMES.forEach(t => {
+      const b = document.createElement('button');
+      b.className = 'swatch' + (t.id === cur ? ' on' : '');
+      b.innerHTML = '<span class="sw-art" style="background:' + t.app + '">'
+        + '<span class="sw-bub a" style="background:' + t.them + '"></span>'
+        + '<span class="sw-bub b" style="background:' + t.me + '"></span></span>'
+        + '<span class="sw-name">' + t.name + '</span>';
+      b.addEventListener('click', () => setTheme(t.id));
+      box.appendChild(b);
+    });
+  }
+
+  /* a tiled emoji, drawn as an inline SVG so no image ever has to load */
+  function emojiTile(emoji, size, op) {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '">'
+      + '<text x="50%" y="54%" font-size="' + Math.round(size * 0.5) + '" text-anchor="middle"'
+      + ' dominant-baseline="central" opacity="' + op + '">' + emoji + '</text></svg>';
+    return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '") repeat';
+  }
+
+  /* var(--m-pattern) means the line-art wallpapers re-tint themselves whenever
+     the theme changes, instead of staying stuck on Matrix green */
+  const WALLPAPERS = [
+    { id: '',       name: 'None' },
+    { id: 'grid',   name: 'Grid',   css: 'linear-gradient(var(--m-pattern) 1px, transparent 1px) 0 0 / 28px 28px, linear-gradient(90deg, var(--m-pattern) 1px, transparent 1px) 0 0 / 28px 28px' },
+    { id: 'dots',   name: 'Dots',   css: 'radial-gradient(var(--m-pattern) 1.4px, transparent 1.5px) 0 0 / 22px 22px' },
+    { id: 'weave',  name: 'Weave',  css: 'repeating-linear-gradient(45deg, var(--m-pattern) 0 2px, transparent 2px 13px)' },
+    { id: 'aurora', name: 'Aurora', css: 'linear-gradient(160deg, #071a12, #10403a 45%, #1d7357)' },
+    { id: 'dusk',   name: 'Dusk',   css: 'linear-gradient(160deg, #2b1055, #4c3d8f 60%, #7597de)' },
+    { id: 'ember',  name: 'Ember',  css: 'linear-gradient(160deg, #2b0f0a, #7a2c17 60%, #c1440e)' },
+    { id: 'candy',  name: 'Candy',  css: 'linear-gradient(160deg, #ffd6e8, #d9b3ff)' },
+    { id: 'paper',  name: 'Paper',  css: '#f1ece1' },
+    { id: 'ink',    name: 'Ink',    css: '#0a0a0c' },
+    { id: 'cats',   name: '🐱 Cats',   css: emojiTile('🐱', 46, 0.5) },
+    { id: 'ball',   name: '⚽ Soccer', css: emojiTile('⚽', 46, 0.45) },
+    { id: 'music',  name: '🎵 Music',  css: emojiTile('🎵', 42, 0.45) },
+    { id: 'hearts', name: '💗 Hearts', css: emojiTile('💗', 44, 0.5) },
+    { id: 'fire',   name: '🔥 Fire',   css: emojiTile('🔥', 44, 0.45) }
+  ];
+
+  const wallKey = () => 'colton_wall_' + (me || 'guest') + '_' + threadPair();
+  function readWall() {
+    try { return localStorage.getItem(wallKey()) || ''; } catch (e) { return ''; }
+  }
+  function wallCss(v) {
+    if (!v) return '';
+    if (v.slice(0, 4) === 'img:') return 'url("' + v.slice(4) + '") center / cover no-repeat';
+    const w = WALLPAPERS.find(x => x.id === v);
+    return w && w.css ? w.css : '';
+  }
+  function applyWallpaper() {
+    if (!currentContact && !currentGroup) return;
+    const css = wallCss(readWall());
+    $('thread').style.background = css;      // blank falls back to the theme
+    $('thread').classList.toggle('walled', !!css);
+  }
+  function saveWall(v) {
+    try {
+      if (v) localStorage.setItem(wallKey(), v); else localStorage.removeItem(wallKey());
+      return true;
+    } catch (e) {
+      alert('That picture is too big to keep on this device — try a smaller one.');
+      return false;
+    }
+  }
+
+  $('gmWall').addEventListener('click', () => {
+    closeGrpMenu();
+    if (!currentContact && !currentGroup) return;
+    $('wallSub').textContent = 'Just for ' + (currentGroup ? '“' + currentGroup.name + '”' : 'you and ' + currentContact)
+      + ', and only you see it.';
+    renderWallSwatches();
+    $('wallSheet').classList.add('open');
+  });
+  $('wallClose').addEventListener('click', () => $('wallSheet').classList.remove('open'));
+
+  function renderWallSwatches() {
+    const box = $('wallSwatches');
+    const cur = readWall();
+    box.innerHTML = '';
+    if (cur.slice(0, 4) === 'img:') {        // show the uploaded photo as its own tile
+      box.appendChild(wallSwatch({ id: cur, name: '📷 Your photo', css: wallCss(cur) }, true));
+    }
+    WALLPAPERS.forEach(w => box.appendChild(wallSwatch(w, w.id === cur)));
+  }
+  function wallSwatch(w, on) {
+    const b = document.createElement('button');
+    b.className = 'swatch' + (on ? ' on' : '');
+    const art = document.createElement('span');
+    art.className = 'sw-art';
+    art.style.background = w.css || 'var(--m-app)';
+    const label = document.createElement('span');
+    label.className = 'sw-name';
+    label.textContent = w.name;
+    b.appendChild(art); b.appendChild(label);
+    b.addEventListener('click', () => {
+      if (!saveWall(w.id)) return;
+      applyWallpaper();
+      renderWallSwatches();
+    });
+    return b;
+  }
+
+  $('wallPhoto').addEventListener('click', () => $('wallFile').click());
+  $('wallFile').addEventListener('change', e => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';                     // so picking the same file twice still fires
+    if (!file) return;
+    shrinkImage(file, 900, 0.72, url => {
+      if (!url) { alert('Could not read that picture.'); return; }
+      if (!saveWall('img:' + url)) return;
+      applyWallpaper();
+      renderWallSwatches();
+    });
+  });
+
+  /* phone photos are far too big for localStorage, so scale down before saving */
+  function shrinkImage(file, max, quality, cb) {
+    const reader = new FileReader();
+    reader.onerror = () => cb(null);
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => cb(null);
+      img.onload = () => {
+        const scale = Math.min(1, max / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.max(1, Math.round(img.width * scale));
+        c.height = Math.max(1, Math.round(img.height * scale));
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        try { cb(c.toDataURL('image/jpeg', quality)); } catch (err) { cb(null); }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
   function startThread() {
     stopThread();
+    applyWallpaper();
     const pid = threadPair();
     // live messages
     const mq = query(collection(db, 'messages'), where('pair', '==', pid));
