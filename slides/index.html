@@ -134,8 +134,12 @@
 
   .el { position: absolute; }
   .el .inner { width: 100%; height: 100%; display: flex; }
-  .el.text .inner { white-space: pre-wrap; word-break: break-word; overflow: hidden; }
+  /* Text is never clipped. The box grows to fit what you type, and even
+     mid-keystroke before it has grown, the words stay visible. */
+  .el.text .inner { white-space: pre-wrap; word-break: break-word; overflow: visible; }
+  .el.image .inner, .el.shape .inner { overflow: hidden; }
   .el.text .inner[contenteditable="true"] { outline: none; cursor: text; }
+  .tbody { width: 100%; }
   .el.sticker .inner { align-items: center; justify-content: center; line-height: 1; }
   .el img { width: 100%; height: 100%; display: block; }
   .el svg { width: 100%; height: 100%; display: block; overflow: visible; }

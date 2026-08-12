@@ -125,6 +125,8 @@ function buildEl(el, theme) {
     inner.style.textDecoration = el.underline ? 'underline' : 'none';
     inner.style.textAlign = el.align;
     inner.style.lineHeight = '1.25';
+    // Everything goes in one .tbody so its height can be measured in one read.
+    const tbody = div('tbody');
     if (el.list) {
       el.text.split('\n').forEach(lineText => {
         const row = div('li');
@@ -135,15 +137,13 @@ function buildEl(el, theme) {
         body.textContent = lineText;
         row.appendChild(dot);
         row.appendChild(body);
-        inner.appendChild(row);
+        tbody.appendChild(row);
       });
     } else {
-      const body = div('');
-      body.style.whiteSpace = 'pre-wrap';
-      body.style.width = '100%';
-      body.textContent = el.text;
-      inner.appendChild(body);
+      tbody.style.whiteSpace = 'pre-wrap';
+      tbody.textContent = el.text;
     }
+    inner.appendChild(tbody);
   } else if (el.type === 'sticker') {
     inner.style.fontSize = Math.min(el.w, el.h) * 0.84 + 'px';
     inner.textContent = el.char;
@@ -348,8 +348,38 @@ function fitCanvas() {
   $('stage').style.width = W * scale + 'px';
   $('stage').style.height = H * scale + 'px';
 }
+/* ------------------------- text boxes that grow ---------------------------
+   A slide is laid out at its true 1600x900 size and only *displayed* scaled,
+   so heights read off the page are already in slide units — no converting.
+   Boxes only ever grow here: if you deliberately drag one taller, keeping it
+   tall is the point, and either way nothing you typed can end up hidden. */
+function textHeight(id) {
+  const t = $('page').querySelector('.el[data-id="' + id + '"] .tbody');
+  return t ? t.offsetHeight : 0;
+}
+function fitTextEls(exactId) {
+  let changed = false;
+  slide().els.forEach(el => {
+    if (el.type !== 'text') return;
+    const need = textHeight(el.id);
+    if (!need) return;
+    const exact = el.id === exactId;
+    if (need > el.h + 1 || (exact && Math.abs(need - el.h) > 1)) {
+      const grow = need - el.h;
+      // grow away from whichever edge the words are pinned to, so the text
+      // does not appear to jump while you are typing
+      if (el.valign === 'middle') el.y -= grow / 2;
+      else if (el.valign === 'bottom') el.y -= grow;
+      el.h = need;
+      changed = true;
+    }
+  });
+  return changed;
+}
+
 function drawCanvas() {
   paintPage($('page'), slide(), deck);
+  if (fitTextEls()) { paintPage($('page'), slide(), deck); persist(); }
   fitCanvas();
   drawSelection();
 }
@@ -500,7 +530,7 @@ window.addEventListener('pointerup', () => {
   const acted = drag.kind !== 'move' || drag.moved;
   drag = null;
   clearGuides();
-  if (acted) { refreshThumb(slideIx); touch(); drawInspector(); }
+  if (acted) { drawCanvas(); refreshThumb(slideIx); touch(); drawInspector(); }
 });
 window.addEventListener('pointercancel', () => { drag = null; clearGuides(); });
 
@@ -580,9 +610,8 @@ function beginTextEdit(el) {
   drawSelection();
   const inner = node.querySelector('.inner');
   inner.innerHTML = '';
-  const body = div('');
+  const body = div('tbody');
   body.style.whiteSpace = 'pre-wrap';
-  body.style.width = '100%';
   body.style.outline = 'none';
   body.textContent = el.text;
   body.contentEditable = 'true';
@@ -604,6 +633,19 @@ function beginTextEdit(el) {
     drawCanvas();
     drawRail();
   };
+  // grow the box on every keystroke, so a long sentence pushes the box open
+  // instead of running past the end of it
+  body.addEventListener('input', () => {
+    const need = body.offsetHeight;
+    if (need > el.h + 1) {
+      const d = need - el.h;
+      if (el.valign === 'middle') el.y -= d / 2;
+      else if (el.valign === 'bottom') el.y -= d;
+      el.h = need;
+      node.style.top = el.y + 'px';
+      node.style.height = el.h + 'px';
+    }
+  });
   body.addEventListener('blur', finish);
   body.addEventListener('keydown', e => {
     e.stopPropagation();
@@ -719,6 +761,19 @@ function drawInspector() {
     const edit = chip('✏️ Edit the words', false, () => beginTextEdit(el));
     edit.style.width = '100%';
     gt.appendChild(edit);
+    // the box grows on its own but never shrinks, so offer a way back down
+    const shrink = chip('⇕ Shrink box to the words', false, () => {
+      const need = textHeight(el.id);
+      if (!need || Math.abs(need - el.h) < 2) { toast('It already fits.'); return; }
+      set(() => {
+        const d = need - el.h;
+        if (el.valign === 'middle') el.y -= d / 2;
+        else if (el.valign === 'bottom') el.y -= d;
+        el.h = need;
+      });
+    });
+    shrink.style.width = '100%';
+    gt.appendChild(shrink);
     box.appendChild(gt);
   }
 
