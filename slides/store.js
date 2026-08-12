@@ -13,15 +13,42 @@ export const uid = () =>
   Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
 /* --------------------------------- themes -------------------------------- */
+/* Every theme carries both a flat colour and a gradient built from the same
+   family, so flipping the whole deck between the two never clashes. */
 export const THEMES = [
-  { id: 'sunshine', name: 'Sunshine', bg: '#fffaf0', ink: '#4a3208', accent: '#f7a418', soft: '#ffe9bd', dark: false },
-  { id: 'blueberry', name: 'Blueberry', bg: '#f3f7ff', ink: '#172c56', accent: '#3f7ef0', soft: '#d9e6ff', dark: false },
-  { id: 'bubblegum', name: 'Bubblegum', bg: '#fff4f9', ink: '#5c1338', accent: '#ec4899', soft: '#ffd8ea', dark: false },
-  { id: 'mint', name: 'Mint', bg: '#f2fdf6', ink: '#0f3d28', accent: '#16a34a', soft: '#cdf3dc', dark: false },
-  { id: 'space', name: 'Outer Space', bg: '#141a3a', ink: '#eef2ff', accent: '#a78bfa', soft: '#26305e', dark: true },
-  { id: 'chalk', name: 'Chalkboard', bg: '#1e2b26', ink: '#f2fff7', accent: '#7ee787', soft: '#2c3d36', dark: true }
+  { id: 'sunshine', name: 'Sunshine', bg: '#fffaf0', ink: '#4a3208', accent: '#f7a418', soft: '#ffe9bd', dark: false,
+    grad: 'linear-gradient(155deg, #fff8e6 0%, #ffe3ad 55%, #ffc978 100%)' },
+  { id: 'blueberry', name: 'Blueberry', bg: '#f3f7ff', ink: '#172c56', accent: '#3f7ef0', soft: '#d9e6ff', dark: false,
+    grad: 'linear-gradient(155deg, #f2f7ff 0%, #d3e3ff 55%, #aecbff 100%)' },
+  { id: 'bubblegum', name: 'Bubblegum', bg: '#fff4f9', ink: '#5c1338', accent: '#ec4899', soft: '#ffd8ea', dark: false,
+    grad: 'linear-gradient(155deg, #fff2f8 0%, #ffd6ea 55%, #ffb3d8 100%)' },
+  { id: 'mint', name: 'Mint', bg: '#f2fdf6', ink: '#0f3d28', accent: '#16a34a', soft: '#cdf3dc', dark: false,
+    grad: 'linear-gradient(155deg, #f1fdf5 0%, #c8f2da 55%, #9fe6bf 100%)' },
+  { id: 'space', name: 'Outer Space', bg: '#141a3a', ink: '#eef2ff', accent: '#a78bfa', soft: '#26305e', dark: true,
+    grad: 'linear-gradient(155deg, #2a2160 0%, #171d43 50%, #080a1c 100%)' },
+  { id: 'chalk', name: 'Chalkboard', bg: '#1e2b26', ink: '#f2fff7', accent: '#7ee787', soft: '#2c3d36', dark: true,
+    grad: 'linear-gradient(155deg, #2b3d34 0%, #1d2a24 55%, #101915 100%)' }
 ];
 export const themeById = id => THEMES.find(t => t.id === id) || THEMES[0];
+
+/* Gradients for one slide on its own, independent of the deck's theme. */
+export const GRADIENTS = [
+  'linear-gradient(155deg, #ffdde1 0%, #ee9ca7 100%)',
+  'linear-gradient(155deg, #fceabb 0%, #f8b500 100%)',
+  'linear-gradient(155deg, #d4fc79 0%, #96e6a1 100%)',
+  'linear-gradient(155deg, #a1c4fd 0%, #c2e9fb 100%)',
+  'linear-gradient(155deg, #e0c3fc 0%, #8ec5fc 100%)',
+  'linear-gradient(155deg, #fbc2eb 0%, #a6c1ee 100%)',
+  'linear-gradient(155deg, #ff9a9e 0%, #fecfef 100%)',
+  'linear-gradient(155deg, #84fab0 0%, #8fd3f4 100%)',
+  'linear-gradient(155deg, #ffecd2 0%, #fcb69f 100%)',
+  'linear-gradient(155deg, #30cfd0 0%, #330867 100%)',
+  'linear-gradient(155deg, #2b5876 0%, #4e4376 100%)',
+  'linear-gradient(155deg, #232526 0%, #414345 100%)',
+  'radial-gradient(circle at 30% 20%, #5b3fa8 0%, #16143a 60%, #05061a 100%)',
+  'linear-gradient(155deg, #0f2027 0%, #203a43 50%, #2c5364 100%)',
+  'linear-gradient(155deg, #ff6a00 0%, #ee0979 100%)'
+];
 
 /* Fonts everyone already has, so a deck never waits on a download. */
 export const FONTS = [
@@ -67,7 +94,8 @@ export function stickerEl(o) {
 }
 export function imageEl(o) {
   return Object.assign({
-    id: uid(), type: 'image', x: 500, y: 220, w: 600, h: 460, rot: 0, src: '', fit: 'cover'
+    id: uid(), type: 'image', x: 500, y: 220, w: 600, h: 460, rot: 0, src: '', fit: 'cover',
+    credit: '', link: ''      // who made it, for pictures found on the web
   }, o);
 }
 
@@ -187,6 +215,7 @@ export function newDeck(templateId, title) {
     id: uid(),
     title: title || (t.id === 'blank' ? 'Untitled presentation' : t.name),
     theme: t.theme,
+    bgMode: 'solid',            // 'solid' | 'gradient'
     created: now, updated: now,
     slides: t.build()
   };
@@ -216,6 +245,99 @@ export function saveDecks(decks) {
 }
 
 export const clone = o => JSON.parse(JSON.stringify(o));
+
+/* ========================= pictures from the internet ======================
+   Two very different sources, handled differently on purpose.
+
+   Web search results keep their original address. They are somebody else's
+   file sitting on a big fast server, and copying a dozen of them into this
+   browser's storage would blow the few megabytes we get.
+
+   AI pictures are copied in, because they are generated on demand and the
+   address they arrive at is temporary — it stops working within the hour, so
+   a deck pointing at one would quietly go blank.
+   ========================================================================== */
+
+/**
+ * Search Openverse: everything it indexes has been shared for reuse, and it
+ * filters adult content out by default, which matters for who this is for.
+ */
+export async function searchWeb(query, page) {
+  // 20 is the hard ceiling for requests without an API key — asking for more
+  // is rejected outright rather than trimmed.
+  const url = 'https://api.openverse.org/v1/images/?q=' + encodeURIComponent(query)
+    + '&page_size=20&page=' + (page || 1) + '&mature=false';
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('search is not answering right now');
+  const data = await res.json();
+  return (data.results || []).map(r => ({
+    thumb: r.thumbnail || r.url,
+    full: r.url,
+    title: r.title || 'picture',
+    credit: [r.creator, r.license ? 'CC ' + String(r.license).toUpperCase() : '']
+      .filter(Boolean).join(' · '),
+    link: r.foreign_landing_url || '',
+    ratio: r.width && r.height ? r.width / r.height : 1.4
+  }));
+}
+
+const FLUX_SPACE = 'https://black-forest-labs-flux-1-schnell.hf.space';
+
+/**
+ * FLUX.1-schnell, running on Black Forest Labs' own public demo. No sign-up
+ * and no key. It is a far stronger model than the free text-to-image endpoint
+ * everything else defaults to, but it is a shared demo, so when it is busy or
+ * out of quota we quietly fall back rather than failing in the user's face.
+ * @returns {Promise<{url:string, engine:string}>}
+ */
+export async function makeAiImage(prompt, seed, onStep) {
+  try {
+    onStep && onStep('Asking FLUX to draw it…');
+    const start = await fetch(FLUX_SPACE + '/gradio_api/call/infer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data: [prompt, seed, false, 1024, 768, 4] })
+    });
+    if (!start.ok) throw new Error('busy');
+    const { event_id } = await start.json();
+    if (!event_id) throw new Error('busy');
+
+    const ctrl = new AbortController();
+    const bail = setTimeout(() => ctrl.abort(), 75000);
+    const out = await fetch(FLUX_SPACE + '/gradio_api/call/infer/' + event_id, { signal: ctrl.signal });
+    clearTimeout(bail);
+    const text = await out.text();
+    if (/event:\s*error/.test(text)) throw new Error('busy');
+    // the stream ends with a `data:` line holding the finished file
+    const lines = text.split('\n').filter(l => l.startsWith('data:'));
+    const payload = JSON.parse(lines[lines.length - 1].slice(5).trim());
+    const url = payload && payload[0] && payload[0].url;
+    if (!url) throw new Error('busy');
+    return { url, engine: 'FLUX.1' };
+  } catch (e) {
+    onStep && onStep('FLUX is busy — using the backup artist…');
+    const url = 'https://image.pollinations.ai/prompt/' + encodeURIComponent(prompt)
+      + '?width=1024&height=768&seed=' + seed + '&nologo=true';
+    return { url, engine: 'backup' };
+  }
+}
+
+/** Copy a picture off the web and shrink it, so it keeps working offline. */
+export function shrinkFromUrl(url, max, quality, cb) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onerror = () => cb(null);
+  img.onload = () => {
+    const scale = Math.min(1, max / Math.max(img.width, img.height));
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(img.width * scale));
+    c.height = Math.max(1, Math.round(img.height * scale));
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    try { cb(c.toDataURL('image/jpeg', quality), img.width / img.height); }
+    catch (e) { cb(null); }      // server refused to let us copy it
+  };
+  img.src = url;
+}
 
 /* Photos straight off a phone are several megabytes, which fills the whole
    save on its own. Shrink before storing. */

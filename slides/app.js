@@ -8,9 +8,9 @@
    =========================================================================== */
 
 import {
-  W, H, THEMES, themeById, FONTS, fontById, PALETTE, SHAPES, STICKERS,
+  W, H, THEMES, themeById, FONTS, fontById, PALETTE, SHAPES, STICKERS, GRADIENTS,
   LAYOUTS, TEMPLATES, newDeck, newSlide, textEl, shapeEl, stickerEl, imageEl,
-  loadDecks, saveDecks, clone, shrinkImage, USER
+  loadDecks, saveDecks, clone, shrinkImage, shrinkFromUrl, searchWeb, makeAiImage, USER
 } from './store.js';
 
 const $ = id => document.getElementById(id);
@@ -173,7 +173,8 @@ function paintPage(pageEl, sl, dk) {
   const theme = themeById(dk.theme);
   pageEl.style.width = W + 'px';
   pageEl.style.height = H + 'px';
-  pageEl.style.background = sl.bg || theme.bg;
+  // a slide's own background wins; otherwise the theme, flat or graded
+  pageEl.style.background = sl.bg || (dk.bgMode === 'gradient' ? theme.grad : theme.bg);
   pageEl.innerHTML = '';
   sl.els.forEach(el => pageEl.appendChild(buildEl(el, theme)));
 }
@@ -817,9 +818,14 @@ function drawInspector() {
     r.appendChild(chip('Fill the box', (el.fit || 'cover') === 'cover', () => set(() => { el.fit = 'cover'; })));
     r.appendChild(chip('Show it all', el.fit === 'contain', () => set(() => { el.fit = 'contain'; })));
     g.appendChild(r);
-    const rep = chip('🖼️ Change picture', false, () => pickImage(el));
+    const rep = chip('🖼️ Change picture', false, ev => imageMenu(ev.currentTarget, el));
     rep.style.width = '100%';
     g.appendChild(rep);
+    if (el.credit) {
+      const cr = div('hint');
+      cr.textContent = 'Picture by ' + el.credit;
+      g.appendChild(cr);
+    }
     box.appendChild(g);
   }
 
@@ -979,25 +985,64 @@ function layoutPop(anchor) {
     pop.appendChild(note);
   });
 }
+function setSlideBg(value) {
+  pushUndo();
+  slide().bg = value;
+  drawAll();
+  touch();
+}
 function bgPop(anchor) {
   openPop(anchor, pop => {
-    heading(pop, 'Slide colour');
-    pop.appendChild(colorRow(slide().bg, c => {
-      pushUndo();
-      slide().bg = c;
-      drawAll();
-      touch();
-    }, ['auto']));
+    heading(pop, 'Just this slide');
+    pop.appendChild(colorRow(slide().bg, setSlideBg, ['auto']));
+    const h2 = document.createElement('h4');
+    h2.textContent = 'Or a gradient';
+    h2.style.marginTop = '0.7rem';
+    pop.appendChild(h2);
+    const grid = div('gradgrid');
+    GRADIENTS.forEach(g => {
+      const b = document.createElement('button');
+      b.className = 'gradsw' + (slide().bg === g ? ' on' : '');
+      b.style.background = g;
+      b.addEventListener('click', () => setSlideBg(g));
+      grid.appendChild(b);
+    });
+    pop.appendChild(grid);
+    const note = div('hint');
+    note.style.marginTop = '0.5rem';
+    note.textContent = 'The first swatch puts this slide back to the deck’s theme.';
+    pop.appendChild(note);
   });
 }
+
 function themePop(anchor) {
   openPop(anchor, pop => {
-    heading(pop, 'Theme');
+    heading(pop, 'Background style');
+    const modes = div('chipsrow');
+    [['solid', 'Flat colour'], ['gradient', 'Gradient']].forEach(([id, label]) => {
+      const b = document.createElement('button');
+      b.className = 'ichip' + ((deck.bgMode || 'solid') === id ? ' on' : '');
+      b.textContent = label;
+      b.addEventListener('click', () => {
+        pushUndo();
+        deck.bgMode = id;
+        drawAll();
+        touch();
+        themePop(anchor);            // reopen so the choice shows as picked
+      });
+      modes.appendChild(b);
+    });
+    pop.appendChild(modes);
+
+    const h2 = document.createElement('h4');
+    h2.textContent = 'Theme';
+    h2.style.margin = '0.8rem 0 0.5rem';
+    pop.appendChild(h2);
     const grid = div('grid3');
     THEMES.forEach(t => {
       const b = document.createElement('button');
       b.className = 'themetile' + (deck.theme === t.id ? ' on' : '');
-      b.style.background = t.bg;
+      b.style.background = (deck.bgMode === 'gradient') ? t.grad : t.bg;
       b.style.color = t.ink;
       const bar = div('bar2');
       bar.style.background = t.accent;
@@ -1013,6 +1058,10 @@ function themePop(anchor) {
       grid.appendChild(b);
     });
     pop.appendChild(grid);
+    const note = div('hint');
+    note.style.marginTop = '0.6rem';
+    note.textContent = 'Slides you gave their own background keep it.';
+    pop.appendChild(note);
   });
 }
 function shapePop(anchor) {
@@ -1086,13 +1135,209 @@ $('fileIn').addEventListener('change', e => {
   });
 });
 
+/* ======================= find or make a picture ===========================
+   Three ways in, the same as any grown-up presentation tool: something off
+   your own device, something already on the internet, or something that does
+   not exist yet. */
+function imageMenu(anchor, target) {
+  openPop(anchor, pop => {
+    heading(pop, target ? 'Change this picture' : 'Add a picture');
+    [
+      ['📁 From this device', () => pickImage(target)],
+      ['🔎 Search the web', () => { imageTarget = target || null; openMedia('web'); }],
+      ['✨ Make one with AI', () => { imageTarget = target || null; openMedia('ai'); }]
+    ].forEach(([label, fn]) => {
+      const b = document.createElement('button');
+      b.className = 'btn';
+      b.style.width = '100%';
+      b.style.marginBottom = '0.35rem';
+      b.textContent = label;
+      b.addEventListener('click', () => { closePop(); fn(); });
+      pop.appendChild(b);
+    });
+  });
+}
+
+const WEB_IDEAS = ['volcano', 'red panda', 'solar system', 'rainforest', 'castle', 'dinosaur', 'ocean'];
+const AI_STYLES = [
+  { id: 'cartoon', name: '🎨 Cartoon', suffix: 'colourful cartoon illustration, bold clean outlines, flat bright colours, friendly, for children' },
+  { id: 'story', name: '📖 Storybook', suffix: 'soft watercolour storybook illustration, gentle warm colours, whimsical, children\'s picture book art' },
+  { id: 'photo', name: '📷 Photo', suffix: 'high quality photograph, natural lighting, sharp focus, realistic detail' },
+  { id: 'paint', name: '🖌️ Painting', suffix: 'expressive painting, visible brush strokes, rich colour, artistic' },
+  { id: 'threed', name: '🧊 3D', suffix: 'cute 3D rendered character art, soft studio lighting, glossy clay style, pixar-like' },
+  { id: 'pixel', name: '👾 Pixel', suffix: 'crisp pixel art, 16-bit video game sprite, limited colour palette' }
+];
+let aiStyle = 'cartoon', lastAi = null, aiBusy = false;
+
+function openMedia(tab) {
+  $('media').classList.add('on');
+  showMediaTab(tab);
+  if (tab === 'web') setTimeout(() => $('webQ').focus(), 30);
+  else setTimeout(() => $('aiQ').focus(), 30);
+}
+function closeMedia() {
+  $('media').classList.remove('on');
+  imageTarget = null;      // backing out must not leave the next picture aimed at an old box
+}
+function showMediaTab(tab) {
+  const web = tab === 'web';
+  $('tabWeb').classList.toggle('on', web);
+  $('tabAi').classList.toggle('on', !web);
+  $('webPane').style.display = web ? '' : 'none';
+  $('aiPane').style.display = web ? 'none' : '';
+}
+$('tabWeb').addEventListener('click', () => showMediaTab('web'));
+$('tabAi').addEventListener('click', () => showMediaTab('ai'));
+$('mediaClose').addEventListener('click', closeMedia);
+$('media').addEventListener('click', e => { if (e.target === $('media')) closeMedia(); });
+
+/* ------------------------------ web search -------------------------------- */
+WEB_IDEAS.forEach(word => {
+  const b = document.createElement('button');
+  b.className = 'ichip';
+  b.textContent = word;
+  b.addEventListener('click', () => { $('webQ').value = word; runSearch(); });
+  $('webIdeas').appendChild(b);
+});
+$('webGo').addEventListener('click', runSearch);
+$('webQ').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+
+function note(host, text) {
+  host.innerHTML = '';
+  const m = div('msg');
+  m.textContent = text;
+  host.appendChild(m);
+}
+async function runSearch() {
+  const q = ($('webQ').value || '').trim();
+  const box = $('webResults');
+  if (!q) { note(box, 'Type what you are looking for.'); return; }
+  note(box, 'Looking…');
+  let hits;
+  try {
+    hits = await searchWeb(q, 1);
+  } catch (e) {
+    note(box, 'Could not reach the picture search. Check the internet and try again.');
+    return;
+  }
+  if (!hits.length) { note(box, 'Nothing found for “' + q + '”. Try a simpler word.'); return; }
+  box.innerHTML = '';
+  hits.forEach(h => {
+    const b = document.createElement('button');
+    b.className = 'hit';
+    b.title = h.title + (h.credit ? ' — ' + h.credit : '');
+    const img = document.createElement('img');
+    img.src = h.thumb;
+    img.loading = 'lazy';
+    img.alt = h.title;
+    img.addEventListener('error', () => b.remove());   // drop the ones that fail to load
+    b.appendChild(img);
+    if (h.credit) {
+      const cr = div('cr');
+      cr.textContent = h.credit;
+      b.appendChild(cr);
+    }
+    b.addEventListener('click', () => insertPicture(h.full, h.ratio, h.credit, h.link));
+    box.appendChild(b);
+  });
+}
+
+/** Drop a picture onto the middle of the slide at its own shape. */
+function insertPicture(src, ratio, credit, link) {
+  const r = ratio || 1.4;
+  let w = 760, h = Math.round(w / r);
+  if (h > 620) { h = 620; w = Math.round(h * r); }
+  const target = imageTarget;      // grab it first: closing the panel clears it
+  closeMedia();
+  if (target) {
+    pushUndo();
+    target.src = src;
+    target.credit = credit || '';
+    target.link = link || '';
+  } else {
+    addEl(imageEl({ src, w, h, x: (W - w) / 2, y: (H - h) / 2, credit: credit || '', link: link || '' }));
+  }
+  drawAll();
+  const err = saveDecks(decks);
+  if (err) toast(err);
+}
+
+/* ------------------------------ AI pictures -------------------------------- */
+AI_STYLES.forEach(s => {
+  const b = document.createElement('button');
+  b.className = 'ichip' + (s.id === aiStyle ? ' on' : '');
+  b.textContent = s.name;
+  b.addEventListener('click', () => {
+    aiStyle = s.id;
+    [...$('aiStyles').children].forEach(c => c.classList.toggle('on', c === b));
+  });
+  $('aiStyles').appendChild(b);
+});
+$('aiGo').addEventListener('click', () => runAi(false));
+$('aiAgain').addEventListener('click', () => runAi(true));
+$('aiQ').addEventListener('keydown', e => { if (e.key === 'Enter') runAi(false); });
+
+function aiWaiting(text) {
+  const stage = $('aiStage');
+  stage.innerHTML = '';
+  const box = div('waiting');
+  box.appendChild(div('spinner'));
+  const t = document.createElement('div');
+  t.textContent = text;
+  box.appendChild(t);
+  stage.appendChild(box);
+}
+async function runAi(again) {
+  if (aiBusy) return;
+  const want = ($('aiQ').value || '').trim();
+  if (!want) { note($('aiStage'), 'Say what you want a picture of.'); return; }
+  const style = AI_STYLES.find(s => s.id === aiStyle) || AI_STYLES[0];
+  const prompt = want + ', ' + style.suffix;
+  const seed = again ? Math.floor(Math.random() * 1e9) : Math.abs(hashOf(prompt)) % 1e9;
+
+  aiBusy = true;
+  $('aiGo').disabled = true;
+  $('aiAgain').style.display = 'none';
+  aiWaiting('Drawing your picture…');
+  try {
+    const { url, engine } = await makeAiImage(prompt, seed, msg => aiWaiting(msg));
+    aiWaiting('Nearly there…');
+    // Copy it in: the address these arrive at stops working after a while.
+    await new Promise(done => {
+      shrinkFromUrl(url, 1100, 0.85, dataUrl => {
+        const stage = $('aiStage');
+        stage.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = dataUrl || url;
+        img.title = 'Tap to put it on your slide';
+        img.addEventListener('click', () => insertPicture(img.src, img.naturalWidth / img.naturalHeight, '', ''));
+        stage.appendChild(img);
+        lastAi = img.src;
+        $('aiFoot').textContent = (dataUrl ? 'Made by ' + engine + '. ' : 'Made by ' + engine + ', but it could not be copied in, so it needs the internet to show. ')
+          + 'Tap the picture to put it on your slide.';
+        $('aiAgain').style.display = '';
+        done();
+      });
+    });
+  } catch (e) {
+    note($('aiStage'), 'That did not work. Try again in a moment.');
+  }
+  aiBusy = false;
+  $('aiGo').disabled = false;
+}
+function hashOf(s) {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return h;
+}
+
 /* ------------------------------- top buttons ------------------------------ */
 $('backHome').addEventListener('click', () => { saveDecks(decks); showHome(); });
 $('addSlide').addEventListener('click', e => slideMenuPop(e.currentTarget));
 $('addText').addEventListener('click', () => addEl(textEl({ text: 'New words', y: 380 })));
 $('addShape').addEventListener('click', e => shapePop(e.currentTarget));
 $('addSticker').addEventListener('click', e => stickerPop(e.currentTarget, null));
-$('addImage').addEventListener('click', () => pickImage(null));
+$('addImage').addEventListener('click', e => imageMenu(e.currentTarget));
 $('themeBtn').addEventListener('click', e => themePop(e.currentTarget));
 $('deckTitle').addEventListener('input', () => {
   deck.title = $('deckTitle').value.slice(0, 80);
@@ -1108,6 +1353,8 @@ $('helpBtn').addEventListener('click', e => {
       + '<b>Double-click</b> writing to change the words.<br>'
       + '<b>The round dot</b> on top spins it.<br>'
       + '<b>Delete</b> removes what you picked. <b>Ctrl+Z</b> undoes.<br>'
+      + '<b>🖼️ Picture</b> can search the web or draw something with AI.<br>'
+      + '<b>🎨 Theme</b> switches the whole deck between flat colours and gradients.<br>'
       + '<b>▶ Play</b> shows it full screen. Arrow keys move along.';
     t.style.maxWidth = '250px';
     pop.appendChild(t);
