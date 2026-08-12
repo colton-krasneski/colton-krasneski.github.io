@@ -1221,6 +1221,7 @@
         <div class="app" id="drivesadApp"><span class="icon">😔</span><span class="label">Drive Sad</span></div>
         <div class="app" id="councilApp"><span class="icon">🏛️</span><span class="label">The Council</span></div>
         <div class="app" id="aitalkApp"><span class="icon">🤖</span><span class="label">AI Talk</span></div>
+        <div class="app" id="nonoApp"><span class="icon">🧩</span><span class="label">Nonograms</span></div>
       </div>
     </div>
   </div>
@@ -5685,6 +5686,7 @@
       location.href = path;
     }
     $('aitalkApp').addEventListener('click', () => launchApp('ai-talk/'));
+    $('nonoApp').addEventListener('click', () => launchApp('nonogram/'));
 
     /* ================= THE COUNCIL (shared, Firestore-backed) ================= */
     (function (FS) {
