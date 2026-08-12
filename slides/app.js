@@ -10,7 +10,8 @@
 import {
   W, H, THEMES, themeById, FONTS, fontById, PALETTE, SHAPES, STICKERS, GRADIENTS,
   LAYOUTS, TEMPLATES, newDeck, newSlide, textEl, shapeEl, stickerEl, imageEl,
-  loadDecks, saveDecks, clone, shrinkImage, shrinkFromUrl, searchWeb, makeAiImage, USER
+  loadDecks, saveDecks, clone, shrinkImage, shrinkFromUrl, searchPictures, makeAiImage,
+  googleCreds, saveGoogleCreds, hasGoogle, searchGoogle, USER
 } from './store.js';
 
 const $ = id => document.getElementById(id);
@@ -1171,6 +1172,7 @@ let aiStyle = 'cartoon', lastAi = null, aiBusy = false;
 
 function openMedia(tab) {
   $('media').classList.add('on');
+  paintSource();
   showMediaTab(tab);
   if (tab === 'web') setTimeout(() => $('webQ').focus(), 30);
   else setTimeout(() => $('aiQ').focus(), 30);
@@ -1199,8 +1201,53 @@ WEB_IDEAS.forEach(word => {
   b.addEventListener('click', () => { $('webQ').value = word; runSearch(); });
   $('webIdeas').appendChild(b);
 });
-$('webGo').addEventListener('click', runSearch);
-$('webQ').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(); });
+$('webGo').addEventListener('click', () => runSearch(false));
+$('webQ').addEventListener('keydown', e => { if (e.key === 'Enter') runSearch(false); });
+$('webMore').addEventListener('click', () => runSearch(true));
+
+/* ------------------------- Google setup (their key) ----------------------- */
+$('gSetupBtn').addEventListener('click', () => {
+  const panel = $('gSetup');
+  const open = panel.classList.toggle('on');
+  if (open) {
+    const c = googleCreds();
+    $('gKey').value = c.key;
+    $('gCx').value = c.cx;
+  }
+});
+$('gClose').addEventListener('click', () => $('gSetup').classList.remove('on'));
+$('gSave').addEventListener('click', () => {
+  const key = ($('gKey').value || '').trim(), cx = ($('gCx').value || '').trim();
+  if (!key || !cx) { $('gMsg').textContent = 'Both boxes need filling in.'; return; }
+  saveGoogleCreds(key, cx);
+  paintSource();
+  $('gMsg').textContent = 'Saved. Searches will use Google now.';
+});
+$('gClear').addEventListener('click', () => {
+  saveGoogleCreds('', '');
+  $('gKey').value = ''; $('gCx').value = '';
+  paintSource();
+  $('gMsg').textContent = 'Forgotten. Back to the free library.';
+});
+$('gTest').addEventListener('click', async () => {
+  const key = ($('gKey').value || '').trim(), cx = ($('gCx').value || '').trim();
+  if (!key || !cx) { $('gMsg').textContent = 'Fill both boxes in first.'; return; }
+  saveGoogleCreds(key, cx);
+  $('gMsg').textContent = 'Checking…';
+  try {
+    const hits = await searchGoogle('puppy', 1);
+    paintSource();
+    $('gMsg').textContent = hits.length
+      ? '✅ Working — Google sent back ' + hits.length + ' pictures.'
+      : 'Google answered but sent nothing. Check that Image search is switched on.';
+  } catch (e) {
+    $('gMsg').textContent = e.message === 'BADKEY'
+      ? '❌ Google did not accept that API key. Check you copied all of it.'
+      : e.message === 'QUOTA'
+        ? 'The key works, but it has used its 100 searches for today.'
+        : '❌ ' + e.message;
+  }
+});
 
 function note(host, text) {
   host.innerHTML = '';
@@ -1208,20 +1255,33 @@ function note(host, text) {
   m.textContent = text;
   host.appendChild(m);
 }
-async function runSearch() {
-  const q = ($('webQ').value || '').trim();
+let webPage = 1, webQuery = '';
+function paintSource() {
+  $('srcName').textContent = hasGoogle() ? 'Google' : 'the free library';
+  $('gSetupBtn').textContent = hasGoogle() ? 'Google settings' : 'Use Google instead';
+}
+async function runSearch(more) {
+  const q = more ? webQuery : ($('webQ').value || '').trim();
   const box = $('webResults');
   if (!q) { note(box, 'Type what you are looking for.'); return; }
-  note(box, 'Looking…');
-  let hits;
+  webQuery = q;
+  webPage = more ? webPage + 1 : 1;
+  if (!more) note(box, 'Looking…');
+  $('moreRow').style.display = 'none';
+  let res;
   try {
-    hits = await searchWeb(q, 1);
+    res = await searchPictures(q, webPage);
   } catch (e) {
     note(box, 'Could not reach the picture search. Check the internet and try again.');
     return;
   }
-  if (!hits.length) { note(box, 'Nothing found for “' + q + '”. Try a simpler word.'); return; }
-  box.innerHTML = '';
+  const hits = res.hits || [];
+  $('webFoot').textContent = (res.warn ? res.warn + ' ' : '')
+    + (res.source === 'google' ? 'Results from Google. ' : 'Free-to-use pictures. ')
+    + 'Tap one to put it on your slide.';
+  if (!hits.length && !more) { note(box, 'Nothing found for “' + q + '”. Try a simpler word.'); return; }
+  if (!more) box.innerHTML = '';
+  if (hits.length) $('moreRow').style.display = '';
   hits.forEach(h => {
     const b = document.createElement('button');
     b.className = 'hit';
@@ -1287,8 +1347,25 @@ function aiWaiting(text) {
   box.appendChild(t);
   stage.appendChild(box);
 }
+function showAiResult(src, engine, copied) {
+  const stage = $('aiStage');
+  stage.innerHTML = '';
+  const img = document.createElement('img');
+  img.src = src;
+  img.title = 'Tap to put it on your slide';
+  img.addEventListener('error', () => note(stage, 'The picture did not come through. Press ✨ Make it to try again.'));
+  img.addEventListener('click', () =>
+    insertPicture(img.src, (img.naturalWidth / img.naturalHeight) || 1.33, '', ''));
+  stage.appendChild(img);
+  lastAi = src;
+  $('aiFoot').textContent = 'Drawn by ' + engine + '. '
+    + (copied ? '' : 'It could not be copied in, so this one needs the internet to show. ')
+    + 'Tap the picture to put it on your slide.';
+}
+
 async function runAi(again) {
-  if (aiBusy) return;
+  // Never fail silently: a jammed panel that ignores you is the worst outcome.
+  if (aiBusy) { toast('Still drawing the last one — one moment.'); return; }
   const want = ($('aiQ').value || '').trim();
   if (!want) { note($('aiStage'), 'Say what you want a picture of.'); return; }
   const style = AI_STYLES.find(s => s.id === aiStyle) || AI_STYLES[0];
@@ -1299,31 +1376,26 @@ async function runAi(again) {
   $('aiGo').disabled = true;
   $('aiAgain').style.display = 'none';
   aiWaiting('Drawing your picture…');
+  const started = Date.now();
+  const tick = setInterval(() => {
+    const s = Math.round((Date.now() - started) / 1000);
+    if (s > 4) aiWaiting('Drawing your picture… ' + s + 's');
+  }, 1000);
+
   try {
     const { url, engine } = await makeAiImage(prompt, seed, msg => aiWaiting(msg));
-    aiWaiting('Nearly there…');
     // Copy it in: the address these arrive at stops working after a while.
-    await new Promise(done => {
-      shrinkFromUrl(url, 1100, 0.85, dataUrl => {
-        const stage = $('aiStage');
-        stage.innerHTML = '';
-        const img = document.createElement('img');
-        img.src = dataUrl || url;
-        img.title = 'Tap to put it on your slide';
-        img.addEventListener('click', () => insertPicture(img.src, img.naturalWidth / img.naturalHeight, '', ''));
-        stage.appendChild(img);
-        lastAi = img.src;
-        $('aiFoot').textContent = (dataUrl ? 'Made by ' + engine + '. ' : 'Made by ' + engine + ', but it could not be copied in, so it needs the internet to show. ')
-          + 'Tap the picture to put it on your slide.';
-        $('aiAgain').style.display = '';
-        done();
-      });
-    });
+    const dataUrl = await new Promise(done => shrinkFromUrl(url, 1100, 0.85, u => done(u)));
+    showAiResult(dataUrl || url, engine, !!dataUrl);
   } catch (e) {
-    note($('aiStage'), 'That did not work. Try again in a moment.');
+    note($('aiStage'), 'That did not work — press ✨ Make it to try again.');
+  } finally {
+    // whatever happened above, the panel goes back to being usable
+    clearInterval(tick);
+    aiBusy = false;
+    $('aiGo').disabled = false;
+    $('aiAgain').style.display = '';
   }
-  aiBusy = false;
-  $('aiGo').disabled = false;
 }
 function hashOf(s) {
   let h = 0;

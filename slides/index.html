@@ -282,6 +282,24 @@
   }
   @keyframes spin { to { transform: rotate(360deg); } }
   .foot { font-size: 0.72rem; color: var(--muted); margin: 0.6rem 0 0; line-height: 1.5; }
+  .srcrow { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.6rem; flex-wrap: wrap; }
+  .srclabel { font-size: 0.74rem; color: var(--muted); }
+  .srclabel b { color: var(--ink); }
+  .linkbtn {
+    background: none; border: none; cursor: pointer; padding: 0; font-size: 0.74rem;
+    color: var(--brand); font-weight: 700; text-decoration: underline;
+  }
+  .setup {
+    display: none; margin-top: 0.6rem; padding: 0.8rem; border-radius: 12px;
+    background: var(--brand-soft); border: 1px solid #d5cdff;
+  }
+  .setup.on { display: block; }
+  .setup p { font-size: 0.76rem; line-height: 1.6; margin: 0 0 0.5rem; }
+  .setup ol { margin: 0 0 0.7rem; padding-left: 1.1rem; font-size: 0.76rem; line-height: 1.7; }
+  .setup li { margin-bottom: 0.3rem; }
+  .setup a { color: var(--brand); font-weight: 700; }
+  .setup .row { margin-top: 0.4rem; }
+  .setup input { font-family: ui-monospace, 'Courier New', monospace; font-size: 0.78rem !important; }
   .gradgrid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0.35rem; }
   .gradsw { aspect-ratio: 1; border-radius: 9px; border: 2px solid var(--line); cursor: pointer; padding: 0; }
   .gradsw.on { border-color: var(--ink); }
@@ -397,9 +415,42 @@
         <input id="webQ" placeholder="What are you looking for?" autocomplete="off">
         <button class="btn primary" id="webGo">Search</button>
       </div>
+      <div class="srcrow">
+        <span class="srclabel">Pictures from <b id="srcName">the free library</b></span>
+        <button class="linkbtn" id="gSetupBtn">Use Google instead</button>
+      </div>
+
+      <div class="setup" id="gSetup">
+        <p><b>To search Google you need two free codes of your own.</b> Google does not
+           let a website search images without them. It takes about three minutes, it
+           costs nothing, and both codes stay in this browser only.</p>
+        <ol>
+          <li>Open <a href="https://programmablesearchengine.google.com/controlpanel/create" target="_blank" rel="noopener">Programmable Search Engine</a>.
+              Name it anything, turn <b>Search the entire web</b> ON, and create it.
+              Then open its <b>Overview</b> and copy the <b>Search engine ID</b>.</li>
+          <li>In that same page turn <b>Image search</b> ON.</li>
+          <li>Open <a href="https://developers.google.com/custom-search/v1/introduction" target="_blank" rel="noopener">this Google page</a>
+              and press <b>Get a Key</b>. Copy the <b>API key</b>.</li>
+          <li>Paste both below.</li>
+        </ol>
+        <div class="row"><input id="gKey" placeholder="API key (starts with AIza…)" autocomplete="off" spellcheck="false"></div>
+        <div class="row"><input id="gCx" placeholder="Search engine ID" autocomplete="off" spellcheck="false"></div>
+        <div class="row">
+          <button class="btn primary" id="gSave">Save</button>
+          <button class="btn" id="gTest">Test it</button>
+          <button class="btn danger" id="gClear">Forget</button>
+          <span class="grow"></span>
+          <button class="btn quiet" id="gClose">Hide</button>
+        </div>
+        <p class="foot" id="gMsg">Google gives 100 free searches a day.</p>
+      </div>
+
       <div class="chipsrow" id="webIdeas"></div>
       <div class="results" id="webResults"></div>
-      <p class="foot" id="webFoot">Free-to-use pictures from Openverse. Tap one to put it on your slide.</p>
+      <div class="row" id="moreRow" style="display:none;">
+        <button class="btn" id="webMore" style="flex:1;">Show more</button>
+      </div>
+      <p class="foot" id="webFoot">Tap a picture to put it on your slide.</p>
     </div>
 
     <div id="aiPane" style="display:none;">

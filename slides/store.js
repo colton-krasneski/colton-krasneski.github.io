@@ -258,9 +258,87 @@ export const clone = o => JSON.parse(JSON.stringify(o));
    a deck pointing at one would quietly go blank.
    ========================================================================== */
 
+/* ------------------------------ Google images -----------------------------
+   Google has no open image endpoint. google.com/search sends no CORS headers
+   at all, so a browser physically cannot read it, and scraping it is against
+   their terms anyway. The one sanctioned route is the Custom Search JSON API,
+   which does allow browser calls but needs the user's own free credentials.
+   They stay in this browser and are never committed anywhere.
+   -------------------------------------------------------------------------- */
+const GKEY = 'colton_slides_gkey', GCX = 'colton_slides_gcx';
+
+export function googleCreds() {
+  try {
+    return {
+      key: localStorage.getItem(GKEY) || '',
+      cx: localStorage.getItem(GCX) || ''
+    };
+  } catch (e) { return { key: '', cx: '' }; }
+}
+export function saveGoogleCreds(key, cx) {
+  try {
+    if (key && cx) { localStorage.setItem(GKEY, key.trim()); localStorage.setItem(GCX, cx.trim()); }
+    else { localStorage.removeItem(GKEY); localStorage.removeItem(GCX); }
+    return true;
+  } catch (e) { return false; }
+}
+export const hasGoogle = () => { const c = googleCreds(); return !!(c.key && c.cx); };
+
+/** One page is 10 results — the API's maximum, and one of the daily 100. */
+export async function searchGoogle(query, start) {
+  const { key, cx } = googleCreds();
+  const url = 'https://www.googleapis.com/customsearch/v1'
+    + '?key=' + encodeURIComponent(key)
+    + '&cx=' + encodeURIComponent(cx)
+    + '&searchType=image&safe=active&num=10'
+    + '&start=' + (start || 1)
+    + '&q=' + encodeURIComponent(query);
+  const res = await fetch(url);
+  const data = await res.json().catch(() => ({}));
+  if (data.error) {
+    const m = data.error.message || 'Google turned the search down.';
+    if (/quota|rate limit/i.test(m)) throw new Error('QUOTA');
+    if (/API key|not valid|denied/i.test(m)) throw new Error('BADKEY');
+    throw new Error(m);
+  }
+  return (data.items || []).map(it => {
+    const im = it.image || {};
+    return {
+      thumb: im.thumbnailLink || it.link,
+      full: it.link,
+      title: it.title || 'picture',
+      credit: it.displayLink || '',
+      link: im.contextLink || '',
+      ratio: im.width && im.height ? im.width / im.height : 1.4
+    };
+  });
+}
+
 /**
- * Search Openverse: everything it indexes has been shared for reuse, and it
- * filters adult content out by default, which matters for who this is for.
+ * Use Google when it has been set up, otherwise the keyless library.
+ * A Google failure still returns results — falling back is better than an
+ * empty screen — but it reports the problem so a bad key can be fixed.
+ */
+export async function searchPictures(query, page) {
+  if (hasGoogle()) {
+    try {
+      const hits = await searchGoogle(query, (page - 1) * 10 + 1);
+      return { source: 'google', hits, warn: '' };
+    } catch (e) {
+      const warn = e.message === 'QUOTA'
+        ? 'Google has had its 100 searches for today — showing the free library instead.'
+        : e.message === 'BADKEY'
+          ? 'Google did not accept that key — check it in Settings. Showing the free library instead.'
+          : 'Google could not be reached — showing the free library instead.';
+      return { source: 'openverse', hits: await searchWeb(query, page), warn };
+    }
+  }
+  return { source: 'openverse', hits: await searchWeb(query, page), warn: '' };
+}
+
+/**
+ * Openverse: everything it indexes has been shared for reuse, and it filters
+ * adult content out by default, which matters for who this is for.
  */
 export async function searchWeb(query, page) {
   // 20 is the hard ceiling for requests without an API key — asking for more
@@ -322,19 +400,37 @@ export async function makeAiImage(prompt, seed, onStep) {
   }
 }
 
-/** Copy a picture off the web and shrink it, so it keeps working offline. */
+/**
+ * Copy a picture off the web and shrink it, so it keeps working offline.
+ *
+ * This ALWAYS calls back exactly once, whatever happens — including when the
+ * picture never loads and never errors, which a slow generator can do. An
+ * earlier version could leave the caller waiting forever, which jammed the
+ * whole panel: the first picture worked and nothing after it responded.
+ */
 export function shrinkFromUrl(url, max, quality, cb) {
+  let settled = false;
+  const finish = (data, ratio) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    cb(data, ratio);
+  };
+  const timer = setTimeout(() => finish(null), 60000);
   const img = new Image();
   img.crossOrigin = 'anonymous';
-  img.onerror = () => cb(null);
+  img.onerror = () => finish(null);
   img.onload = () => {
-    const scale = Math.min(1, max / Math.max(img.width, img.height));
-    const c = document.createElement('canvas');
-    c.width = Math.max(1, Math.round(img.width * scale));
-    c.height = Math.max(1, Math.round(img.height * scale));
-    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-    try { cb(c.toDataURL('image/jpeg', quality), img.width / img.height); }
-    catch (e) { cb(null); }      // server refused to let us copy it
+    try {
+      const scale = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.max(1, Math.round(img.width * scale));
+      c.height = Math.max(1, Math.round(img.height * scale));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      finish(c.toDataURL('image/jpeg', quality), img.width / img.height);
+    } catch (e) {
+      finish(null);              // tainted canvas, or an image too big to draw
+    }
   };
   img.src = url;
 }
