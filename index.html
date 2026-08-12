@@ -1222,6 +1222,7 @@
         <div class="app" id="councilApp"><span class="icon">🏛️</span><span class="label">The Council</span></div>
         <div class="app" id="aitalkApp"><span class="icon">🤖</span><span class="label">AI Talk</span></div>
         <div class="app" id="nonoApp"><span class="icon">🧩</span><span class="label">Nonograms</span></div>
+        <div class="app" id="slidesApp"><span class="icon">📊</span><span class="label">Slides</span></div>
       </div>
     </div>
   </div>
@@ -5687,6 +5688,7 @@
     }
     $('aitalkApp').addEventListener('click', () => launchApp('ai-talk/'));
     $('nonoApp').addEventListener('click', () => launchApp('nonogram/'));
+    $('slidesApp').addEventListener('click', () => launchApp('slides/'));
 
     /* ================= THE COUNCIL (shared, Firestore-backed) ================= */
     (function (FS) {
