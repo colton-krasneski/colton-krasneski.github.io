@@ -1,0 +1,19 @@
+<b>Dear whoever finds this,</b>/b
+/b
+This is where the letter goes. Open <b>letter.txt</b> in the letter folder, delete all of this, and write whatever you want. It restyles itself the moment you save./b
+/b
+The marks you can use:/b
+/b
+<b>bold like this</b>/b
+<I>italics like this</I>/b
+<u>underlined like this</u>/b
+<link>https://colton.krasneski.com</link>/b
+<link>my site|https://colton.krasneski.com</link>/b
+/b
+Put <I>/b</I> at the end of a line to start a new one. An empty line with just <I>/b</I> on it leaves a gap, like the ones above./b
+/b
+You can mix them: <b><u>bold and underlined</u></b>, or <I><b>italic and bold</b></I>./b
+/b
+Everything else is ordinary writing. Type normally and it will look right./b
+/b
+— <b>Colton</b>
