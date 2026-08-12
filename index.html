@@ -521,12 +521,13 @@
       width: min(100%, 480px); height: 100%; margin: 0 auto;
       background: rgba(0, 8, 3, 0.9);
       border-left: 1px solid #00ff4133; border-right: 1px solid #00ff4133;
-      display: flex; flex-direction: column;
+      display: flex; flex-direction: column; position: relative;
     }
     .msg-top {
       display: flex; align-items: center; justify-content: space-between;
       padding: 1rem; border-bottom: 1px solid #00ff4133;
       padding-top: calc(1rem + env(safe-area-inset-top));
+      position: relative; z-index: 5;   /* keeps the ⋯ menu above the thread */
     }
     .msg-top .back { cursor: pointer; font-size: 1.3rem; color: #00ff41; background: none; border: none; font-family: inherit; }
     .msg-top .heading { font-size: 1.2rem; letter-spacing: 0.15em; color: #00ff41; text-shadow: 0 0 10px #00ff41; }
@@ -544,8 +545,79 @@
     .conv:hover { background: rgba(0,255,65,0.06); }
     .conv .name { color: #00ff41; font-size: 1.05rem; }
     .conv .preview { color: #00ff4188; font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .conv .name .tag { font-size: 0.68rem; color: #00ff4188; margin-left: 0.45rem; }
     .empty-note { padding: 2rem 1rem; text-align: center; color: #00ff4177; font-size: 0.9rem; line-height: 1.5; }
     .callbtn { background: none; border: none; cursor: pointer; font-size: 1.2rem; }
+
+    /* ---- group chats ---- */
+    .chat-id { flex: 1; min-width: 0; text-align: center; padding: 0 0.4rem; }
+    .chat-id .heading { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .chat-sub {
+      color: #00ff4177; font-size: 0.68rem; letter-spacing: 0.04em; margin-top: 3px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .chat-tools { display: flex; align-items: center; gap: 0.3rem; flex: none; }
+    #grpMenu {
+      position: absolute; top: 100%; right: 10px; z-index: 30; display: none;
+      flex-direction: column; min-width: 200px; margin-top: 6px;
+      background: rgba(0, 12, 4, 0.98); border: 1px solid #00ff4166; border-radius: 12px;
+      padding: 0.35rem; box-shadow: 0 0 18px rgba(0, 255, 65, 0.4);
+    }
+    #grpMenu.open { display: flex; }
+    #grpMenu button {
+      background: none; border: none; color: #baffcf; font-family: inherit; font-size: 0.85rem;
+      text-align: left; padding: 0.6rem 0.7rem; border-radius: 8px; cursor: pointer;
+    }
+    #grpMenu button:hover { background: rgba(0, 255, 65, 0.12); color: #00ff41; }
+    #grpMenu button.danger { color: #ff6b81; }
+    #grpMenu button.danger:hover { background: rgba(255, 0, 51, 0.16); color: #ff8fa1; }
+    .msg-wrap .who { font-size: 0.68rem; color: #00ff41aa; letter-spacing: 0.06em; margin: 0 0.4rem 3px; }
+    .sys-note { align-self: center; font-size: 0.7rem; color: #00ff4177; text-align: center; padding: 0.2rem 0.6rem; }
+    .sheet {
+      position: absolute; inset: 0; z-index: 40; display: none;
+      align-items: center; justify-content: center; padding: 1rem;
+      background: rgba(0, 4, 1, 0.93);
+    }
+    .sheet.open { display: flex; }
+    .sheet-card {
+      width: 100%; max-width: 380px; max-height: 100%;
+      display: flex; flex-direction: column; gap: 0.6rem;
+      background: rgba(0, 12, 4, 0.98); border: 1px solid #00ff4166;
+      border-radius: 14px; padding: 1rem; box-shadow: 0 0 25px rgba(0, 255, 65, 0.35);
+    }
+    .sheet-title { color: #00ff41; font-size: 1.05rem; letter-spacing: 0.1em; text-shadow: 0 0 10px #00ff41; }
+    .sheet-sub { color: #00ff4188; font-size: 0.75rem; line-height: 1.45; }
+    .sheet input {
+      background: rgba(0, 0, 0, 0.5); border: 1px solid #00ff4144; border-radius: 8px;
+      color: #d6ffe4; font-family: inherit; font-size: 0.9rem; padding: 0.55rem 0.7rem; outline: none;
+    }
+    .sheet input:focus { border-color: #00ff41; }
+    .pick-list {
+      flex: 1; overflow-y: auto; min-height: 110px; max-height: 44vh;
+      border: 1px solid #00ff4122; border-radius: 8px;
+    }
+    .pick {
+      display: flex; align-items: center; gap: 0.6rem; padding: 0.6rem 0.7rem;
+      border-bottom: 1px solid #00ff4114; cursor: pointer; color: #baffcf; font-size: 0.9rem;
+    }
+    .pick:last-child { border-bottom: none; }
+    .pick:hover { background: rgba(0, 255, 65, 0.06); }
+    .pick .box {
+      width: 18px; height: 18px; flex: none; border: 1px solid #00ff4166; border-radius: 5px;
+      display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: transparent;
+    }
+    .pick.on { color: #00ff41; }
+    .pick.on .box { background: #00ff41; border-color: #00ff41; color: #000; }
+    .pick .me-tag { margin-left: auto; font-size: 0.68rem; color: #00ff4188; }
+    .pick.static { cursor: default; }
+    .pick.static:hover { background: none; }
+    .sheet-actions { display: flex; gap: 0.6rem; justify-content: flex-end; }
+    .sheet-btn {
+      background: #00ff41; color: #000; border: none; border-radius: 8px;
+      padding: 0.55rem 1.1rem; font-family: inherit; font-weight: bold; cursor: pointer; font-size: 0.85rem;
+    }
+    .sheet-btn.ghost { background: none; color: #00ff41; border: 1px solid #00ff4166; font-weight: normal; }
+    .sheet-btn:disabled { opacity: 0.35; cursor: default; }
     .call-overlay {
       position: fixed; inset: 0; z-index: 60; display: none;
       align-items: center; justify-content: center; background: rgba(0,4,1,0.9);
@@ -1027,7 +1099,6 @@
         <div class="app" id="passgameApp"><span class="icon">🔑</span><span class="label">Password Game</span></div>
         <div class="app" id="drivesadApp"><span class="icon">😔</span><span class="label">Drive Sad</span></div>
         <div class="app" id="councilApp"><span class="icon">🏛️</span><span class="label">The Council</span></div>
-        <div class="app" id="bitlifeApp"><span class="icon">🌆</span><span class="label">BitLife Online</span></div>
         <div class="app" id="aitalkApp"><span class="icon">🤖</span><span class="label">AI Talk</span></div>
       </div>
     </div>
@@ -1047,8 +1118,21 @@
       <div id="chatView" style="display:none;flex-direction:column;height:100%;">
         <div class="msg-top">
           <button class="back" id="chatBack">‹</button>
-          <div class="heading" id="chatName">Contact</div>
-          <button class="callbtn" id="callBtn" title="Call">📞</button>
+          <div class="chat-id">
+            <div class="heading" id="chatName">Contact</div>
+            <div class="chat-sub" id="chatSub"></div>
+          </div>
+          <div class="chat-tools">
+            <button class="callbtn" id="callBtn" title="Call">📞</button>
+            <button class="callbtn" id="grpMenuBtn" title="Group options" style="display:none;">⋯</button>
+            <button class="callbtn danger" id="grpTrashBtn" title="Delete this group for everyone" style="display:none;">🗑️</button>
+          </div>
+          <div id="grpMenu">
+            <button id="gmMembers">👥 See who's in it</button>
+            <button id="gmAdd">➕ Add people</button>
+            <button id="gmRename">✏️ Rename group</button>
+            <button class="danger" id="gmLeave">🚪 Leave group</button>
+          </div>
         </div>
         <div class="thread" id="thread"></div>
         <div id="gifPanel">
@@ -1060,6 +1144,31 @@
           <button id="gifBtn" class="gif-btn" title="Send a GIF">+</button>
           <input id="msgInput" type="text" placeholder="Type a message…">
           <button id="sendBtn">Send</button>
+        </div>
+      </div>
+
+      <!-- roster of every account: one name = a text, two or more = a group -->
+      <div class="sheet" id="newChatSheet">
+        <div class="sheet-card">
+          <div class="sheet-title" id="pickTitle">New chat</div>
+          <div class="sheet-sub" id="pickCount"></div>
+          <input id="pickSearch" type="text" placeholder="Search accounts…" autocomplete="off">
+          <div class="pick-list" id="pickList"></div>
+          <input id="groupName" type="text" placeholder="Group name…" maxlength="40" style="display:none;">
+          <div class="sheet-actions">
+            <button class="sheet-btn ghost" id="pickCancel">Cancel</button>
+            <button class="sheet-btn" id="pickGo">Start chat</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="sheet" id="grpMembers">
+        <div class="sheet-card">
+          <div class="sheet-title">In this group</div>
+          <div class="pick-list" id="grpMembersList"></div>
+          <div class="sheet-actions">
+            <button class="sheet-btn ghost" id="grpMembersClose">Close</button>
+          </div>
         </div>
       </div>
     </div>
@@ -1534,7 +1643,7 @@
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
   import {
     getFirestore, collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
-    query, where, orderBy, limit, onSnapshot, serverTimestamp
+    query, where, orderBy, limit, onSnapshot, serverTimestamp, arrayUnion, arrayRemove
   } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
   import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js";
 
@@ -1800,17 +1909,29 @@
   });
 
   /* ===== MESSAGES (Firestore, real-time) ===== */
+  /* Group chats piggyback on the `messages` collection: one doc per group with
+     kind:'group' holding the name + members, and its messages tagged
+     pair:'g:<groupId>'. Keeping them in the same collection means the existing
+     "array-contains me" listener already delivers a group the moment someone
+     adds you to it — and it needs no new Firestore rules. */
   let unsubList = null, unsubThread = null, unsubReacts = null, currentContact = null;
+  let unsubGroupDoc = null, currentGroup = null;   // { id, name, members, owner }
   let threadMsgs = [], threadReacts = {}, activeMsgId = null;
+  const gPair = gid => 'g:' + gid;
+  const threadPair = () => currentGroup ? gPair(currentGroup.id) : pairId(me, currentContact);
 
   $('messagesApp').addEventListener('click', () => { $('menuBtn').style.display = 'none'; showScreen('messages'); openList(); });
   $('msgHome').addEventListener('click', () => { $('menuBtn').style.display = ''; stopList(); showScreen('home'); });
 
   function openList() {
     closeGif();
+    closeGrpMenu();
     $('listView').style.display = 'flex';
     $('chatView').style.display = 'none';
     stopThread();
+    stopGroupWatch();
+    currentContact = null;
+    currentGroup = null;
     startList();
   }
 
@@ -1818,67 +1939,337 @@
     stopList();
     const q = query(collection(db, 'messages'), where('participants', 'array-contains', me));
     unsubList = onSnapshot(q, snap => {
-      const latest = {};
+      const dms = {}, groups = {}, gLatest = {};
       snap.forEach(d => {
         const m = d.data();
-        const other = m.from === me ? m.to : m.from;
         const t = m.createdAt ? m.createdAt.toMillis() : (m.clientTime || Date.now());
+        if (m.kind === 'group') {
+          groups[d.id] = { id: d.id, name: m.name || 'Group', members: m.members || [], t };
+          return;
+        }
         const preview = m.type === 'gif' ? '🖼️ GIF' : cleanText(m.text);
-        if (!latest[other] || t >= latest[other].t) latest[other] = { text: preview, t };
+        if (m.group) {   // a message inside a group: label it with the sender
+          const line = m.type === 'sys' ? preview : m.from + ': ' + preview;
+          if (!gLatest[m.group] || t >= gLatest[m.group].t) gLatest[m.group] = { text: line, t };
+          return;
+        }
+        const other = m.from === me ? m.to : m.from;
+        if (!dms[other] || t >= dms[other].t) dms[other] = { text: preview, t };
       });
-      renderConvList(latest);
+      renderConvList(dms, groups, gLatest);
     }, err => {
       $('convList').innerHTML = '<div class="empty-note">Could not load. Make sure Firestore is enabled in test mode.<br><br>' + err.message + '</div>';
     });
   }
   function stopList() { if (unsubList) { unsubList(); unsubList = null; } }
 
-  function renderConvList(latest) {
+  function renderConvList(dms, groups, gLatest) {
     const list = $('convList');
-    const names = Object.keys(latest).sort((a,b) => latest[b].t - latest[a].t);
-    if (names.length === 0) {
-      list.innerHTML = '<div class="empty-note">No chats yet.<br>Tap the <b>+</b> in the top-right to look up someone by username and start texting.</div>';
+    const rows = [];
+    Object.keys(dms).forEach(n => rows.push({ kind: 'dm', key: n, title: n, preview: dms[n].text, t: dms[n].t }));
+    Object.keys(groups).forEach(id => {
+      const g = groups[id], last = gLatest[id];
+      rows.push({
+        kind: 'group', key: id, title: g.name,
+        tag: g.members.length + (g.members.length === 1 ? ' person' : ' people'),
+        preview: last ? last.text : 'No messages yet — say hi.',
+        t: last ? last.t : g.t
+      });
+    });
+    rows.sort((a, b) => b.t - a.t);
+    if (rows.length === 0) {
+      list.innerHTML = '<div class="empty-note">No chats yet.<br>Tap the <b>+</b> in the top-right to pick from everyone with an account — one person to text, two or more to start a group.</div>';
       return;
     }
     list.innerHTML = '';
-    names.forEach(name => {
+    rows.forEach(r => {
       const div = document.createElement('div');
       div.className = 'conv';
-      div.innerHTML = `<span class="name">${esc(name)}</span><span class="preview">${esc(latest[name].text)}</span>`;
-      div.addEventListener('click', () => openChat(name));
+      div.innerHTML = '<span class="name">' + (r.kind === 'group' ? '👥 ' : '') + esc(r.title)
+        + (r.tag ? '<span class="tag">' + esc(r.tag) + '</span>' : '') + '</span>'
+        + '<span class="preview">' + esc(r.preview) + '</span>';
+      div.addEventListener('click', () => r.kind === 'group' ? openGroup(r.key) : openChat(r.key));
       list.appendChild(div);
     });
   }
 
-  /* + : look up a real account across the net, then open the chat */
-  $('newChatBtn').addEventListener('click', async () => {
-    const input = prompt('Look up an account to text (enter their username):');
-    if (!input) return;
-    const name = canon(input);
-    if (!name) return;
-    if (name === me) { alert("That's you!"); return; }
+  /* ----- + : roster of every account. One name = a text, two or more = a group ----- */
+  let pickAll = [], pickSel = new Set(), pickMode = 'new';   // 'new' | 'add'
+
+  $('newChatBtn').addEventListener('click', () => openPicker('new'));
+
+  async function openPicker(mode) {
+    pickMode = mode;
+    pickSel = new Set();
+    $('pickSearch').value = '';
+    $('groupName').value = '';
+    $('pickTitle').textContent = mode === 'add' ? 'Add people' : 'New chat';
+    $('pickList').innerHTML = '<div class="empty-note">Loading accounts…</div>';
+    $('newChatSheet').classList.add('open');
+    syncPicker();
     try {
-      const snap = await getDoc(doc(db, 'users', name));
-      if (!snap.exists()) { alert('No user found with the name "' + name + '".'); return; }
-      openChat(name);
-    } catch (e) { alert('Error: ' + e.message); }
+      const snap = await getDocs(collection(db, 'users'));
+      const skip = mode === 'add' && currentGroup ? currentGroup.members : [me];
+      pickAll = [];
+      snap.forEach(d => {
+        const n = d.data().username || d.id;
+        if (!skip.includes(n)) pickAll.push(n);
+      });
+      pickAll.sort();
+      renderPicker();
+    } catch (e) {
+      $('pickList').innerHTML = '<div class="empty-note">Could not load accounts:<br>' + esc(e.message) + '</div>';
+    }
+  }
+
+  function renderPicker() {
+    const term = canon($('pickSearch').value);
+    const box = $('pickList');
+    const shown = pickAll.filter(n => !term || n.includes(term));
+    if (shown.length === 0) {
+      box.innerHTML = '<div class="empty-note">' + (pickAll.length ? 'Nobody by that name.' : 'No other accounts yet.') + '</div>';
+      return;
+    }
+    box.innerHTML = '';
+    shown.forEach(n => {
+      const row = document.createElement('div');
+      row.className = 'pick' + (pickSel.has(n) ? ' on' : '');
+      row.innerHTML = '<span class="box">✓</span><span>' + esc(n) + '</span>';
+      row.addEventListener('click', () => {
+        if (pickSel.has(n)) pickSel.delete(n); else pickSel.add(n);
+        row.classList.toggle('on', pickSel.has(n));
+        syncPicker();
+      });
+      box.appendChild(row);
+    });
+  }
+
+  function syncPicker() {
+    const n = pickSel.size, picked = [...pickSel];
+    if (pickMode === 'add') {
+      $('groupName').style.display = 'none';
+      $('pickGo').disabled = n === 0;
+      $('pickGo').textContent = n ? 'Add ' + n : 'Add';
+      $('pickCount').textContent = n
+        ? 'Adding ' + picked.join(', ') + ' to ' + (currentGroup ? currentGroup.name : 'the group') + '.'
+        : 'Pick who to bring into the group.';
+      return;
+    }
+    $('groupName').style.display = n >= 2 ? '' : 'none';
+    $('pickGo').disabled = n === 0;
+    $('pickGo').textContent = n >= 2 ? 'Create group' : 'Start chat';
+    $('pickCount').textContent = n === 0 ? 'Pick one person to text, or two or more to make a group chat.'
+      : n === 1 ? 'Texting ' + picked[0] + '. Pick another to turn it into a group.'
+      : n + ' people, plus you.';
+  }
+
+  $('pickSearch').addEventListener('input', renderPicker);
+  $('pickCancel').addEventListener('click', () => $('newChatSheet').classList.remove('open'));
+
+  $('pickGo').addEventListener('click', async () => {
+    const chosen = [...pickSel];
+    if (chosen.length === 0) return;
+    $('pickGo').disabled = true;
+    try {
+      if (pickMode === 'add') {
+        await addToGroup(chosen);
+      } else if (chosen.length === 1) {
+        $('newChatSheet').classList.remove('open');
+        openChat(chosen[0]);
+      } else {
+        await createGroup(chosen);
+      }
+    } catch (e) {
+      alert('That did not work: ' + e.message);
+    }
+    $('pickGo').disabled = false;
   });
 
+  async function createGroup(chosen) {
+    const typed = cleanText(($('groupName').value || '').trim()).slice(0, 40);
+    const name = typed || chosen.slice(0, 3).join(', ') + (chosen.length > 3 ? ' +' + (chosen.length - 3) : '');
+    const members = [me, ...chosen];
+    const ref = await addDoc(collection(db, 'messages'), {
+      kind: 'group', name, members, participants: members, owner: me,
+      clientTime: Date.now(), createdAt: serverTimestamp()
+    });
+    $('newChatSheet').classList.remove('open');
+    openGroup(ref.id, { id: ref.id, name, members, owner: me });
+  }
+
   function openChat(name) {
+    stopGroupWatch();
+    currentGroup = null;
     currentContact = name;
     $('chatName').textContent = name;
+    $('chatSub').textContent = '';
+    $('callBtn').style.display = '';
+    $('grpMenuBtn').style.display = 'none';
+    $('grpTrashBtn').style.display = 'none';
+    showChatView();
+    startThread();
+  }
+
+  function openGroup(gid, seed) {
+    currentContact = null;
+    currentGroup = seed || { id: gid, name: 'Group', members: [], owner: null };
+    paintGroupHeader();
+    $('callBtn').style.display = 'none';       // calls are one-to-one only
+    $('grpMenuBtn').style.display = '';
+    $('grpTrashBtn').style.display = '';
+    showChatView();
+    watchGroup(gid);
+    startThread();
+  }
+
+  function showChatView() {
     $('listView').style.display = 'none';
     $('chatView').style.display = 'flex';
     closeGif();
+    closeGrpMenu();
     stopList();
-    startThread();
     $('msgInput').focus();
   }
+
+  function paintGroupHeader() {
+    if (!currentGroup) return;
+    $('chatName').textContent = '👥 ' + currentGroup.name;
+    $('chatSub').textContent = memberLine(currentGroup.members);
+  }
+
+  function memberLine(mem) {
+    const others = (mem || []).filter(n => n !== me);
+    if (others.length === 0) return 'just you in here';
+    if (others.length <= 3) return 'you, ' + others.join(', ');
+    return 'you, ' + others.slice(0, 2).join(', ') + ' +' + (others.length - 2) + ' more';
+  }
+
+  /* keep name / members live while the chat is open, and bail out if the group
+     is deleted or we get removed from it */
+  function watchGroup(gid) {
+    stopGroupWatch();
+    unsubGroupDoc = onSnapshot(doc(db, 'messages', gid), d => {
+      if (!currentGroup || currentGroup.id !== gid) return;
+      if (!d.exists()) { alert('That group was deleted.'); openList(); return; }
+      const g = d.data();
+      if (!(g.members || []).includes(me)) { openList(); return; }
+      currentGroup = { id: gid, name: g.name || 'Group', members: g.members || [], owner: g.owner || null };
+      paintGroupHeader();
+      renderThread();
+      if ($('grpMembers').classList.contains('open')) renderMembers();
+    });
+  }
+  function stopGroupWatch() { if (unsubGroupDoc) { unsubGroupDoc(); unsubGroupDoc = null; } }
+
   $('chatBack').addEventListener('click', () => { stopThread(); openList(); });
+
+  /* ----- ⋯ group options ----- */
+  function closeGrpMenu() { $('grpMenu').classList.remove('open'); }
+  $('grpMenuBtn').addEventListener('click', e => {
+    e.stopPropagation();
+    $('grpMenu').classList.toggle('open');
+  });
+  document.addEventListener('click', closeGrpMenu);
+  $('grpMenu').addEventListener('click', e => e.stopPropagation());
+
+  $('gmMembers').addEventListener('click', () => { closeGrpMenu(); renderMembers(); $('grpMembers').classList.add('open'); });
+  $('grpMembersClose').addEventListener('click', () => $('grpMembers').classList.remove('open'));
+  $('gmAdd').addEventListener('click', () => { closeGrpMenu(); openPicker('add'); });
+  $('gmRename').addEventListener('click', async () => {
+    closeGrpMenu();
+    if (!currentGroup) return;
+    const typed = prompt('Rename this group:', currentGroup.name);
+    if (typed === null) return;
+    const name = cleanText(typed.trim()).slice(0, 40);
+    if (!name) return;
+    try {
+      await updateDoc(doc(db, 'messages', currentGroup.id), { name });
+      await postSys(currentGroup, me + ' renamed the group to "' + name + '"');
+    } catch (e) { alert('Could not rename: ' + e.message); }
+  });
+  $('gmLeave').addEventListener('click', leaveGroup);
+  $('grpTrashBtn').addEventListener('click', trashGroup);
+
+  function renderMembers() {
+    const box = $('grpMembersList');
+    box.innerHTML = '';
+    if (!currentGroup) return;
+    currentGroup.members.forEach(n => {
+      const row = document.createElement('div');
+      row.className = 'pick static';
+      const tag = n === me ? 'you' : (n === currentGroup.owner ? 'made it' : '');
+      row.innerHTML = '<span class="box">•</span><span>' + esc(n) + '</span>'
+        + (tag ? '<span class="me-tag">' + tag + '</span>' : '');
+      box.appendChild(row);
+    });
+  }
+
+  /* a little grey line in the thread so nobody wonders who joined or left */
+  function postSys(g, text) {
+    return addDoc(collection(db, 'messages'), {
+      from: me, group: g.id, participants: g.members.slice(), pair: gPair(g.id),
+      type: 'sys', text, clientTime: Date.now(), createdAt: serverTimestamp()
+    });
+  }
+
+  async function addToGroup(chosen) {
+    if (!currentGroup) return;
+    const g = currentGroup;
+    await updateDoc(doc(db, 'messages', g.id), {
+      members: arrayUnion(...chosen), participants: arrayUnion(...chosen)
+    });
+    $('newChatSheet').classList.remove('open');
+    await postSys({ id: g.id, members: g.members.concat(chosen) }, me + ' added ' + chosen.join(', '));
+  }
+
+  async function leaveGroup() {
+    closeGrpMenu();
+    if (!currentGroup) return;
+    const g = currentGroup;
+    const others = g.members.filter(n => n !== me);
+    if (!confirm('Leave "' + g.name + '"? You will stop getting its messages.')) return;
+    stopGroupWatch();
+    currentGroup = null;
+    stopThread();
+    try {
+      if (others.length === 0) {
+        await wipeGroup(g.id);              // last one out turns off the lights
+      } else {
+        await updateDoc(doc(db, 'messages', g.id), { members: arrayRemove(me), participants: arrayRemove(me) });
+        await postSys({ id: g.id, members: others }, me + ' left the group');
+      }
+    } catch (e) { alert('Could not leave: ' + e.message); }
+    openList();
+  }
+
+  async function trashGroup() {
+    closeGrpMenu();
+    if (!currentGroup) return;
+    const g = currentGroup;
+    if (!confirm('Delete "' + g.name + '" for everyone?\n\nEvery message in it goes away for good.')) return;
+    stopGroupWatch();
+    currentGroup = null;
+    stopThread();
+    try { await wipeGroup(g.id); } catch (e) { alert('Could not delete: ' + e.message); }
+    openList();
+  }
+
+  async function wipeGroup(gid) {
+    const pid = gPair(gid);
+    const [msgs, reacts] = await Promise.all([
+      getDocs(query(collection(db, 'messages'), where('pair', '==', pid))),
+      getDocs(query(collection(db, 'reactions'), where('pair', '==', pid)))
+    ]);
+    const jobs = [];
+    msgs.forEach(d => jobs.push(deleteDoc(doc(db, 'messages', d.id))));
+    reacts.forEach(d => jobs.push(deleteDoc(doc(db, 'reactions', d.id))));
+    await Promise.all(jobs);
+    await deleteDoc(doc(db, 'messages', gid));
+  }
 
   function startThread() {
     stopThread();
-    const pid = pairId(me, currentContact);
+    const pid = threadPair();
     // live messages
     const mq = query(collection(db, 'messages'), where('pair', '==', pid));
     unsubThread = onSnapshot(mq, snap => {
@@ -1909,8 +2300,24 @@
     const thread = $('thread');
     thread.innerHTML = '';
     threadMsgs.forEach(m => {
+      if (m.type === 'sys') {
+        const note = document.createElement('div');
+        note.className = 'sys-note';
+        note.textContent = cleanText(m.text);
+        thread.appendChild(note);
+        return;
+      }
+
       const wrap = document.createElement('div');
       wrap.className = 'msg-wrap ' + (m.from === me ? 'mine' : 'theirs');
+
+      // in a group, every bubble is signed so you always know who said it
+      if (currentGroup) {
+        const who = document.createElement('div');
+        who.className = 'who';
+        who.textContent = m.from === me ? 'you' : m.from;
+        wrap.appendChild(who);
+      }
 
       const b = document.createElement('div');
       b.className = 'bubble ' + (m.from === me ? 'me' : 'them');
@@ -1988,28 +2395,30 @@
         await deleteDoc(doc(db, 'reactions', existing.id));
       } else {
         await addDoc(collection(db, 'reactions'), {
-          pair: pairId(me, currentContact), msgId, emoji, from: me, clientTime: Date.now()
+          pair: threadPair(), msgId, emoji, from: me, clientTime: Date.now()
         });
       }
     } catch (e) { alert('Reaction failed: ' + e.message); }
   }
 
+  /* one envelope for both kinds of chat — a group message carries the member
+     list so everyone's conversation list picks it up */
+  function envelope(extra) {
+    const base = { from: me, clientTime: Date.now(), createdAt: serverTimestamp() };
+    const route = currentGroup
+      ? { group: currentGroup.id, participants: currentGroup.members.slice(), pair: gPair(currentGroup.id) }
+      : { to: currentContact, participants: [me, currentContact], pair: pairId(me, currentContact) };
+    return Object.assign(base, route, extra);
+  }
+
   async function sendMessage() {
     const input = $('msgInput');
     const raw = input.value.trim();
-    if (!raw || !currentContact) return;
+    if (!raw || (!currentContact && !currentGroup)) return;
     const text = cleanText(raw);
     input.value = '';
     try {
-      await addDoc(collection(db, 'messages'), {
-        from: me,
-        to: currentContact,
-        participants: [me, currentContact],
-        pair: pairId(me, currentContact),
-        text,
-        clientTime: Date.now(),
-        createdAt: serverTimestamp()
-      });
+      await addDoc(collection(db, 'messages'), envelope({ text }));
     } catch (e) { alert('Could not send: ' + e.message); input.value = text; }
   }
   $('sendBtn').addEventListener('click', sendMessage);
@@ -2080,16 +2489,10 @@
   }
 
   async function sendGif(gifUrl) {
-    if (!currentContact) return;
+    if (!currentContact && !currentGroup) return;
     closeGif();
     try {
-      await addDoc(collection(db, 'messages'), {
-        from: me, to: currentContact,
-        participants: [me, currentContact],
-        pair: pairId(me, currentContact),
-        text: gifUrl, type: 'gif',
-        clientTime: Date.now(), createdAt: serverTimestamp()
-      });
+      await addDoc(collection(db, 'messages'), envelope({ text: gifUrl, type: 'gif' }));
     } catch (e) { alert('Could not send GIF: ' + e.message); }
   }
 
@@ -4948,15 +5351,13 @@
     window.addEventListener('resize', () => { if (running && $('dsGame').style.display !== 'none') sizeCanvas(); });
 
     /* ================= STANDALONE APPS =================
-       BitLife Online and AI Talk live in their own folders rather than inline:
-       each is big enough that adding it here would bloat this page for every
-       visitor. Hand the logged-in username across first so their local saves
-       are per-account. */
+       AI Talk lives in its own folder rather than inline: it is big enough that
+       adding it here would bloat this page for every visitor. Hand the
+       logged-in username across first so its local saves are per-account. */
     function launchApp(path) {
       if (me) localStorage.setItem('colton_last_user', me);
       location.href = path;
     }
-    $('bitlifeApp').addEventListener('click', () => launchApp('bitlife/'));
     $('aitalkApp').addEventListener('click', () => launchApp('ai-talk/'));
 
     /* ================= THE COUNCIL (shared, Firestore-backed) ================= */
