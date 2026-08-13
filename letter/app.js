@@ -110,15 +110,19 @@ const TAGS = { b: 'b', i: 'i', u: 'u', link: 'a' };
 
 export function renderLetter(text, host) {
   host.innerHTML = '';
-  // Tags and the /b break are found in ONE pass. They have to be: the break
+  // Tags and line breaks are found in ONE pass. They have to be: the break
   // marker /b also lives inside the closing tag </b>, so anything that hunts
   // for breaks separately saws every bold tag in half.
-  const re = /<(\/?)(b|i|u|link)>|\/b/gi;
-  const src = String(text).replace(/\r/g, '');
+  //
+  // A plain newline breaks the line too, because that is how anyone actually
+  // writes a letter in a text file. /b swallows the newline after it, so
+  // ending a line with /b and pressing return does not leave a double gap.
+  // Closing tags are read loosely: </b>, <b/> and <b /> all close a bold.
+  const re = /<\/\s*(b|i|u|link)\s*>|<\s*(b|i|u|link)\s*\/\s*>|<\s*(b|i|u|link)\s*>|\/b\r?\n?|\r?\n/gi;
+  const src = String(text);
 
   let para = document.createElement('p');
   let stack = [para];
-  let open = [];                      // tag names still open, so they survive a break
   const put = t => { if (t) stack[stack.length - 1].appendChild(document.createTextNode(t)); };
   const closeAll = () => {
     while (stack.length > 1) {
@@ -133,46 +137,37 @@ export function renderLetter(text, host) {
 
   let last = 0, m;
   while ((m = re.exec(src)) !== null) {
-    put(clean(src.slice(last, m.index)));
+    put(src.slice(last, m.index));
     last = re.lastIndex;
 
-    if (m[2] === undefined) {         // it was /b — end the line
-      const carry = open.slice();
+    const closeName = m[1] || m[2];   // </b> or <b/>
+    const openName = m[3];
+
+    if (!closeName && !openName) {    // a line break
+      // Formatting does NOT carry to the next line. One tag left open by
+      // accident then spoils a single line, instead of the whole letter.
       closeAll();
       flush();
       para = document.createElement('p');
       stack = [para];
-      open = [];
-      carry.forEach(nm => {           // a bold block keeps going over a break
-        const el = document.createElement(TAGS[nm]);
-        stack[stack.length - 1].appendChild(el);
-        stack.push(el);
-        open.push(nm);
-      });
       continue;
     }
 
-    const name = m[2].toLowerCase();
-    if (m[1] === '/') {
+    if (closeName) {
       if (stack.length > 1) {
         const done = stack.pop();
-        open.pop();
         if (done.tagName === 'A') finishLink(done);
       }
     } else {
-      const el = document.createElement(TAGS[name]);
+      const el = document.createElement(TAGS[openName.toLowerCase()]);
       stack[stack.length - 1].appendChild(el);
       stack.push(el);
-      open.push(name);
     }
   }
-  put(clean(src.slice(last)));
+  put(src.slice(last));
   closeAll();
   flush();
 }
-
-/* Real newlines in the file are just spacing — /b is what makes a new line. */
-function clean(s) { return s.replace(/\s*\n\s*/g, ' '); }
 
 /** <link>url</link> or <link>label|url</link>. Anything odd stays plain text. */
 function finishLink(a) {
@@ -396,9 +391,80 @@ $('book').addEventListener('pointerup', e => {
   if (Math.abs(d) > 60) go(at + (d < 0 ? 1 : -1));
 });
 
+/* ---------------------------------- music ---------------------------------
+   The same well Musicfy drinks from: Apple's public catalogue, which hands
+   out a thirty-second preview of anything. No key, no quota, and it plays
+   straight from a URL. Looped quietly under the notebook.
+
+   To put a different song under the letter, change the line below. It is a
+   plain search, exactly what you would type into Musicfy.
+   -------------------------------------------------------------------------- */
+const SONG = "You're the Inspiration Chicago";
+
+let tune = null, wanted = localStorage.getItem('colton_letter_music') !== 'off';
+
+async function findSong() {
+  const url = 'https://itunes.apple.com/search?entity=song&limit=5&term=' + encodeURIComponent(SONG);
+  const res = await fetch(url);
+  const data = await res.json();
+  const hit = (data.results || []).find(r => r.previewUrl);
+  if (!hit) throw new Error('not found');
+  return hit;
+}
+
+function paintMusic(label) {
+  const b = $('musicBtn');
+  if (!b) return;
+  b.textContent = wanted ? '♪' : '♪̸';
+  b.classList.toggle('off', !wanted);
+  b.title = label || (!wanted ? 'Music off — tap to turn on'
+    : (tune && !tune.paused) ? 'Music on — tap to turn off' : 'Tap the page to start the music');
+}
+
+/* Browsers will not let a page make noise until it has been touched, so the
+   first tap anywhere is what actually starts it. */
+function tryPlay() {
+  if (!tune || !wanted) return;
+  tune.play().then(paintMusic).catch(() => paintMusic('Tap the page to start the music'));
+}
+
+findSong().then(hit => {
+  tune = new Audio(hit.previewUrl);
+  tune.loop = true;
+  tune.volume = 0.0;
+  tune.preload = 'auto';
+  $('nowPlaying').textContent = '♫ ' + hit.trackName + ' · ' + hit.artistName;
+  $('nowPlaying').title = 'A 30-second preview from Apple, the same source Musicfy uses';
+  tryPlay();
+  // fade in, so it does not jump out at whoever opens this
+  tune.addEventListener('play', () => {
+    let v = 0;
+    const up = setInterval(() => {
+      v = Math.min(0.32, v + 0.02);
+      if (tune) tune.volume = v;
+      if (v >= 0.32) clearInterval(up);
+    }, 120);
+    paintMusic();
+  });
+}).catch(() => {
+  $('nowPlaying').textContent = '';
+  paintMusic('Could not reach the music');
+});
+
+$('musicBtn').addEventListener('click', () => {
+  wanted = !wanted;
+  localStorage.setItem('colton_letter_music', wanted ? 'on' : 'off');
+  if (!wanted && tune) tune.pause();
+  else tryPlay();
+  paintMusic();
+});
+addEventListener('pointerdown', tryPlay);
+addEventListener('keydown', tryPlay);
+
 /* ---------------------------------- boot ---------------------------------- */
 build();
 go(0);
+paintMusic();
 
 fetch('letter.txt?t=' + Date.now())
   .then(r => { if (!r.ok) throw new Error(r.status); return r.text(); })

@@ -1,19 +1,53 @@
-<b>Dear whoever finds this,</b>/b
-/b
-This is where the letter goes. Open <b>letter.txt</b> in the letter folder, delete all of this, and write whatever you want. It restyles itself the moment you save./b
-/b
-The marks you can use:/b
-/b
-<b>bold like this</b>/b
-<I>italics like this</I>/b
-<u>underlined like this</u>/b
-<link>https://colton.krasneski.com</link>/b
-<link>my site|https://colton.krasneski.com</link>/b
-/b
-Put <I>/b</I> at the end of a line to start a new one. An empty line with just <I>/b</I> on it leaves a gap, like the ones above./b
-/b
-You can mix them: <b><u>bold and underlined</u></b>, or <I><b>italic and bold</b></I>./b
-/b
-Everything else is ordinary writing. Type normally and it will look right./b
-/b
-— <b>Colton</b>
+<b> Dear all of my peers </b>
+
+<I> I couldn't put it any simpler... <I/>
+    <U>THANK YOU </U>
+
+Just the fact you even paid attention to my site over its
+reconstruction means more than anything and legitametly
+makes me want to cry.
+
+This site means so much to me, I'd hate for it to be taken down,
+you know three years and 3 months ago, time flies, I thought
+this site would never end. I was so wrong. Many years had passed, 
+I had completely forgotten about it. 
+
+Then one day I was inside of Visual Studio Code trying to
+find a .PNG file, for one of my attempts at trying to
+learn HTML5, Javascript, and CSS. 
+
+For a lot of you, you probably have no idea what those are,
+they are coding lanuages. They are the structure of all 
+websites, and all games you see, except scratch games,
+of course Scratch is meant to get a jumpstart at coding,
+but that platform itself was most likely made with
+HTML5, Python, or some other coding language.
+
+Then I saw a file I had forgotten about, I had accidentally misclicked a file,
+it was the <b>.vscode </b> one that everyone has, apparently my site was being stored there.
+
+<b>IT HAD BEEN SO LONG I HAD TO ABSOLUTELY</b> <U>PULL UP MY GITHUB AND DO ONLY THE BEST </U>
+
+This is why I regret to inform each and everyone one of you, today I am cancelling my 
+subscription to Claude Max (A form of Claude Code)
+
+<b>THIS IS AN AI MODEL I USED TO RESTRUCTURE</b><U>MY WHOLE SITE!!!</U>
+
+The site will no longer get updates until I get this back, I don't know when this will be,
+but this is why a made a whole collage of this sites milestones.
+
+<U>That blue background with those dark blue links</U>
+<b>THAT WAS THIS SITE</b>
+
+It angers me inside all good things can't last forever,
+especially the Claude Max Plan, seeing how this very
+beautiful AI made me a very happy person and sad at the same time.
+
+Until I get what is rightfully mine back, a second time, this will remain the dreaded.
+<b><u>The dreaded letter of 8-12-26</b></u>
+
+Your support will never be forgotten, nature will find a way,
+but until then, if you happen to see one, Colton Krasneski, in public or in
+Social Media, suggestions would be much appreciated.
+
+THIS IS NOT OVER!

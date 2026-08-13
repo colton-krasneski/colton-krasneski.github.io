@@ -39,6 +39,17 @@
   .top a:hover { color: #fff; border-color: #6b6151; }
   .top .name { flex: 1; text-align: center; font-size: 0.95rem; letter-spacing: 0.06em; }
   .top .name b { color: var(--thread); }
+  .top .np {
+    font-size: 0.7rem; color: #8f8676; font-style: italic; max-width: 190px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .top .chip {
+    background: none; border: 1px solid #3d372e; border-radius: 10px;
+    padding: 0.3rem 0.55rem; font-size: 0.85rem; color: #d8cfbc; line-height: 1;
+  }
+  .top .chip:hover { border-color: #6b6151; color: #fff; }
+  .top .chip.off { opacity: 0.45; }
+  @media (max-width: 560px) { .top .np { display: none; } }
 
   /* -------------------------------- book --------------------------------- */
   .desk { flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; padding: 0.6rem; }
@@ -160,6 +171,8 @@
 <div class="top">
   <a href="../">← Phone</a>
   <div class="name">Letter of <b>8-12-26</b></div>
+  <span class="np" id="nowPlaying"></span>
+  <button class="chip" id="musicBtn" title="Music">♪</button>
   <a href="letter.txt" target="_blank" rel="noopener">letter.txt</a>
 </div>
 
