@@ -77,5 +77,18 @@ service cloud.firestore {
       allow read, write: if true;
       match /{sub=**}       { allow read, write: if true; }   // hostCand / guestCand
     }
+
+    // ---------- the 3D Overworld lobby ----------
+    //  worldPeers: one small doc per person in the meadow, refreshed
+    //    about once a minute and deleted on the way out.
+    //  worldLinks: the offer/answer and the two piles of ICE candidates
+    //    for one pair of players - the same shape as a duel. Once the
+    //    two browsers are talking directly, nothing else is written:
+    //    positions never touch Firestore.
+    match /worldPeers/{id} { allow read, write: if true; }
+    match /worldLinks/{id} {
+      allow read, write: if true;
+      match /{sub=**}       { allow read, write: if true; }   // aCand / bCand
+    }
   }
 }

@@ -359,11 +359,6 @@ const ANKLE = BONE[B.footL][3];
    standing hip-drop out. */
 const SLACK = 0.050;
 
-/* The feet cover the same ground on every step whatever the speed, so a
-   stride can never ask the leg to reach further than it has. Going faster
-   shortens the time on the ground rather than lengthening the step - which
-   is also what a person actually does when they speed up. */
-const STANCE = 0.74, AHEAD = 0.37;
 
 /* ============================================================
    The body. Six surfaces, one skeleton.
@@ -539,5 +534,5 @@ function buildBody() {
   };
 }
 export {
-  HEAD_LAYER, T2, AXIS_X, AXIS_Y, AXIS_Z, ramp, Mold, BONE, B, FINGERS, ANKLE, SLACK, STANCE, AHEAD, buildBody,
+  HEAD_LAYER, T2, AXIS_X, AXIS_Y, AXIS_Z, ramp, Mold, BONE, B, FINGERS, ANKLE, SLACK, buildBody,
 };

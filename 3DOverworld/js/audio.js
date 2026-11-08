@@ -181,9 +181,13 @@ const SURFACE = {
    ------------------------------------------------------------ */
 
 /* `force` is 0 for a crouching creep and 1 for a sprint; `wet` is how
-   much water he is dragging his boots through. */
-function sfxFoot(surf, force, wet) {
+   much water he is dragging his boots through; `vol` scales the lot,
+   which is how somebody else's footsteps get quieter the further off
+   they are without changing what they sound like. */
+function sfxFoot(surf, force, wet, vol) {
   if (!audioReady()) return;
+  const g = vol === undefined ? 1 : clamp01(vol);
+  if (g < 0.02) return;
   const S = SURFACE[surf] || SURFACE.turf;
   const t = ctx.currentTime + 0.004;
   const v = clamp01(force);
@@ -195,19 +199,19 @@ function sfxFoot(surf, force, wet) {
     type: "triangle",
     f0: S.body * j, f1: S.body * j * 0.55,
     dur: 0.095 + v * 0.055,
-    gain: 0.085 * S.thump * (0.40 + v * 0.80),
+    gain: 0.085 * S.thump * (0.40 + v * 0.80) * g,
   });
   /* and the sole itself, against whatever is under it */
   burst(t, {
     f0: S.f0 * j, f1: S.f1 * j, q: S.q,
     dur: S.dur * (0.78 + v * 0.44),
-    gain: 0.050 * S.hiss * (0.30 + v),
+    gain: 0.050 * S.hiss * (0.30 + v) * g,
   });
   /* the pack and the belt, a hair behind the foot, on a heavy step */
   if (v > 0.42) {
-    burst(t + 0.014, { f0: 3700, q: 0.9, dur: 0.055, gain: 0.013 * v });
+    burst(t + 0.014, { f0: 3700, q: 0.9, dur: 0.055, gain: 0.013 * v * g });
   }
-  if (wet > 0.04) splashAt(t + 0.006, clamp01(wet) * (0.35 + v * 0.65));
+  if (wet > 0.04) splashAt(t + 0.006, clamp01(wet) * (0.35 + v * 0.65) * g);
 }
 
 /* ------------------------------------------------------------

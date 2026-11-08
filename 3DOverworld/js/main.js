@@ -12,6 +12,9 @@ import * as THREE from "three";
 import { scene, camera, canvas, composer, gradePass, GradeShader, SH,
   makeComposer, resize } from "./graphics.js";
 import { setAudioPaused, setMuted, startAudio } from "./audio.js";
+import { broadcast, connect as netConnect, netState } from "./net.js";
+import { encodeState } from "./protocol.js";
+import { RemotePlayer } from "./remote.js";
 import { TEX, buildTextures, nextFrame } from "./materials.js";
 import { WATER, heightAt, placeName } from "./terrain.js";
 import { World } from "./world.js";
@@ -36,6 +39,22 @@ let nextCheck = 12;
 
 let qualName = startingQuality(coarse);
 let world = null, player = null, input = null;
+
+/* ---- everybody else ----
+   Keyed by the peer id the lobby handed out. The timeline inside each
+   one is stamped with this clock, so it has to be the same clock the
+   frame loop samples with - performance.now(), which is monotonic and
+   owes nothing to anybody else's idea of the time. */
+const others = new Map();
+/* A name can arrive before the first position does - the channel says
+   hello the moment it opens - so names are kept beside the figures
+   rather than only on them. */
+const names = new Map();
+const nowSec = () => performance.now() / 1000;
+const SEND_HZ = 12;
+let sendAt = 0;
+let netOn = false;
+const packet = {};
 
 /* ---- detail level ----
    `chosen` separates a level the player picked from one the game stepped
@@ -76,6 +95,7 @@ function play() {
   startAudio();
   setMuted(!soundOn());
   setAudioPaused(false);
+  joinWorld();
   hud.showGate(false);
   hud.showPause(false);
   if (input) input.enabled = true;
@@ -113,6 +133,51 @@ canvas.addEventListener("click", () => {
   if (state === "play" && !input.locked) lockMouse();
 });
 
+/* ---- the lobby ----
+   Multiplayer is a bonus, never a requirement: every failure in here
+   is swallowed and the meadow carries on being a perfectly good place
+   to walk about on your own. */
+function joinWorld() {
+  if (netOn || !world) return;
+  netOn = true;
+  let name = "someone";
+  try { name = localStorage.getItem("colton_last_user") || "someone"; } catch (err) { /* fine */ }
+  netConnect({
+    name,
+    state: (id, st) => {
+      let o = others.get(id);
+      if (!o) {
+        o = new RemotePlayer(scene, world, id, names.get(id) || "someone");
+        others.set(id, o);
+      }
+      o.feed(nowSec(), st);
+    },
+    join: (id, who) => {
+      names.set(id, who);
+      const o = others.get(id);
+      if (o) o.rename(who);
+      hud.hint(esc(who) + " is here", 4, wall);
+    },
+    leave: (id) => {
+      names.delete(id);
+      const o = others.get(id);
+      if (!o) return;
+      o.dispose();
+      others.delete(id);
+    },
+    /* only an outright failure is worth reporting; "connecting" would
+       flash "no lobby" for a moment on every join */
+    status: (s) => { if (s === "offline") hud.company(-1); },
+  });
+}
+
+/* a name comes from somebody else's browser, so it is text and never
+   markup, however friendly the lobby looks */
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+}
+
 /* ---- grow the world before letting anyone into it ---- */
 
 async function step(text) {
@@ -134,6 +199,8 @@ async function boot() {
     /* what the loop currently thinks, for when something has to be measured
        rather than guessed at from the outside */
     loop: () => ({ state, qualName, elapsed, wall, fps, steppedDown, nextCheck, auto: autoDetail() }),
+    net: () => ({ net: netState(), others: [...others.keys()] }),
+    others,
   };
 
   world.enqueue(player.pos.x, player.pos.z);
@@ -188,6 +255,21 @@ function tick(now) {
     input.endFrame();
   }
 
+  /* Everybody else: posed from what has arrived, and dropped if they
+     have gone quiet. Their timelines run on the same clock this does. */
+  if (others.size) {
+    const t = nowSec();
+    for (const [id, o] of others) {
+      if (o.lost(t)) { o.dispose(); others.delete(id); continue; }
+      o.update(t, dt, camera.position);
+    }
+  }
+  /* and where we are, a dozen times a second */
+  if (netOn && state === "play" && wall - sendAt > 1 / SEND_HZ) {
+    sendAt = wall;
+    broadcast(encodeState(player.describe(packet)));
+  }
+
   world.update(player.pos.x, player.pos.z, state === "play" ? 3.5 : 10);
   player.updateCamera(camera, dt, false);
   world.follow(camera, player.pos.x, player.pos.z, elapsed);
@@ -212,6 +294,7 @@ function tick(now) {
       sun: world.clockLabel(),
       fps: Math.round(fps),
     });
+    hud.company(others.size);
     autoStepDown();
   }
   hud.fadeHint(wall);

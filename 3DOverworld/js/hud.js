@@ -11,6 +11,7 @@ const el = (id) => document.getElementById(id);
 const dom = {
   place: el("sPlace"), pos: el("sPos"), alt: el("sAlt"),
   face: el("sFace"), sun: el("sSun"), fps: el("sFps"),
+  sWith: el("sWith"),
   hint: el("hint"),
   gate: el("gate"), pause: el("pause"),
   bar: el("barFill"), load: el("loadText"),
@@ -47,6 +48,22 @@ function fadeHint(now) {
 }
 
 function showGate(on) { dom.gate.classList.toggle("off", !on); }
+/* How many other people are out here. A negative count means the
+   lobby could not be reached at all, which is worth saying plainly
+   rather than letting it look like an empty meadow. */
+let lastCompany = -2;
+function company(n) {
+  if (n === lastCompany) return;
+  lastCompany = n;
+  const el = dom.sWith;
+  if (!el) return;
+  el.classList.toggle("alone", n === 0);
+  el.classList.toggle("off", n < 0);
+  el.textContent = n < 0 ? "on your own - no lobby"
+    : n === 0 ? "nobody else out here"
+      : n + (n === 1 ? " other person here" : " others here");
+}
+
 function showPause(on) { dom.pause.classList.toggle("off", !on); }
 function startDisabled() { return dom.start.disabled; }
 
@@ -59,6 +76,6 @@ function setThirdPerson(on) { document.body.classList.toggle("thirdPerson", on);
 
 export {
   readout, loading, progress, ready, hint, fadeHint,
-  showGate, showPause, startDisabled, onStart, onResume,
+  company, showGate, showPause, startDisabled, onStart, onResume,
   toggleReadouts, setSprinting, setThirdPerson,
 };

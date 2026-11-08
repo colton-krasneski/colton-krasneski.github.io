@@ -5,7 +5,8 @@
 
 import * as THREE from "three";
 import { sfxBreath, sfxFoot, sfxJump, sfxLand, sfxSplash } from "./audio.js";
-import { HEAD_LAYER, STANCE, T2 } from "./character.js";
+import { HEAD_LAYER, T2 } from "./character.js";
+import { strideFor, swingFor } from "./gait.js";
 import { setSprinting, setThirdPerson } from "./hud.js";
 import { Rig } from "./rig.js";
 import { WATER, clamp, clamp01, heightAt, lerp } from "./terrain.js";
@@ -42,6 +43,7 @@ class Player {
     this.camDist = 4.6;
     this.onGround = true;
     this.swimming = false;
+    this.sprinting = false;
     this.wasSwimming = false;
     this.swim = 0;
     this.crouch = 0;
@@ -180,8 +182,9 @@ class Player {
       ? 0.5 + clamp01(planar / 3.4) * 0.35
       : clamp01(planar / 8.4) * (sprint ? 1 : 0.40));
 
+    this.sprinting = sprint && planar > 4;
     this.animate(dt, planar);
-    setSprinting(sprint && planar > 4);
+    setSprinting(this.sprinting);
   }
 
   animate(dt, planar) {
@@ -223,29 +226,17 @@ class Player {
        with before the next step, a launch should not look twitchy */
     const wantAir = this.onGround || this.swimming ? 0 : 1;
     this.air += (wantAir - this.air) * Math.min(1, (wantAir ? 7 : 14) * dt);
-    this.amp += (clamp01(planar / 4.2) * (this.onGround ? 1 : 0.15) - this.amp) * Math.min(1, 7 * dt);
-    this.run += (clamp01((planar - 4.0) / 4.4) - this.run) * Math.min(1, 5 * dt);
+    const swing = swingFor(planar, this.onGround);
+    this.amp += (swing.amp - this.amp) * Math.min(1, 7 * dt);
+    this.run += (swing.run - this.run) * Math.min(1, 5 * dt);
 
-    /* The stride is a distance, not a rate: the phase advances with ground
-       covered, so however fast you go the feet land where they are put and
-       never skate.
-
-       The numbers are what they are because of cadence. A stride of
-       1.30 to 3.20 m put him at 247 steps a minute at walking speed and
-       315 at a sprint, where a person does 100-120 and 240-260 - a
-       hummingbird, and the first thing you would hear once there were
-       footsteps on it.
-
-       The floor on the duty cycle had to come down with it. Time on the
-       ground is STANCE metres of it whatever the speed, so a longer
-       stride means a *smaller* share of the cycle spent touching, not a
-       longer contact: pinned at 0.24 the foot would have had to stay
-       down for 0.996 m, which puts it half a metre behind the hip at
-       push-off, out of the leg's reach, and drags the hips down 16 cm
-       at every step. Lowering the floor keeps contact at STANCE and
-       spends the extra stride in the air, where it belongs. */
-    this.cycle = lerp(1.45, 4.15, clamp01(planar / 8.4));
-    this.duty = clamp(STANCE / this.cycle, 0.16, 0.62);
+    /* The stride, and how much of one is showing. Both come out of
+       gait.js so that the figure you are driving and the figures other
+       people are driving cannot walk differently - see the note there
+       for why the numbers are what they are. */
+    const stride = strideFor(planar);
+    this.cycle = stride.cycle;
+    this.duty = stride.duty;
     if (this.onGround && !this.swimming) {
       /* Keep the phase turning a little while the stride amplitude decays,
          so that stopping lets the swinging foot finish its step instead of
@@ -353,6 +344,24 @@ class Player {
     else cam.layers.enable(HEAD_LAYER);
     this.hasEye = false;
     setThirdPerson(m === 1);
+  }
+
+  /* Everything anybody else needs to draw this figure. The world is
+     not in here because the world never travels - it comes out of the
+     same constants in their browser as in yours - and neither is the
+     animation, which is worked out again at their end from these. */
+  describe(out) {
+    out.x = this.pos.x; out.y = this.pos.y; out.z = this.pos.z;
+    out.bodyYaw = this.bodyYaw;
+    out.yaw = this.yaw;
+    out.pitch = this.pitch;
+    out.speed = Math.hypot(this.vel.x, this.vel.z);
+    out.cyc = this.cyc;
+    out.onGround = this.onGround;
+    out.swimming = this.swimming;
+    out.crouch = this.crouch;
+    out.sprinting = this.sprinting;
+    return out;
   }
 
   heading() {

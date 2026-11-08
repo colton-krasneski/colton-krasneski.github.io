@@ -5,7 +5,8 @@
    ============================================================ */
 
 import * as THREE from "three";
-import { AHEAD, ANKLE, AXIS_X, AXIS_Y, AXIS_Z, B, BONE, FINGERS, HEAD_LAYER, SLACK, T2, buildBody } from "./character.js";
+import { ANKLE, AXIS_X, AXIS_Y, AXIS_Z, B, BONE, FINGERS, HEAD_LAYER, SLACK, T2, buildBody } from "./character.js";
+import { AHEAD } from "./gait.js";
 import { buildHead } from "./head.js";
 import { TEX, bodyMaterial } from "./materials.js";
 import { clamp, clamp01, lerp, normalAt } from "./terrain.js";
@@ -29,6 +30,28 @@ const _sm = new THREE.Matrix4(), _smb = new THREE.Matrix4();
    eyes, because you are inside the head they are attached to */
 const HEAD_PARTS = ["face", "hair", "brow", "eye"];
 
+/* ------------------------------------------------------------
+   The meshes are built once and then shared.
+
+   Every rig gets bones and a skeleton of its own, but the geometry
+   and the materials are the same for everybody - and rebuilding the
+   face sculpt for each person who walks past would cost a good
+   fraction of a second each, which is a stutter every time somebody
+   joins. A SkinnedMesh keeps its bind matrix on itself rather than on
+   the geometry, so sharing it is safe.
+   ------------------------------------------------------------ */
+let _parts = null;
+function bodyParts() {
+  if (!_parts) {
+    const head = buildHead();
+    const ghostGeo = head.ghostGeo;
+    const worn = Object.assign({}, head);
+    delete worn.ghostGeo;
+    _parts = { parts: Object.assign(buildBody(), worn), ghostGeo };
+  }
+  return _parts;
+}
+
 /* Z then X then Y: abduct away from the body, swing fore and aft, then
    twist along the limb. Taking them in a fixed order of my own keeps the
    angles meaning the same thing whatever the figure is doing. */
@@ -39,7 +62,12 @@ function setZXY(q, rz, rx, ry) {
 }
 
 class Rig {
-  constructor(scene) {
+  /* `opts.remote` builds a rig for somebody else rather than for you:
+     their head is on the ordinary layer because you are looking at it
+     from outside, and they need no colour-less stand-in to cast the
+     head shadow you cannot see. */
+  constructor(scene, opts) {
+    const remote = !!(opts && opts.remote);
     const bones = BONE.map(() => new THREE.Bone());
     BONE.forEach(([name, parent, x, y, z], i) => {
       bones[i].name = name;
@@ -61,10 +89,7 @@ class Rig {
     this.root.updateMatrixWorld(true);
 
     this.skeleton = new THREE.Skeleton(bones);
-    const head = buildHead();
-    const ghostGeo = head.ghostGeo;
-    delete head.ghostGeo;
-    const parts = Object.assign(buildBody(), head);
+    const { parts, ghostGeo } = bodyParts();
     this.mesh = {};
     for (const key in parts) {
       const m = new THREE.SkinnedMesh(parts[key].geo, parts[key].mat);
@@ -82,17 +107,22 @@ class Rig {
        colour keeps your shadow from being headless. It is a plain skull at
        a fortieth of the face's density: a shadow needs an outline, and
        this one is drawn from the sun's side every frame as well. */
-    for (const k of HEAD_PARTS) {
-      this.mesh[k].layers.set(HEAD_LAYER);
-      this.mesh[k].castShadow = false;
+    if (remote) {
+      /* their face is the whole point of looking at them */
+      for (const k of HEAD_PARTS) this.mesh[k].castShadow = false;
+    } else {
+      for (const k of HEAD_PARTS) {
+        this.mesh[k].layers.set(HEAD_LAYER);
+        this.mesh[k].castShadow = false;
+      }
+      const ghost = new THREE.SkinnedMesh(ghostGeo,
+        bodyMaterial(TEX.skin, "ghost", { hide: true }));
+      ghost.castShadow = true;
+      ghost.frustumCulled = false;
+      this.turn.add(ghost);
+      ghost.bind(this.skeleton);
+      this.mesh.ghost = ghost;
     }
-    const ghost = new THREE.SkinnedMesh(ghostGeo,
-      bodyMaterial(TEX.skin, "ghost", { hide: true }));
-    ghost.castShadow = true;
-    ghost.frustumCulled = false;
-    this.turn.add(ghost);
-    ghost.bind(this.skeleton);
-    this.mesh.ghost = ghost;
 
     /* Limb lengths and reach, read off the bind pose rather than written
        down a second time where they could drift out of step with it. A
@@ -606,6 +636,16 @@ class Rig {
       /* and when he lands, the gait restarts from under him */
       f.plant.set(rx, ry, rz); f.next.copy(f.plant);
     }
+  }
+
+  /* Somebody left. Geometry and materials are shared between every rig
+     built from the same build, so neither is disposed here - only the
+     scene graph entry and this rig s own skeleton go. */
+  dispose(scene) {
+    scene.remove(this.root);
+    this.skeleton.dispose();
+    for (const k in this.mesh) this.mesh[k].skeleton = null;
+    this.mesh = {};
   }
 
   eye(out) {

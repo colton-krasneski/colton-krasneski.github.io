@@ -59,6 +59,10 @@
     font: 11px ui-monospace, Menlo, Consolas, monospace; color: var(--ink);
   }
 
+  .with { color: var(--go); opacity: .85; }
+  .with.alone { color: var(--dim); opacity: .6; }
+  .with.off { color: #d98f6a; opacity: .75; }
+
   /* ---- menus ---- */
 
   .overlay {

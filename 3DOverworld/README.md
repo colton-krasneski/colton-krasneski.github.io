@@ -23,6 +23,11 @@ notices and says so rather than leaving you with a dead progress bar.)
     js/hud.js           the readouts, the hint line, the overlays
     js/input.js         keyboard, mouse, and a thumbstick for touch
     js/audio.js         every sound, synthesised - footsteps, jump, breathing
+    js/gait.js          what a stride is made of, shared by you and by them
+
+    js/net.js           the lobby: Firestore introduces, WebRTC carries
+    js/protocol.js      what goes over the wire, and the clock that smooths it
+    js/remote.js        everybody else, posed from what arrives
 
     js/movement.js      what the player does, and where the camera ends up
     js/character.js     the body: the mesh builders, the skeleton, the limbs
@@ -123,3 +128,47 @@ Collected the hard way; each one cost an afternoon.
   metre behind the hip at push-off, out of the leg's reach, and drags the hips down
   16 cm every step. Contact is 0.740 m at every speed and the hip drop is 81 mm;
   if either of those moves, something upstream is wrong.
+
+## Multiplayer
+
+The world never travels. It is generated from fixed constants, so every browser
+already has the identical terrain, trees and lake - which leaves only the people
+to send: eight numbers and a byte of flags each, about thirty bytes, a dozen
+times a second.
+
+Firestore does the introductions and nothing else. Once two browsers have found
+each other, positions go straight between them over a WebRTC data channel - the
+whole reason this costs nothing to run. The free tier bills per document write,
+and a dozen position updates a second per player would spend a day's allowance
+in under an hour. Presence is refreshed once a minute and that is the only
+recurring write. Figure on a handful of players, not a server full.
+
+**It needs rules.** `worldPeers` and `worldLinks` have to be in `firestore.rules`
+*and deployed*, or every write is rejected and the lobby silently never forms.
+
+Things that will bite you here too:
+
+- **The animation does not travel either.** What arrives is where somebody is and
+  how fast they are going; the stride, the arm swing, the knee give on landing and
+  the breathing are all worked out again at this end by the same code that drives
+  you. That is why `gait.js` exists: two copies of the arithmetic would agree the
+  day they were written and drift apart on some later afternoon, and the symptom
+  would be other people walking subtly wrong in a way nobody can place.
+- **Remote figures are drawn a tenth of a second in the past**, interpolated
+  between the two packets that bracket that moment. Snapshots are stamped on
+  *arrival*, with the receiver's own clock; senders' clocks are never consulted,
+  which disposes of clock skew entirely.
+- **Angles and the gait phase interpolate the short way round.** Miss that and
+  somebody occasionally spins on the spot, or their legs stutter every stride.
+- **The channel is unreliable and unordered on purpose.** A position that arrives
+  late is no use to anybody, and waiting for it to be re-sent holds up the three
+  behind it. The timeline expects exactly that and drops anything out of order.
+- **Say goodbye before clearing the flag.** `leaveNow()` guards on `live`, so
+  `disconnect()` clearing it first made leaving a no-op: presence was never
+  deleted and everybody else kept a ghost of you until it timed out.
+- **Either side tidies the paperwork, not just the offerer.** If the browser that
+  made the offer is the one that closed, nobody would, and the lobby fills with
+  dead offers and the candidate documents underneath them.
+- **Geometry is built once and shared between every rig** (`bodyParts()` in
+  `rig.js`). Rebuilding the face sculpt for each person who walks past is a
+  quarter of a second of stutter each.
