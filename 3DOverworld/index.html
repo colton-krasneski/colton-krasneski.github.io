@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#090d12">
+<title>Overworld</title>
+<link rel="stylesheet" href="css/game.css">
+</head>
+<body>
+<canvas id="view"></canvas>
+
+<div id="hud">
+  <div id="cross"></div>
+</div>
+
+<div id="stats" class="panel">
+  <div class="place" id="sPlace">&nbsp;</div>
+  <div>pos <b id="sPos">0, 0</b></div>
+  <div>alt <b id="sAlt">0</b> &nbsp; facing <b id="sFace">N</b></div>
+  <div>sun <b id="sSun">&mdash;</b> &nbsp; <b id="sFps">60</b> fps</div>
+</div>
+
+<div id="hint" class="panel">
+  <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move &nbsp;&middot;&nbsp; <kbd>Shift</kbd> sprint &nbsp;&middot;&nbsp;
+  <kbd>Space</kbd> jump &nbsp;&middot;&nbsp; <kbd>C</kbd> crouch &nbsp;&middot;&nbsp; <kbd>V</kbd> view &nbsp;&middot;&nbsp;
+  <kbd>[</kbd><kbd>]</kbd> sun &nbsp;&middot;&nbsp; <kbd>Esc</kbd> menu
+</div>
+
+<div id="touch">
+  <div id="stickBase"></div><div id="stickNub"></div>
+  <button id="jump">JUMP</button>
+</div>
+
+<div class="overlay" id="gate">
+  <div class="card">
+    <a class="home" href="../">&larr; Phone</a>
+    <h1>Overworld</h1>
+    <p class="sub">Step into it. Deep grass, weather, and a lake over the ridge.</p>
+    <div class="bar"><i id="barFill"></i></div>
+    <div class="loading" id="loadText">waking the world&hellip;</div>
+    <button class="big" id="start" disabled>Step outside</button>
+    <div class="lbl">Graphics</div>
+    <div class="seg" id="qual">
+      <button data-q="low">Low</button>
+      <button data-q="medium">Medium</button>
+      <button data-q="high">Ultra</button>
+    </div>
+    <label class="opt">
+      <input type="checkbox" id="autoQ" checked>
+      <span class="sw"></span>
+      <span class="txt">Adjust detail automatically<em class="tag">Recommended</em></span>
+    </label>
+    <label class="opt">
+      <input type="checkbox" id="snd" checked>
+      <span class="sw"></span>
+      <span class="txt">Sound</span>
+    </label>
+  </div>
+</div>
+
+<div class="overlay off" id="pause">
+  <div class="card">
+    <a class="home" href="../">&larr; Phone</a>
+    <h1>Paused</h1>
+    <p class="sub">The wind keeps blowing without you.</p>
+    <button class="big" id="resume">Back outside</button>
+    <div class="keys">
+      <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></span><span>walk</span>
+      <span><kbd>Shift</kbd></span><span>sprint &mdash; hold it in water to dive</span>
+      <span><kbd>Space</kbd> / <kbd>C</kbd></span><span>jump / crouch</span>
+      <span>mouse</span><span>look around</span>
+      <span><kbd>V</kbd></span><span>first person &harr; over the shoulder</span>
+      <span><kbd>[</kbd> <kbd>]</kbd></span><span>walk the sun across the sky</span>
+      <span><kbd>R</kbd></span><span>return to the spawn meadow</span>
+      <span><kbd>H</kbd></span><span>hide the readouts</span>
+    </div>
+    <div class="lbl">Graphics</div>
+    <div class="seg" id="qual2">
+      <button data-q="low">Low</button>
+      <button data-q="medium">Medium</button>
+      <button data-q="high">Ultra</button>
+    </div>
+    <label class="opt">
+      <input type="checkbox" id="autoQ2" checked>
+      <span class="sw"></span>
+      <span class="txt">Adjust detail automatically<em class="tag">Recommended</em></span>
+    </label>
+    <label class="opt">
+      <input type="checkbox" id="snd2" checked>
+      <span class="sw"></span>
+      <span class="txt">Sound</span>
+    </label>
+  </div>
+</div>
+
+<script>
+/* If the engine never boots - no network for the CDN, no WebGL2, or the page
+   opened straight off the disk where the browser refuses to load modules -
+   say so, rather than leaving a dead progress bar on the screen. */
+setTimeout(function () {
+  if (window.__owBooted) return;
+  var t = document.getElementById("loadText");
+  if (!t) return;
+  t.innerHTML = location.protocol === "file:"
+    ? "this page has to be served, not opened from the disk &mdash; run <b>node tools/serve.mjs</b>"
+    : "the 3D engine could not load &mdash; check your connection, then refresh";
+}, 9000);
+</script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>

@@ -1225,6 +1225,7 @@
         <div class="app" id="slidesApp"><span class="icon">📊</span><span class="label">Slides</span></div>
         <div class="app" id="trollApp"><span class="icon">🟥</span><span class="label">Troll Square</span></div>
         <div class="app" id="letterApp"><span class="icon">✉️</span><span class="label">Letter of 8-12-26</span></div>
+        <div class="app" id="worldApp"><span class="icon">🏞️</span><span class="label">3D Overworld</span></div>
       </div>
     </div>
   </div>
@@ -5693,6 +5694,7 @@
     $('slidesApp').addEventListener('click', () => launchApp('slides/'));
     $('trollApp').addEventListener('click', () => launchApp('troll/'));
     $('letterApp').addEventListener('click', () => launchApp('letter/'));
+    $('worldApp').addEventListener('click', () => launchApp('3DOverworld/'));
 
     /* ================= THE COUNCIL (shared, Firestore-backed) ================= */
     (function (FS) {
