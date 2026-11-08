@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#10120f">
+  <title>Sunspun — Desert Frontier</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap');
+    :root { color-scheme: dark; --ink: #f3f0e7; --muted: #999b8e; --line: #30332c; --lime: #d2f47a; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-height: 100vh; background: #10120f; color: var(--ink); font-family: Manrope, sans-serif; }
+    .shell { width: min(1440px, 100%); margin: auto; padding: 28px clamp(18px, 4vw, 58px) 32px; }
+    header { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding-bottom: 22px; border-bottom: 1px solid var(--line); }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 800; letter-spacing: -.04em; font-size: 17px; }
+    .mark { width: 28px; height: 28px; display: grid; place-items: center; color: #11140b; background: var(--lime); border-radius: 9px; font-size: 17px; }
+    .eyebrow, .mono { font: 11px 'DM Mono', monospace; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+    .webgpu { display: flex; align-items: center; gap: 9px; }
+    .dot { width: 7px; height: 7px; background: #9da393; border-radius: 50%; box-shadow: 0 0 12px currentColor; }
+    .dot.ready { background: var(--lime); color: var(--lime); }
+    .dot.fail { background: #ff806d; color: #ff806d; }
+    main { padding-top: clamp(28px, 5vw, 56px); }
+    .intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; margin-bottom: 25px; }
+    h1 { margin: 8px 0 7px; font-size: clamp(32px, 5vw, 57px); line-height: .98; letter-spacing: -.065em; }
+    .sub { color: #a8aa9f; margin: 0; font-size: 14px; }
+    .roll { border: 0; color: #15180e; background: var(--lime); border-radius: 999px; padding: 14px 21px; display: inline-flex; gap: 10px; align-items: center; font: 700 14px Manrope, sans-serif; cursor: pointer; transition: transform .18s, background .18s; white-space: nowrap; }
+    .roll:hover { transform: translateY(-2px); background: #e1ffa0; }
+    .roll:active { transform: translateY(0) scale(.98); }
+    .roll:focus-visible { outline: 3px solid white; outline-offset: 4px; }
+    .stage { position: relative; overflow: hidden; min-height: 340px; height: min(61vh, 630px); border: 1px solid #373a32; border-radius: 18px; background: linear-gradient(#d58a54, #f2c27d 47%, #bd854b 70%, #8d5834); }
+    #scene { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #gameOverlay { position: absolute; inset: 0; width: 100%; height: 100%; display: block; pointer-events: none; }
+    .scene-top { position: absolute; left: 22px; top: 20px; display: flex; gap: 9px; align-items: center; padding: 9px 12px; border: 1px solid #ffffff35; border-radius: 999px; background: #12150f88; backdrop-filter: blur(10px); }
+    .scene-top .dot { background: var(--lime); color: var(--lime); }
+    .scene-name { position: absolute; left: clamp(20px, 4vw, 52px); bottom: clamp(22px, 5vw, 52px); text-shadow: 0 2px 22px #0008; pointer-events: none; }
+    .scene-name h2 { font-size: clamp(34px, 6vw, 76px); letter-spacing: -.07em; line-height: .95; margin: 8px 0; }
+    .scene-name p { margin: 0; font-size: 14px; color: #ffffffc9; }
+    .scene-index { position: absolute; right: 22px; bottom: 22px; color: #ffffffa8; }
+    .error { position: absolute; inset: auto 18px 18px; padding: 11px 14px; border-radius: 9px; background: #1116; color: white; font-size: 13px; display: none; }
+    .details { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 15px; padding: 18px 2px 0; }
+    .hint { display: flex; gap: 10px; align-items: center; color: #b4b6aa; font-size: 13px; }
+    .key { padding: 4px 7px; border: 1px solid var(--line); border-radius: 5px; color: #d7d8d0; font: 11px 'DM Mono', monospace; }
+    .tech { text-align: right; }
+    .scene-name { display: none; }
+    .scene-top { z-index: 2; }
+    .scene-index { z-index: 2; right: 20px; top: 22px; bottom: auto; padding: 8px 11px; border: 1px solid #ffffff35; border-radius: 8px; background: #12150f88; }
+    .map-card { position: absolute; z-index: 2; top: 68px; right: 20px; width: 142px; padding: 10px; border: 1px solid #ffffff35; border-radius: 11px; background: #171610b8; backdrop-filter: blur(9px); }
+    .map-card .mono { display: block; margin: 0 0 7px 2px; color: #d4c4a2; font-size: 9px; }
+    #minimap { position: relative; width: 100%; height: 104px; border-radius: 6px; background: #cf985e; border: 1px solid #efd0a454; }
+    .move-pad { position: absolute; z-index: 3; right: 20px; bottom: 20px; display: none; grid-template-columns: repeat(3, 39px); grid-template-rows: repeat(2, 39px); gap: 5px; pointer-events: auto; }
+    .move-pad button { border: 1px solid #ffffff52; border-radius: 9px; background: #181810b8; color: white; font: 700 16px Manrope,sans-serif; touch-action: none; }
+    .move-pad button:active { background: #d2f47a; color: #16180f; }
+    .move-pad [data-key="ArrowUp"] { grid-column: 2; grid-row: 1; }
+    .move-pad [data-key="ArrowLeft"] { grid-column: 1; grid-row: 2; }
+    .move-pad [data-key="ArrowDown"] { grid-column: 2; grid-row: 2; }
+    .move-pad [data-key="ArrowRight"] { grid-column: 3; grid-row: 2; }
+    @media (max-width: 620px) { .shell { padding-top: 18px; } header { padding-bottom: 17px; } .intro { align-items: start; flex-direction: column; } .stage { height: 58vh; min-height: 390px; } .roll { align-self: stretch; justify-content: center; } .details { grid-template-columns: 1fr; } .tech { text-align: left; } .move-pad { display: grid; } .map-card { width: 118px; } #minimap { height: 88px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+    html, body { width:100%; height:100%; margin:0; overflow:hidden; background:#10120f; }
+    .shell { width:100%; height:100%; margin:0; padding:0; }
+    header { position:absolute; z-index:5; top:22px; left:28px; right:28px; display:flex; align-items:center; justify-content:space-between; gap:24px; padding:0; border:0; pointer-events:none; }
+    .brand { display:flex; align-items:center; gap:11px; font-size:13px; letter-spacing:.08em; text-transform:uppercase; text-shadow:0 2px 16px #28170999; pointer-events:auto; }
+    .webgpu { color:#fff0d5; }
+    .header-actions { display:flex; align-items:center; gap:16px; pointer-events:auto; }
+    .full { border:1px solid #ffffff55; border-radius:999px; background:#24180e70; color:#fff1d3; padding:9px 13px; font:600 10px 'DM Mono',monospace; letter-spacing:.08em; cursor:pointer; backdrop-filter:blur(12px); }
+    .full:hover { background:#49301ebf; }
+    main { position:fixed; inset:0; padding:0; }
+    .intro { position:absolute; z-index:4; top:76px; left:30px; display:flex; align-items:start; justify-content:space-between; gap:24px; margin:0; pointer-events:none; }
+    .intro > div { max-width:min(570px,60vw); }
+    h1 { margin:8px 0 7px; font-size:clamp(30px,4.2vw,57px); line-height:.98; letter-spacing:-.065em; text-shadow:0 3px 24px #301a0f88; }
+    .sub { color:#fff0d5; margin:0; font-size:13px; text-shadow:0 2px 12px #301a0f; }
+    .eyebrow { color:#ffedcc; text-shadow:0 2px 12px #301a0f; }
+    .roll { border:1px solid #fff5; color:#fff5df; background:#281c13a8; border-radius:999px; padding:11px 17px; display:inline-flex; gap:9px; align-items:center; font:700 12px Manrope,sans-serif; cursor:pointer; transition:transform .18s,background .18s; white-space:nowrap; backdrop-filter:blur(12px); pointer-events:auto; }
+    .roll:hover { transform:translateY(-2px); background:#49301ebf; }
+    .stage { position:fixed; inset:0; overflow:hidden; min-height:0; height:100%; border:0; border-radius:0; background:linear-gradient(#d58a54,#f2c27d 47%,#bd854b 70%,#8d5834); }
+    #scene, #gameOverlay { position:absolute; inset:0; width:100%; height:100%; display:block; }
+    .scene-top { z-index:2; left:28px; top:27px; padding:8px 12px; background:#24180e70; font-size:9px; }
+    .scene-name { display:none; }
+    .scene-index { z-index:2; right:28px; top:auto; bottom:22px; padding:8px 11px; border:1px solid #ffffff35; border-radius:8px; background:#24180e70; color:#fff0d5; text-shadow:0 1px 9px #000; }
+    .map-card { top:67px; right:28px; background:#24180e78; border-color:#ffffff45; box-shadow:0 10px 40px #24150724; }
+    .map-card .mono { color:#ffedcc; }
+    .details { position:absolute; z-index:3; left:28px; bottom:25px; display:grid; grid-template-columns:1fr; gap:8px; padding:0; pointer-events:none; }
+    .hint { color:#fff1d3; font-size:12px; text-shadow:0 1px 10px #27190f; }
+    .key { border-color:#ffffff65; color:#fff8e9; }
+    .tech { display:none; }
+    @media (max-width:620px) {
+      header { top:15px; left:16px; right:16px; }
+      .brand { font-size:10px; gap:7px; }
+      .mark { width:24px; height:24px; }
+      .header-actions { gap:8px; }
+      .webgpu { font-size:8px; gap:5px; }
+      .full { padding:8px 9px; font-size:8px; }
+      .intro { top:67px; left:17px; }
+      .intro > div { max-width:68vw; }
+      h1 { font-size:31px; }
+      .sub { font-size:11px; max-width:270px; }
+      .roll { padding:9px 12px; font-size:10px; }
+      .scene-top { left:17px; top:18px; }
+      .map-card { top:62px; right:16px; width:105px; padding:7px; }
+      #minimap { height:75px; }
+      .scene-index { right:16px; bottom:17px; font-size:9px; }
+      .details { left:17px; bottom:21px; }
+      .hint { font-size:10px; gap:5px; }
+      .key { font-size:9px; padding:3px 5px; }
+      .move-pad { display:grid; left:auto; right:128px; bottom:16px; transform:none; grid-template-columns:repeat(3,36px); grid-template-rows:repeat(2,36px); gap:4px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header>
+      <div class="brand"><span class="mark">✳</span> sunspun <span class="eyebrow">/ desert frontier</span></div>
+      <div class="header-actions"><div class="webgpu mono"><span class="dot" id="gpuDot"></span><span id="gpuStatus">loading world</span></div><button class="full" id="fullscreen" type="button">⛶ FULLSCREEN</button></div>
+    </header>
+    <main>
+      <section class="intro">
+        <div><div class="eyebrow">THE SUNSPUN FLATS · FRONTIER 01</div><h1>A world beyond<br>the horizon.</h1><p class="sub">Cross the dunes. Keep your eyes open; the cacti bite.</p></div>
+        <button class="roll" id="roll"><span aria-hidden="true">↺</span> Return to camp</button>
+      </section>
+      <section class="stage" aria-label="Walkable desert game">
+        <canvas id="scene" aria-label="WebGPU rendered desert landscape"></canvas>
+        <canvas id="gameOverlay" aria-hidden="true"></canvas>
+        <div class="scene-top mono"><span class="dot"></span><span id="sceneType">SUNSPUN FLATS</span></div>
+        <div class="scene-name"><div class="eyebrow" id="sceneMeta">SUNSPUN FLATS</div><h2 id="sceneName">Sunspun Flats</h2><p id="sceneDesc">Explore the dunes and dodge the cacti.</p></div>
+        <div class="scene-index mono" id="sceneIndex">X 0 · Z 0</div>
+        <div class="map-card"><span class="mono">TRAIL MAP</span><canvas id="minimap" aria-label="Desert map"></canvas></div>
+        <div class="move-pad" aria-label="Touch movement controls"><button data-key="ArrowUp" aria-label="Move forward">↑</button><button data-key="ArrowLeft" aria-label="Move left">←</button><button data-key="ArrowDown" aria-label="Move back">↓</button><button data-key="ArrowRight" aria-label="Move right">→</button></div>
+        <div class="error" id="error"></div>
+      </section>
+      <div class="details"><div class="hint"><span class="key">W A S D</span><span class="key">↑ ← ↓ →</span> WALK · AVOID THE CACTI</div></div>
+    </main>
+  </div>
+<script type="module">
+const canvas = document.querySelector('#scene');
+const statusText = document.querySelector('#gpuStatus');
+const gpuDot = document.querySelector('#gpuDot');
+const errorBox = document.querySelector('#error');
+const overlay = document.querySelector('#gameOverlay');
+const overlay2d = overlay.getContext('2d');
+const minimap = document.querySelector('#minimap');
+const map2d = minimap.getContext('2d');
+const biomes = [
+  { name:'Mosslight Valley', type:'MOSS FOREST', desc:'Soft green hills under a quiet morning sky.', sky:[.37,.57,.54], horizon:[.82,.72,.53], ground:[.16,.29,.19], accent:[.48,.59,.31], shape:0 },
+  { name:'The Sunken Dunes', type:'WARM DESERT', desc:'Wind-carved ridges wander into the amber haze.', sky:[.76,.48,.31], horizon:[.94,.70,.41], ground:[.46,.25,.12], accent:[.78,.48,.21], shape:1 },
+  { name:'Frostglass Range', type:'ALPINE TUNDRA', desc:'Ancient peaks catch the last blue light.', sky:[.31,.47,.65], horizon:[.68,.77,.83], ground:[.31,.43,.53], accent:[.77,.84,.85], shape:2 },
+  { name:'Lavender Reach', type:'ALIEN BLOOM', desc:'Strange violet plains beneath a distant sun.', sky:[.39,.31,.56], horizon:[.78,.54,.67], ground:[.29,.19,.39], accent:[.68,.43,.64], shape:3 },
+  { name:'After the Rain', type:'TEMPERATE WOODS', desc:'A deep green canopy opens to a silver sky.', sky:[.35,.51,.48], horizon:[.73,.75,.63], ground:[.12,.24,.18], accent:[.38,.47,.27], shape:0 },
+  { name:'Ember Coast', type:'VOLCANIC SHORE', desc:'Warm ash and dark stone meet a glowing horizon.', sky:[.54,.30,.25], horizon:[.9,.52,.29], ground:[.18,.13,.13], accent:[.57,.28,.18], shape:2 }
+];
+let adapter, device, pipeline, uniformBuffer, bindGroup, context, format;
+let current = 1, seed = 23.17, start = performance.now();
+const player = { x: 0, z: 0, facing: 0 };
+const worldBounds = { minX: -16, maxX: 16, minZ: -20, maxZ: 12 };
+const keys = new Set();
+let lastFrame = performance.now();
+const cacti = [];
+{
+  let randomState = 10931;
+  const random = () => { randomState = (randomState * 16807) % 2147483647; return (randomState - 1) / 2147483646; };
+  for (let i = 0; i < 46; i++) {
+    const x = -14 + random() * 28, z = -18 + random() * 28;
+    if (Math.hypot(x, z) > 2.8) cacti.push({ x, z, height: 2.1 + random() * 1.2, arm: random() > .28 });
+  }
+}
+
+const shader = /* wgsl */`
+struct Params { resolution: vec2f, time: f32, seed: f32, sky: vec3f, shape: f32, horizon: vec3f, biome: f32, ground: vec3f, pad: f32, accent: vec3f, pad2: f32, camera: vec2f };
+@group(0) @binding(0) var<uniform> p: Params;
+struct Out { @builtin(position) pos: vec4f, @location(0) uv: vec2f };
+@vertex fn vs(@builtin(vertex_index) i: u32) -> Out {
+  var positions = array<vec2f,3>(vec2f(-1.,-1.),vec2f(3.,-1.),vec2f(-1.,3.));
+  var o: Out; o.pos = vec4f(positions[i],0.,1.); o.uv = positions[i]*.5+.5; return o;
+}
+fn hash(v: vec2f) -> f32 { return fract(sin(dot(v,vec2f(127.1,311.7))+p.seed*13.7)*43758.5453); }
+fn noise(v: vec2f) -> f32 {
+  let i=floor(v); let f=fract(v); let u=f*f*(3.-2.*f);
+  return mix(mix(hash(i),hash(i+vec2f(1.,0.)),u.x),mix(hash(i+vec2f(0.,1.)),hash(i+vec2f(1.,1.)),u.x),u.y);
+}
+fn fbm(v0: vec2f) -> f32 {
+  var v=v0; var a=.5; var n=0.;
+  for(var i=0;i<4;i=i+1){ n+=noise(v)*a; v=v*2.03+vec2f(7.1,3.7); a*=.5; }
+  return n;
+}
+fn terrain(x:f32,z:f32)->f32 {
+  let q=vec2f(x,z);
+  let n=fbm(q*.12);
+  if(p.shape<.5){ return -1.1+n*2.8+sin(x*.31+fbm(q*.07)*4.)*.48; }
+  if(p.shape<1.5){ return -1.1+sin(x*.34+fbm(q*.11)*2.)*.72+sin(x*.16+z*.035)*.32+fbm(q*.09)*.33; }
+  if(p.shape<2.5){ let r=1.-abs(noise(q*.065)*2.-1.); return -1.15+pow(max(r,0.),2.2)*3.7+fbm(q*.18)*.42; }
+  return -1.05+fbm(q*.12)*2.3+sin(x*.18+z*.08)*.5+noise(q*.32)*.17;
+}
+fn skyColor(rd:vec3f)->vec3f {
+  let h=clamp(rd.y*.8+.47,0.,1.);
+  var col=mix(p.horizon,p.sky,pow(h,.8));
+  let sunDir=normalize(vec3f(.48,.34,-.8));
+  let sun=pow(max(dot(rd,sunDir),0.),500.);
+  let glow=pow(max(dot(rd,sunDir),0.),12.);
+  col+=vec3f(1.,.72,.4)*(sun*.95+glow*.16);
+  let cloud=fbm(rd.xz*8.+vec2f(p.time*.003,0.));
+  col=mix(col,col*1.12+vec3f(.08),smoothstep(.58,.8,cloud)*smoothstep(-.08,.3,rd.y)*.3);
+  return col;
+}
+@fragment fn fs(in:Out)->@location(0) vec4f {
+  let screen=vec2f((in.uv.x*2.-1.)*p.resolution.x/p.resolution.y,(in.uv.y*2.-1.));
+  let rd=normalize(vec3f(screen.x*.77,screen.y*.53-.18,-1.));
+  var color=skyColor(rd);
+  if(rd.y<.23){
+    var t=.15; var hit=false; var pos=vec3f(0.);
+    for(var i=0;i<145;i=i+1){
+      pos=vec3f(p.camera.x+rd.x*t,4.1+rd.y*t,p.camera.y+8.5+rd.z*t);
+      let h=terrain(pos.x,pos.z);
+      if(pos.y<h){ hit=true; break; }
+      t+=max(.13,t*.018);
+      if(t>95.){break;}
+    }
+    if(hit){
+      let e=.055;
+      let n=normalize(vec3f(terrain(pos.x-e,pos.z)-terrain(pos.x+e,pos.z),2.*e,terrain(pos.x,pos.z-e)-terrain(pos.x,pos.z+e)));
+      let light=normalize(vec3f(-.45,.82,.38));
+      let diffuse=max(dot(n,light),0.);
+      let height=clamp((pos.y+1.)/3.5,0.,1.);
+      var base=mix(p.ground,p.accent,smoothstep(.35,.88,height));
+      let detail=noise(pos.xz*2.8+p.seed);
+      base*=.88+detail*.2;
+      let slope=1.-n.y;
+      if(p.shape>1.5 && height>.58){ base=mix(base,p.accent,smoothstep(.55,.82,height)); }
+      if(p.shape>.5 && p.shape<1.5){ base=mix(base,p.accent,smoothstep(.12,.48,fract(pos.z*.09+fbm(pos.xz*.1)*.2))*.44); }
+      if(p.biome>4.5){ base=mix(base,vec3f(.8,.22,.075),smoothstep(.7,1.,height)*.55); }
+      var shadow=1.;
+      for(var s=1;s<=8;s=s+1){let d=f32(s)*.42;let h2=terrain(pos.x+light.x*d,pos.z+light.z*d);if(h2>pos.y+light.y*d+.06){shadow=min(shadow,.28);}}
+      let ambient=.34+.18*clamp(n.y,0.,1.);
+      let ao=clamp(.58+n.y*.42-slope*.14,.32,1.);
+      let fog=1.-exp(-t*.018);
+      color=mix(base*(ambient+diffuse*.86*shadow)*ao,skyColor(rd),fog);
+      color+=vec3f(1.,.35,.12)*max(0.,1.-t*.05)*smoothstep(.55,.92,height)*step(4.8,p.biome)*.16;
+    }
+  }
+  let vignette=1.-smoothstep(.3,1.1,length(screen*vec2f(.62,.8)))*.22;
+  color*=vignette;
+  let grain=(hash(in.uv*p.resolution+vec2f(floor(p.time*24.)))-.5)*.018;
+  return vec4f(color+grain,1.);
+}`;
+
+function setStatus(text, state='') { statusText.textContent=text; gpuDot.className='dot '+state; }
+function writeUniforms() {
+  const b=biomes[current], d=new Float32Array(24);
+  d.set([canvas.width,canvas.height,(performance.now()-start)/1000,seed,...b.sky,b.shape,...b.horizon,current,...b.ground,0,...b.accent,0,player.x,player.z]);
+  device.queue.writeBuffer(uniformBuffer,0,d);
+}
+function terrainAt(x,z) {
+  const hash=(a,b)=>{const v=Math.sin(a*127.1+b*311.7+seed*13.7)*43758.5453;return v-Math.floor(v);};
+  const noise=(x,y)=>{const ix=Math.floor(x),iy=Math.floor(y),fx=x-ix,fy=y-iy,u=fx*fx*(3-2*fx),v=fy*fy*(3-2*fy);return (hash(ix,iy)*(1-u)+hash(ix+1,iy)*u)*(1-v)+(hash(ix,iy+1)*(1-u)+hash(ix+1,iy+1)*u)*v;};
+  const fbm=(x,y)=>{let a=.5,n=0;for(let i=0;i<4;i++){n+=noise(x,y)*a;x=x*2.03+7.1;y=y*2.03+3.7;a*=.5;}return n;};
+  return -1.1+Math.sin(x*.34+fbm(x*.11,z*.11)*2)*.72+Math.sin(x*.16+z*.035)*.32+fbm(x*.09,z*.09)*.33;
+}
+function project(x,y,z,w,h) {
+  const forward=player.z+8.5-z;
+  if(forward<1.2)return null;
+  const dx=x-player.x;
+  const sx=w*.5+(dx/forward/.77)*w*.5;
+  const sy=h*.5-(((y-4.1)/forward+.18)/.53)*h*.5;
+  return {x:sx,y:sy,scale:h/forward*.32,forward};
+}
+function cactusArt(ctx,x,y,scale,cactus) {
+  const s=Math.max(5,scale), stemH=cactus.height*s, stemW=Math.max(4,s*.27);
+  ctx.save(); ctx.translate(x,y); ctx.fillStyle='#34231466'; ctx.beginPath(); ctx.ellipse(0,2,stemW*1.9,Math.max(2,s*.22),0,0,Math.PI*2); ctx.fill();
+  ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#287342'; ctx.lineWidth=stemW; ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,-stemH); ctx.stroke();
+  ctx.strokeStyle='#438b4d'; ctx.lineWidth=Math.max(1,stemW*.24); ctx.beginPath(); ctx.moveTo(-stemW*.23,-2); ctx.lineTo(-stemW*.23,-stemH+2); ctx.moveTo(stemW*.23,-2); ctx.lineTo(stemW*.23,-stemH+2); ctx.stroke();
+  if(cactus.arm){ ctx.strokeStyle='#287342'; ctx.lineWidth=stemW*.73; ctx.beginPath(); const side=cactus.x%2?1:-1; ctx.moveTo(0,-stemH*.48);ctx.lineTo(side*s*.48,-stemH*.48);ctx.lineTo(side*s*.48,-stemH*.78);ctx.moveTo(0,-stemH*.3);ctx.lineTo(-side*s*.42,-stemH*.3);ctx.lineTo(-side*s*.42,-stemH*.55);ctx.stroke(); }
+  ctx.restore();
+}
+function playerArt(ctx,x,y,scale) {
+  const s=Math.max(8,scale); ctx.save(); ctx.translate(x,y);
+  ctx.fillStyle='#38241970';ctx.beginPath();ctx.ellipse(0,1,s*.38,s*.14,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#46332a';ctx.beginPath();ctx.roundRect(-s*.22,-s*.8,s*.16,s*.78,s*.06);ctx.roundRect(s*.06,-s*.8,s*.16,s*.78,s*.06);ctx.fill();
+  ctx.fillStyle='#e8b354';ctx.beginPath();ctx.roundRect(-s*.31,-s*1.54,s*.62,s*.81,s*.16);ctx.fill();
+  ctx.fillStyle='#c7793d';ctx.beginPath();ctx.arc(0,-s*1.73,s*.23,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#e8c77e';ctx.beginPath();ctx.ellipse(0,-s*1.9,s*.35,s*.11,0,Math.PI,Math.PI*2);ctx.fill();ctx.fillRect(-s*.16,-s*2.12,s*.32,s*.18);ctx.restore();
+}
+function drawMap(w,h) {
+  const dpr=Math.min(2,window.devicePixelRatio||1), r=minimap.getBoundingClientRect(), mw=Math.max(1,Math.floor(r.width*dpr)), mh=Math.max(1,Math.floor(r.height*dpr));
+  if(minimap.width!==mw||minimap.height!==mh){minimap.width=mw;minimap.height=mh;}
+  map2d.setTransform(dpr,0,0,dpr,0,0); const cw=r.width,ch=r.height;
+  map2d.clearRect(0,0,cw,ch); map2d.fillStyle='#c99661';map2d.fillRect(0,0,cw,ch);
+  map2d.strokeStyle='#f4d09a';map2d.lineWidth=2;map2d.strokeRect(4,4,cw-8,ch-8);
+  const mx=x=>4+(x-worldBounds.minX)/(worldBounds.maxX-worldBounds.minX)*(cw-8);
+  const my=z=>4+(z-worldBounds.minZ)/(worldBounds.maxZ-worldBounds.minZ)*(ch-8);
+  for(const c of cacti){map2d.fillStyle='#326138';map2d.beginPath();map2d.arc(mx(c.x),my(c.z),2,0,Math.PI*2);map2d.fill();}
+  map2d.fillStyle='#fff4d5';map2d.strokeStyle='#4a2918';map2d.lineWidth=1.5;map2d.beginPath();map2d.arc(mx(player.x),my(player.z),4,0,Math.PI*2);map2d.fill();map2d.stroke();
+}
+function drawGame() {
+  const r=overlay.getBoundingClientRect(), dpr=Math.min(2,window.devicePixelRatio||1), w=Math.max(1,Math.floor(r.width*dpr)),h=Math.max(1,Math.floor(r.height*dpr));
+  if(overlay.width!==w||overlay.height!==h){overlay.width=w;overlay.height=h;}
+  overlay2d.setTransform(dpr,0,0,dpr,0,0); const cw=r.width,ch=r.height;overlay2d.clearRect(0,0,cw,ch);
+  const visible=cacti.map(c=>({c,p:project(c.x,terrainAt(c.x,c.z),c.z,cw,ch)})).filter(o=>o.p&&o.p.x>-100&&o.p.x<cw+100&&o.p.y>-150&&o.p.y<ch+100).sort((a,b)=>b.p.forward-a.p.forward);
+  for(const o of visible)cactusArt(overlay2d,o.p.x,o.p.y,o.p.scale,o.c);
+  const foot=project(player.x,terrainAt(player.x,player.z),player.z,cw,ch);if(foot)playerArt(overlay2d,foot.x,foot.y,foot.scale);
+  document.querySelector('#sceneIndex').textContent=`X ${player.x.toFixed(1)} · Z ${player.z.toFixed(1)}`;
+  drawMap(cw,ch);
+}
+function updatePlayer(dt) {
+  let dx=0,dz=0;
+  if(keys.has('KeyA')||keys.has('ArrowLeft'))dx--;
+  if(keys.has('KeyD')||keys.has('ArrowRight'))dx++;
+  if(keys.has('KeyW')||keys.has('ArrowUp'))dz--;
+  if(keys.has('KeyS')||keys.has('ArrowDown'))dz++;
+  if(!dx&&!dz)return;
+  const length=Math.hypot(dx,dz);dx/=length;dz/=length;player.facing=Math.atan2(dx,-dz);
+  const speed=5.2, nx=Math.max(worldBounds.minX,Math.min(worldBounds.maxX,player.x+dx*speed*dt)), nz=Math.max(worldBounds.minZ,Math.min(worldBounds.maxZ,player.z+dz*speed*dt));
+  const collides=(x,z)=>cacti.some(c=>Math.hypot(x-c.x,z-c.z)<.82);
+  if(!collides(nx,player.z))player.x=nx;
+  if(!collides(player.x,nz))player.z=nz;
+}
+function renderWorld() {
+  if(device&&pipeline){
+    const rect=canvas.getBoundingClientRect(), ratio=Math.min(1.5,device.limits.maxTextureDimension2D,Math.max(1,window.devicePixelRatio||1));
+    const w=Math.max(1,Math.floor(rect.width*ratio*.84)), h=Math.max(1,Math.floor(rect.height*ratio*.84));
+    if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+    writeUniforms();const encoder=device.createCommandEncoder();
+    const pass=encoder.beginRenderPass({colorAttachments:[{view:context.getCurrentTexture().createView(),clearValue:{r:.12,g:.15,b:.16,a:1},loadOp:'clear',storeOp:'store'}]});
+    pass.setPipeline(pipeline);pass.setBindGroup(0,bindGroup);pass.draw(3);pass.end();device.queue.submit([encoder.finish()]);
+  }
+}
+function render(){renderWorld();drawGame();}
+async function init() {
+  if(!navigator.gpu) throw new Error('WebGPU is not available in this browser. Try a recent version of Chrome or Edge.');
+  adapter=await navigator.gpu.requestAdapter(); if(!adapter) throw new Error('No compatible GPU adapter was found.');
+  device=await adapter.requestDevice(); context=canvas.getContext('webgpu'); format=navigator.gpu.getPreferredCanvasFormat();
+  context.configure({device,format,alphaMode:'opaque'});
+  const module=device.createShaderModule({code:shader});
+  pipeline=device.createRenderPipeline({layout:'auto',vertex:{module,entryPoint:'vs'},fragment:{module,entryPoint:'fs',targets:[{format}]},primitive:{topology:'triangle-list'}});
+  uniformBuffer=device.createBuffer({size:96,usage:GPUBufferUsage.UNIFORM|GPUBufferUsage.COPY_DST});
+  bindGroup=device.createBindGroup({layout:pipeline.getBindGroupLayout(0),entries:[{binding:0,resource:{buffer:uniformBuffer}}]});
+  device.lost.then(info=>{setStatus('WORLD SIGNAL LOST','fail');errorBox.style.display='block';errorBox.textContent=info.message||'Reload the page to restore the world graphics.';});
+  setStatus('WORLD ACTIVE','ready'); render();
+  new ResizeObserver(render).observe(canvas);
+}
+document.querySelector('#roll').addEventListener('click',()=>{player.x=0;player.z=0;keys.clear();render();});
+const fullscreenButton=document.querySelector('#fullscreen');
+fullscreenButton.addEventListener('click',async()=>{try{if(!document.fullscreenElement)await document.documentElement.requestFullscreen();else await document.exitFullscreen();}catch(err){console.warn('Fullscreen could not be started:',err);}});
+document.addEventListener('fullscreenchange',()=>{fullscreenButton.textContent=document.fullscreenElement?'⛶ EXIT FULLSCREEN':'⛶ FULLSCREEN';render();});
+window.addEventListener('keydown',e=>{if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)){keys.add(e.code);e.preventDefault();}});
+window.addEventListener('keyup',e=>keys.delete(e.code));
+window.addEventListener('blur',()=>keys.clear());
+document.querySelectorAll('.move-pad button').forEach(button=>{
+  const key=button.dataset.key;
+  button.addEventListener('pointerdown',e=>{e.preventDefault();button.setPointerCapture(e.pointerId);keys.add(key);});
+  button.addEventListener('pointerup',()=>keys.delete(key));
+  button.addEventListener('pointercancel',()=>keys.delete(key));
+  button.addEventListener('lostpointercapture',()=>keys.delete(key));
+});
+function frame(now){const dt=Math.min(.05,(now-lastFrame)/1000),px=player.x,pz=player.z;lastFrame=now;updatePlayer(dt);if(player.x!==px||player.z!==pz)renderWorld();drawGame();requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+try { await init(); } catch(err) { console.error(err); setStatus('GRAPHICS OFFLINE','fail'); errorBox.textContent=`${err.message} Movement and the map still work; the world graphics need WebGPU.`; errorBox.style.display='block'; }
+</script>
+</body>
+</html>
