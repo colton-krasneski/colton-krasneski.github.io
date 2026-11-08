@@ -81,20 +81,24 @@ const PROF = [
   [1.5980, 0.0694, 0.0930, 0.0020, 0.93],
   [1.5800, 0.0652, 0.0912, 0.0030, 0.96],
   [1.5660, 0.0612, 0.0890, 0.0040, 0.99],
-  [1.5520, 0.0588, 0.0860, 0.0060, 1.01],
-  [1.5400, 0.0575, 0.0826, 0.0080, 1.03],
+  [1.5520, 0.0612, 0.0860, 0.0060, 1.01],
+  [1.5400, 0.0618, 0.0826, 0.0080, 1.03],
   /* The sides stay this wide down past the chin, because what is at the
      side of a face at chin height is the angle of the jaw and behind it
      the neck - the chin itself is narrow, and it is the pinch in
-     sculpt() that makes it so. A lathe cannot do both at one height. */
-  [1.5320, 0.0572, 0.0800, 0.0090, 1.04],
-  [1.5240, 0.0576, 0.0742, 0.0080, 1.03],
-  /* and from here down it has to get inside the neck quickly, or it
-     stands out through it as a scalloped collar */
-  [1.5160, 0.0528, 0.0620, 0.0040, 1.02],
-  [1.5080, 0.0430, 0.0480, 0.0000, 1.00],
-  [1.4980, 0.0290, 0.0320, -0.0050, 1.00],
-  [1.4880, 0.0100, 0.0120, -0.0090, 1.00],
+     sculpt() that makes it so. A lathe cannot do both at one height.
+
+     It has to be WIDER than the neck, too. At 114 mm against a 120 mm
+     neck there was nothing to overhang, no edge and no shadow under
+     one, and the head ran into the shoulders like a thumb into a fist. */
+  [1.5320, 0.0632, 0.0800, 0.0090, 1.04],
+  [1.5240, 0.0628, 0.0742, 0.0080, 1.03],
+  /* and then away sharply, which is the jaw line itself: a slow taper
+     here reads as a chin that melts into a throat */
+  [1.5150, 0.0556, 0.0612, 0.0035, 1.02],
+  [1.5060, 0.0432, 0.0468, -0.0010, 1.00],
+  [1.4960, 0.0282, 0.0312, -0.0055, 1.00],
+  [1.4870, 0.0100, 0.0120, -0.0090, 1.00],
   [1.4800, 0.0020, 0.0025, -0.0095, 1.00],   /* closed, well inside the neck */
 ];
 
@@ -104,8 +108,8 @@ const FACE = {
   eyeY: 1.6450,              /* and halfway up the head, as a pupil is */
   eyeZ: 0.0690,              /* the centre of the eyeball */
   eyeR: 0.0122,              /* 24 mm across, like a real one */
-  apW: 0.0116,               /* the opening between the lids */
-  apH: 0.0059,
+  apW: 0.0147,               /* 29 mm across, as an adult's is */
+  apH: 0.0062,
   browY: 1.6660,
   noseTipY: 1.6090,
   noseBaseY: 1.6000,

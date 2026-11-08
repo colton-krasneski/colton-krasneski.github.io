@@ -382,10 +382,10 @@ function buildBody() {
     /* The chest has to stay broad right up to the shoulder line: it is what
        the top of each sleeve is buried in, and anywhere it narrows early
        the open end of the sleeve comes out through it as a hole. */
-    [0.340, 0.178, 1.06, 0.73, 1],
-    [0.470, 0.176, 1.09, 0.72, 1],
-    [0.516, 0.170, 1.10, 0.74, 1],
-    [0.554, 0.112, 1.10, 0.88, 1],
+    [0.340, 0.180, 1.08, 0.73, 1],
+    [0.470, 0.180, 1.16, 0.72, 1],
+    [0.516, 0.176, 1.19, 0.74, 1],
+    [0.554, 0.118, 1.14, 0.88, 1],
   ]), { radial: 22, seg: 0.038, blend: 0.090, uvu: 6.4, uvv: 6, crease: 0.20 });
 
   /* ---- neck ---- */
@@ -395,14 +395,36 @@ function buildBody() {
     { p: [0, 1.524, 0.000], b: B.head },
   ], ramp([
     [0.000, 0.064, 1.00, 0.94, 1],
-    [0.056, 0.057, 1.00, 0.95, 1],
-    [0.128, 0.055, 1.00, 0.96, 1],
+    [0.056, 0.056, 1.00, 0.95, 1],
+    /* drawn in at the top so the jaw has something to overhang - level
+       with it, there is no jaw line, only a column with a face on it */
+    [0.128, 0.0495, 1.00, 0.96, 1],
   ]), { radial: 16, seg: 0.028, blend: 0.045, uvu: 2.5, uvv: 7, capB: false });
 
   for (const s of [-1, 1]) {
     const L = s < 0 ? "L" : "R";
     const sh = [s * 0.120, 1.428, 0.008], up = [s * 0.178, 1.404, 0.004];
     const el = [s * 0.178, 1.121, 0.016], cf = [s * 0.178, 1.045, 0.020];
+
+    /* ---- the deltoid ----
+       The cap of muscle over the top of the joint. Without it the
+       shoulder is wherever the torso lathe happens to have narrowed
+       to, which is a slope, and the arms read as hung on a peg. */
+    shirt.tube([
+      { p: [s * 0.072, 1.432, 0.004], b: B.chest },
+      { p: [s * 0.140, 1.418, 0.004], b: B["clav" + L] },
+      { p: [s * 0.180, 1.378, 0.002], b: B["upArm" + L] },
+      /* This end is open, so it has to finish comfortably inside the
+         sleeve - the sleeve is 61 mm there and this is 48, which
+         leaves 13 mm of cover. An open end that pokes out does not
+         read as a hole, it reads as a dark gash, which is worse. */
+      { p: [s * 0.180, 1.345, 0.004], b: B["upArm" + L] },
+    ], ramp([
+      [0.000, 0.030, 1.00, 1.00, 1],
+      [0.070, 0.062, 1.00, 1.05, 1],
+      [0.115, 0.066, 1.00, 1.02, 1],
+      [0.150, 0.048, 1.00, 1.00, 1],
+    ]), { radial: 14, seg: 0.028, blend: 0.070, uvu: 2.2, uvv: 7, capA: false, capB: false });
 
     /* ---- sleeve: shoulder to just below the elbow ---- */
     shirt.tube([

@@ -785,11 +785,15 @@ function texFace(S) {
 
     /* the warm places: the cheeks, the nose, the ears, the point of the
        chin - anywhere the blood runs close to the surface */
-    const warm = bell(ax - 0.0440, y - (E.noseBaseY + 0.0060), 0.0330, 0.0290) * fwd * 0.9
-      + bell(ax, y - (E.noseTipY + 0.0050), 0.0200, 0.0330) * fwd * 0.7
-      + bell(ax - 0.0740, y - E.earY, 0.0180, 0.0260) * 0.8
-      + bell(ax, y - E.chinY, 0.0220, 0.0130) * fwd * 0.5;
-    r += warm * 17; g -= warm * 7; b -= warm * 5;
+    /* Clamped, and gentler than it was. These four overlap, and four
+       bells at full strength on one cheek came out as a rash rather
+       than as the colour of a face. */
+    const warm = clamp01(
+      bell(ax - 0.0455, y - (E.noseBaseY + 0.0070), 0.0280, 0.0235) * fwd * 0.75
+      + bell(ax, y - (E.noseTipY + 0.0050), 0.0165, 0.0280) * fwd * 0.55
+      + bell(ax - 0.0740, y - E.earY, 0.0170, 0.0245) * 0.65
+      + bell(ax, y - E.chinY, 0.0185, 0.0105) * fwd * 0.35);
+    r += warm * 11; g -= warm * 4; b -= warm * 3;
 
     /* the lips: redder, a touch darker, and sharply edged */
     const lip = Math.max(

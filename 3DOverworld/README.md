@@ -172,3 +172,25 @@ Things that will bite you here too:
 - **Geometry is built once and shared between every rig** (`bodyParts()` in
   `rig.js`). Rebuilding the face sculpt for each person who walks past is a
   quarter of a second of stutter each.
+- **A proportion check cannot see an absence.** Every measurement passed while the
+  figure had no jaw, no eyelid and no deltoid. The checks were confirming that what
+  existed was the right size and saying nothing about what had never been built.
+- **A test written by whoever made the assumption will protect it.** One of those
+  checks was `eye opening never wider than the ball`, written because that was how
+  the lid margin had been built. It was not guarding the face, it was guarding the
+  construction, and it passed happily while the eyes were a fifth too small.
+- **The jaw has to be wider than the neck.** At 114 mm across the mandible on a
+  120 mm neck there is nothing to overhang, no edge and no shadow under one, and the
+  head runs into the throat like a thumb into a fist.
+- **The eye opening is wider than the eyeball** - past the ball the lids run back
+  onto the orbital rim. And it is an almond, not an ellipse: the superellipse
+  exponent below two is what draws the corners to a point. A round opening stares.
+- **Hair volume belongs to the clumps, not the cap.** The cap only stops daylight
+  showing between them; thickening it builds a smooth shell that swallows them whole
+  and reads as a crash helmet. The standoff is also smaller than it feels - the
+  inflate pushes along the cross-section, which on the sides of the head points
+  sideways, so a generous one does not make generous hair, it makes a brim.
+- **5 m/s is a run.** The move key was set there, so the stride was three metres
+  with the feet off the ground three quarters of the time and every other frame
+  caught him in a mid-air split. The gait was not wrong; it was being asked to
+  carry a sprinter's speed and called walking.

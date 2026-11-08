@@ -61,11 +61,11 @@ const E = FACE;
 const NOSE = ramp([
   [0.0000, 0.0000, 0.0115, 0, 0],
   [0.0040, 0.0030, 0.0115, 0, 0],   /* glabella, between the brows */
-  [0.0160, 0.0082, 0.0106, 0, 0],   /* the bridge, at its narrowest */
-  [0.0340, 0.0135, 0.0115, 0, 0],
-  [0.0480, 0.0180, 0.0146, 0, 0],
-  [0.0610, 0.0242, 0.0184, 0, 0],   /* the tip, on E.noseTipY */
-  [0.0670, 0.0216, 0.0192, 0, 0],
+  [0.0160, 0.0105, 0.0098, 0, 0],   /* the bridge, at its narrowest */
+  [0.0340, 0.0168, 0.0108, 0, 0],
+  [0.0480, 0.0222, 0.0140, 0, 0],
+  [0.0610, 0.0292, 0.0178, 0, 0],   /* the tip, on E.noseTipY */
+  [0.0670, 0.0258, 0.0188, 0, 0],
   [0.0710, 0.0130, 0.0175, 0, 0],   /* the base, where it meets the lip */
   [0.0760, 0.0000, 0.0150, 0, 0],
 ]);
@@ -148,13 +148,16 @@ function sculpt(u, v, out) {
 
   /* ---- chin and jaw ---- */
   dz += bell(ax, by - E.chinY, 0.0215, 0.0115) * 0.0074 * fwd;
-  const gon = bell(ax - 0.0560, by - (E.jawY + 0.0120), 0.0220, 0.0210);
-  dx += sx * gon * 0.0052; dz -= gon * 0.0010;
+  const gon = bell(ax - 0.0575, by - (E.jawY + 0.0150), 0.0215, 0.0220);
+  dx += sx * gon * 0.0070; dz -= gon * 0.0022;
   /* Under the jaw, pulled in: without it the jaw line is a soft edge and
      the whole head reads as a potato. */
-  const under = bell(ax - 0.0280, by - 1.5230, 0.0430, 0.0160);
-  dz -= under * 0.0058; dy += under * 0.0040;
-  _ao += under * 0.38;
+  const under = bell(ax - 0.0260, by - 1.5180, 0.0450, 0.0175);
+  dz -= under * 0.0068; dy += under * 0.0052;
+  _ao += under * 0.46;
+  /* and the edge itself: a narrow band of shade along the mandible,
+     which is what the eye actually reads as a jaw */
+  _ao += bell(ax - 0.0420, by - 1.5300, 0.0330, 0.0075) * 0.34;
 
   /* A narrow chin on a wide jaw is beyond any lathe, so the front of the
      lower rings is pinched in towards the midline by hand. */
@@ -178,19 +181,31 @@ function sculpt(u, v, out) {
     /* The opening sits a shade below the ball's centre and is wider than
        it is tall - and never wider than the ball itself, or the lid
        margin would have nothing to hug. */
-    const qx = ex / E.apW, qy = (ey + 0.0008) / E.apH;
-    const q = Math.sqrt(qx * qx + qy * qy);
+    const qx = Math.abs(ex / E.apW), qy = Math.abs((ey + 0.0008) / E.apH);
+    /* a superellipse below two, which draws out into a point at each
+       corner the way an eye does; a plain ellipse is round there and
+       the whole face stares because of it */
+    const q = Math.pow(Math.pow(qx, 1.45) + Math.pow(qy, 1.45), 1 / 1.45);
     const open = 1 - sstep(0.80, 1.00, q);
     if (open > 0) {
-      const ball = d2 < E.eyeR * E.eyeR ? Math.sqrt(E.eyeR * E.eyeR - d2) : 0;
-      z = mix(z, E.eyeZ + ball * 0.5 - 0.0078, open);
-      _ao += open * 0.55;
+      /* The floor is measured back from the lid rather than from the
+         middle of the ball, and it gets shallower towards the corners.
+         Behind the ball it has to be deep enough to stay hidden; out
+         at the canthi, where the opening is now wider than the ball,
+         there is nothing to hide behind and a deep floor would read as
+         a hole punched in his face. Shallow there is a corner. */
+      const deep = 0.0125 * (1 - q * 0.74);
+      z = mix(z, shell - deep, open);
+      _ao += open * (0.42 + 0.30 * (1 - q));
     }
     /* the lid margin: a dark rim, which is how lashes read at any
        distance where you could not actually make out a lash */
     _ao += bell(q - 1.0, 0, 0.26, 1) * 0.45;
-    /* and the fold above the upper lid */
-    _ao += bell(ex, ey - 0.0140, 0.0210, 0.0068) * 0.30;
+    /* The fold above the upper lid, and the lid itself standing
+       proud of the ball. Without the second one he has no eyelids at
+       all, only holes, which is most of the reason he stared. */
+    _ao += bell(ex, ey - 0.0150, 0.0230, 0.0072) * 0.34;
+    dz += bell(ex, ey - 0.0062, 0.0180, 0.0070) * 0.0022;
 
     dz = z - bz;
     /* How much of this vertex the lid bone owns: all of it at the margin
@@ -345,7 +360,10 @@ function buildHead() {
      is what v does on its own - grew them straight down the forehead
      and drew a black curtain over the whole face. */
   hair.surf(52, 26, (u, v, out) => {
-    skull(u, hairEdge(u) * v, out, 0.0042 + 0.0060 * Math.sin(v * Math.PI));
+    /* Thin. It is a backing, not the hair: thick enough that no scalp
+       shows between the clumps and no thicker, because anything more
+       becomes a smooth shell that hides them and reads as a helmet. */
+    skull(u, hairEdge(u) * v, out, 0.0046 + 0.0052 * Math.sin(v * Math.PI));
   }, { bone: B.head, shade: (u, v) => 0.44 + 0.34 * v });
 
   const PART = 0.560;
@@ -364,14 +382,20 @@ function buildHead() {
     ]), { radial: 6, seg: 0.013, uvu: 0.7, uvv: 11, crease: 0, capA: false });
   };
 
-  for (let n = 0; n < 64; n++) {
+  for (let n = 0; n < 78; n++) {
     const side = n % 2 ? 1 : -1;
     /* where it leaves the part, and where on the scalp it ends up */
     const u0 = PART + side * (0.002 + rnd() * 0.055);
     const v0 = 0.025 + rnd() * 0.120;
     const u1 = clamp01(PART + side * (0.090 + rnd() * 0.400));
     const v1 = Math.min(0.995, hairEdge(u1) * (0.78 + rnd() * 0.24));
-    const lift = 0.0045 + rnd() * 0.0215;
+    /* How far a clump stands off the skull. This is the number that
+       decides the whole silhouette, and it is smaller than it feels
+       like it should be: the inflate pushes along the cross-section,
+       which on the SIDES of the head points sideways, so a generous
+       standoff does not make a generous head of hair - it makes a
+       brim. Seventeen millimetres is already a thick head of hair. */
+    const lift = 0.0032 + rnd() * 0.0082;
     const pts = [];
     for (let i = 0; i <= 5; i++) {
       const t = i / 5;
@@ -383,10 +407,10 @@ function buildHead() {
          ends: both ends can sit above it and the middle still dip onto
          the forehead, because the hairline is not a straight line */
       const vv = Math.min(mix(v0, v1, t * t * (3 - 2 * t)), hairEdge(uu) * 0.99);
-      skull(uu, vv, q, 0.0080 + lift * Math.sin(t * 2.1));
+      skull(uu, vv, q, 0.0068 + lift * Math.sin(t * 2.1));
       pts.push({ p: [q.x, q.y, q.z], b: B.head });
     }
-    clump(pts, 0.0082, 2.05);
+    clump(pts, 0.0078, 1.80);
   }
 
   /* a fringe, falling across the forehead on the long side of the part */
@@ -398,10 +422,10 @@ function buildHead() {
       const uu = PART - 0.018 - t0 * 0.115 - t * 0.055;
       pts.push({ p: [0, 0, 0], b: B.head });
       skull(uu, Math.min(hairEdge(uu) * 0.99, 0.055 + t * (0.090 + t0 * 0.045)), q,
-        0.0090 + 0.0110 * Math.sin(t * 2.4));
+        0.0082 + 0.0078 * Math.sin(t * 2.4));
       pts[i].p = [q.x, q.y - t * t * 0.006, q.z + t * 0.003];
     }
-    clump(pts, 0.0078, 2.10);
+    clump(pts, 0.0076, 1.90);
   }
 
   /* sideburns, in front of each ear */

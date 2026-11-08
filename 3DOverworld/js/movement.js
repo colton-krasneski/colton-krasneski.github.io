@@ -110,7 +110,7 @@ class Player {
     const ax = input.axisX(), az = input.axisY();
     const mag = Math.min(1, Math.hypot(ax, az));
     const sprint = input.sprint && !wantCrouch && az > 0.1;
-    const speed = this.swimming ? 3.4 : (sprint ? 8.4 : 5.0) * (1 - this.crouch * 0.52);
+    const speed = this.swimming ? 3.4 : (sprint ? 8.4 : 3.6) * (1 - this.crouch * 0.52);
     const want = this._c.set(0, 0, 0).addScaledVector(fwd, az).addScaledVector(right, ax);
     if (want.lengthSq() > 0) want.normalize().multiplyScalar(speed * mag);
 
