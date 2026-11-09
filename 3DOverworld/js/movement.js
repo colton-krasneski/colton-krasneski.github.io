@@ -14,7 +14,7 @@ import { WATER, clamp, clamp01, heightAt, lerp } from "./terrain.js";
 const SPAWN = new THREE.Vector3(0, 0, 0);
 /* how much of the body's own stride bob the first-person camera takes */
 const FP_BOB = 0.42;
-const EYE = 1.645;
+const EYE = 1.686;
 
 /* the shortest way round to an angle */
 function wrapPi(a) {
@@ -52,6 +52,9 @@ class Player {
     this.duty = 0.57;
     this.amp = 0;
     this.run = 0;
+    this.spr = 0;
+    this.ahead = 0.25;
+    this.speed = 0;
     this.push = 0;
     this.air = 0;
     this.land = 0;
@@ -134,7 +137,7 @@ class Player {
       if (this.onGround && input.takeJump()) {
         this.vel.y = 9.2;
         this.onGround = false;
-        sfxJump();
+        sfxJump(w.surfaceAt(this.pos.x, this.pos.z));
       }
     }
 
@@ -229,14 +232,32 @@ class Player {
     const swing = swingFor(planar, this.onGround);
     this.amp += (swing.amp - this.amp) * Math.min(1, 7 * dt);
     this.run += (swing.run - this.run) * Math.min(1, 5 * dt);
+    this.spr += (swing.sprint - this.spr) * Math.min(1, 4 * dt);
 
     /* The stride, and how much of one is showing. Both come out of
        gait.js so that the figure you are driving and the figures other
        people are driving cannot walk differently - see the note there
        for why the numbers are what they are. */
     const stride = strideFor(planar);
-    this.cycle = stride.cycle;
-    this.duty = stride.duty;
+    /* eased rather than snapped: stopping dead takes the speed from a
+       sprint to nothing in a tenth of a second, and a stride that changed
+       shape that fast would have a foot that was in the air declared to
+       be on the ground */
+    const ks = Math.min(1, 8 * dt);
+    this.cycle += (stride.cycle - this.cycle) * ks;
+    this.duty += (stride.duty - this.duty) * ks;
+    this.ahead += (stride.ahead - this.ahead) * ks;
+    this.speed = planar;
+    if (this.amp < 0.02 && planar > 0.05 && this.onGround && !this.swimming) {
+      /* Setting off from a standstill. Both feet are under him, and
+         wherever the phase happened to be, one of them is about to be
+         told it has been on the ground for most of a step and must stay
+         there while he walks away from it - a lunge on the first stride.
+         Instead start the phase where a foot that is right under the
+         hips belongs: the left one part way through standing, the right
+         one already on its way forward. */
+      this.cyc = clamp01(this.ahead / Math.max(0.3, this.duty * this.cycle)) * this.duty;
+    }
     if (this.onGround && !this.swimming) {
       /* Keep the phase turning a little while the stride amplitude decays,
          so that stopping lets the swinging foot finish its step instead of
@@ -260,6 +281,9 @@ class Player {
     st.duty = this.duty;
     st.amp = this.amp;
     st.run = this.run;
+    st.sprint = this.spr;
+    st.ahead = this.ahead;
+    st.speed = this.speed;
     st.air = this.air;
     st.land = this.land;
     st.crouch = this.crouch;

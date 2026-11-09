@@ -1,0 +1,16 @@
+Every sound in sfx.wav is a recording released into the public domain
+(Creative Commons Zero, https://creativecommons.org/publicdomain/zero/1.0/).
+They were trimmed, faded at both ends, levelled and laid end to end;
+sfx.json says where each one starts and how long it is.
+
+  grass*, rock*, sand*, soft*   footstep_grass / _concrete / _snow / _carpet
+  thud*, bump*                  impactSoft_heavy / impactSoft_medium
+      from "Impact Sounds" by Kenney (www.kenney.nl)
+
+  dirt*, cloth*                 footstep00-09, cloth1-4
+      from "RPG Audio" by Kenney (www.kenney.nl)
+
+  breath*                       three breaths cut out of "Breathing Tired"
+      https://opengameart.org/content/breathing-tired
+
+Credit is not required by any of these licences; it is given anyway.

@@ -11,7 +11,8 @@ import * as THREE from "three";
 
 import { scene, camera, canvas, composer, gradePass, GradeShader, SH,
   makeComposer, resize } from "./graphics.js";
-import { setAudioPaused, setMuted, startAudio } from "./audio.js";
+import { loadSounds, setAudioPaused, setMuted, startAudio } from "./audio.js";
+import { loadAvatar } from "./avatar.js";
 import { broadcast, connect as netConnect, netState } from "./net.js";
 import { encodeState } from "./protocol.js";
 import { RemotePlayer } from "./remote.js";
@@ -187,7 +188,12 @@ async function step(text) {
 
 async function boot() {
   resize();
+  /* the sounds come down while everything else is being built */
+  const sounds = loadSounds();
   await buildTextures(step);
+  await step("getting him dressed");
+  await loadAvatar();
+  await sounds;
 
   await step("raising the land");
   world = new World(scene, qualName);

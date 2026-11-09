@@ -1,8 +1,10 @@
 # Overworld
 
-A first-person walk through a procedurally generated meadow. No assets — every
-texture, tree and the sky itself is drawn at load time. three.js comes from a
-CDN; everything else is in this folder.
+A first-person walk through a procedurally generated meadow. Every texture,
+tree and the sky itself is drawn at load time. Only two things are loaded
+rather than made: the person you are (a scanned Microsoft Rocketbox avatar,
+MIT licence, in `assets/avatar/`) and the sounds (public-domain recordings, in
+`assets/sfx/`). three.js comes from a CDN; everything else is in this folder.
 
 ## Running it
 
@@ -22,7 +24,7 @@ notices and says so rather than leaving you with a dead progress bar.)
     js/settings.js      detail presets, and the switch that manages them for you
     js/hud.js           the readouts, the hint line, the overlays
     js/input.js         keyboard, mouse, and a thumbstick for touch
-    js/audio.js         every sound, synthesised - footsteps, jump, breathing
+    js/audio.js         every sound: recorded clips out of one file
     js/gait.js          what a stride is made of, shared by you and by them
 
     js/net.js           the lobby: Firestore introduces, WebRTC carries
@@ -30,10 +32,9 @@ notices and says so rather than leaving you with a dead progress bar.)
     js/remote.js        everybody else, posed from what arrives
 
     js/movement.js      what the player does, and where the camera ends up
-    js/character.js     the body: the mesh builders, the skeleton, the limbs
-    js/head.js          the head: the face sculpt, the eyes, the hair
-    js/facemap.js       the skull all of that starts from, and its grid
-    js/rig.js           the animation: the gait, the foot IK, the poses
+    js/character.js     the skeleton the animation is worked out on
+    js/rig.js           the animation: the gait, the foot roll, the IK, the poses
+    js/avatar.js        the person you see, and every pose copied onto it
 
     js/world.js         the clock, the light, the water, and what streams in
     js/chunks.js        one chunk of ground: its heights, splat and props
@@ -43,6 +44,9 @@ notices and says so rather than leaving you with a dead progress bar.)
     js/graphics.js      the renderer, the sky, and the final grade
     js/materials.js     the shaders every surface is dressed with
     js/textures.js      every procedural texture
+
+    assets/avatar/      the scanned person (glTF and textures) and its licence
+    assets/sfx/         every sound in one wav, where each clip is, the credits
 
 The dependencies only ever point one way, roughly bottom-to-top in that list:
 `terrain` knows nothing about anything, and `main` knows about everything.
@@ -82,54 +86,58 @@ Collected the hard way; each one cost an afternoon.
   difference.** The three twist shares in `pose()` add up to exactly one, which
   is what leaves the head - and so the eye, and so the hands - aimed along the
   view. Change one share and change the others.
-- **The face is a grid over a lathe and neither parameter is uniform**
-  (`facemap.js`). The front quarter takes half the columns, brow-to-chin half
-  the rows. Spread them evenly and an eye gets four columns across it.
-- **The profile is splined, not smoothstepped.** A smoothstep flattens the
-  curve at every key it passes through, and the slope stepping at each one is
-  plainly visible on a cheek: the head came out banded like a contour map.
-- **The face texture is painted in metres, not in texture space.** Every pixel
-  is turned back into the point on the head it covers and asked the same
-  questions the sculpt asked of it.
-- **Hair grows towards the back of the head, never down the grid.** `v` on its
-  own runs down the front of the face, so clumps parameterised by it grew
-  straight down the forehead and drew a black curtain over the whole face.
-- **A canvas is flipped when three.js uploads it.** Paint row nought as the
-  top of the head and the whole face texture lands upside down: the mouth
-  ends up on the forehead and the lash lines on the cheekbones. `texFace`
-  reads its rows from the bottom up for exactly this reason.
-- **Noise for the face is sampled uniformly round the head, not on the grid.**
-  The grid is deliberately uneven, so sampling on it stretched the pores into
-  streaks down both sides of his head where the columns are sparsest.
+- **The skeleton that is posed is not the one you see.** `rig.js` poses the plain
+  skeleton in `character.js`, and `avatar.js` copies the result onto the scanned
+  model every frame. Rotations are never copied as they stand, because the two
+  skeletons disagree about how a joint is oriented: the model is bent once into
+  the solver's rest pose - arms straight down, index knuckle forward - and what
+  is copied is how far each bone has turned from there. The joints in
+  `character.js` were measured off the model, so a foot the solver plants is
+  planted in the picture too. Swap the model and they have to be measured again;
+  `loadAvatar()` warns when the legs disagree.
+- **The figure's -X side is the side `st.right` points to.** It faces +Z under a
+  group turned by π, so its +X is the world's left. For a long time every foot
+  was put down on the side opposite its own hip and the shins crossed on every
+  step - it read as "the walk looks funky" and nobody could say why. A foot's
+  spot is `-st.right * s`, everywhere: `keepSide()`, `swingSpot()`, standing.
+- **A planted foot rocks; it is never simply moved.** While a foot is down, the
+  ankle is worked out from the point it is rocking over - the back of the heel
+  just after it lands, the ball as it pushes off (`pivot()`, `rig.js`). Pitching
+  the foot about the ankle instead buries the toes at push-off and floats the
+  heel at touchdown, and the sole visibly slides.
 - **Measure a cut-out card, do not look at it.** `texNeedle` was rebuilt from an old
   copy on 2026-11-08 and came back at 8% mean alpha against its 0.22 `alphaTest`.
   On screen that is one spiky bare pine above the canopy and nothing else wrong; the
   number says it immediately. Read the alpha canvas back and average it.
-- **Nothing is loaded, including the sound.** Footsteps, the jump, the landing and
-  the breathing are all built out of filtered noise and an oscillator or two at the
-  moment they are wanted. That is how a footstep gets to know what it is standing
-  on: `world.surfaceAt()` picks the filter, from the same four weights the ground
-  shader blends the surface from, so what you hear is what you are looking at.
+- **Every sound is a recording, and they are all in one file.** `sfx.wav` holds 47
+  short clips end to end and `sfx.json` says where each starts. It is fetched while
+  the world is built and decoded once `startAudio()` has made a context. A surface
+  still picks its own sound - `world.surfaceAt()` chooses the set of clips - and
+  no clip plays twice running or at quite the same pitch or level, which is what
+  keeps a handful of recordings from sounding like a handful of recordings.
 - **An AudioContext may only be started from a real user gesture.** `startAudio()`
   is called from `play()`, which is only ever reached from the button or the key
   that dismisses the pause menu. Called at load it would be born suspended and
   stay that way, silently.
-- **Every envelope needs an attack.** A gain that starts at full level clicks, and
-  an attack longer than the sound itself puts the two ramps out of order, which is
-  a thrown exception rather than a quiet bug. `burst()` and `tone()` both clamp it.
+- **Every clip needs a fade.** A sound that starts or stops anywhere but silence
+  clicks. The clips were cut with a short fade at each end so they can be started
+  and stopped dead; the one sound still made, the splash, clamps its attack.
 - **The breathing is driven by how hard he has been working lately, not by whether
   shift is down.** It rises over two and a half seconds and falls over nine, and
   that asymmetry is the whole effect - breathing that stopped the instant you let
   go would read as a sound effect rather than as a person.
-- **Time on the ground is a fixed distance, so a longer stride means less of the
-  cycle touching, not a longer contact.** When the stride was lengthened to fix the
-  cadence, the floor on `duty` had to come down with it: pinned where it was, the
-  foot would have stayed down for 0.996 m instead of `STANCE`, which puts it half a
-  metre behind the hip at push-off, out of the leg's reach, and drags the hips down
-  16 cm every step. Contact is 0.740 m at every speed and the hip drop is 81 mm;
-  if either of those moves, something upstream is wrong.
+- **Contact is what the leg can span.** A foot is down for 0.80 m of travel at a
+  walk and 0.72 m at a run (`gait.js`); going faster means a smaller share of the
+  stride on the ground, never a longer reach. With those the hips never have to
+  give way at a steady pace - 11 mm at a jog, 5 mm flat out. If `hipDrop` grows,
+  something upstream has changed.
+- **Setting off from a standstill resets the gait phase.** Wherever it happened
+  to be, one foot was about to be told it had been down for most of a step and
+  must stay there while he walked off: a lunge, and the hips dropping 18 cm, on
+  every first stride. `animate()` starts the phase where a foot that is right
+  under the hips belongs.
 
-## Multiplayer
+## Multiplayer## Multiplayer
 
 The world never travels. It is generated from fixed constants, so every browser
 already has the identical terrain, trees and lake - which leaves only the people
@@ -169,9 +177,9 @@ Things that will bite you here too:
 - **Either side tidies the paperwork, not just the offerer.** If the browser that
   made the offer is the one that closed, nobody would, and the lobby fills with
   dead offers and the candidate documents underneath them.
-- **Geometry is built once and shared between every rig** (`bodyParts()` in
-  `rig.js`). Rebuilding the face sculpt for each person who walks past is a
-  quarter of a second of stutter each.
+- **The avatar is loaded once and cloned for every rig** (`avatar.js`). Clones
+  share geometry, textures and materials and get skeletons of their own, so
+  somebody walking past costs a skeleton, not a download.
 - **A proportion check cannot see an absence.** Every measurement passed while the
   figure had no jaw, no eyelid and no deltoid. The checks were confirming that what
   existed was the right size and saying nothing about what had never been built.
@@ -179,18 +187,8 @@ Things that will bite you here too:
   checks was `eye opening never wider than the ball`, written because that was how
   the lid margin had been built. It was not guarding the face, it was guarding the
   construction, and it passed happily while the eyes were a fifth too small.
-- **The jaw has to be wider than the neck.** At 114 mm across the mandible on a
-  120 mm neck there is nothing to overhang, no edge and no shadow under one, and the
-  head runs into the throat like a thumb into a fist.
-- **The eye opening is wider than the eyeball** - past the ball the lids run back
-  onto the orbital rim. And it is an almond, not an ellipse: the superellipse
-  exponent below two is what draws the corners to a point. A round opening stares.
-- **Hair volume belongs to the clumps, not the cap.** The cap only stops daylight
-  showing between them; thickening it builds a smooth shell that swallows them whole
-  and reads as a crash helmet. The standoff is also smaller than it feels - the
-  inflate pushes along the cross-section, which on the sides of the head points
-  sideways, so a generous one does not make generous hair, it makes a brim.
-- **5 m/s is a run.** The move key was set there, so the stride was three metres
-  with the feet off the ground three quarters of the time and every other frame
-  caught him in a mid-air split. The gait was not wrong; it was being asked to
-  carry a sprinter's speed and called walking.
+- **The default pace, 3.6 m/s, is a jog, so it is animated as one.** For a while
+  it was animated as a walk stretched over a running stride - a lunge on every
+  step with the arms hanging dead. The walk is what you see below about 2 m/s:
+  crouching, a half-pushed thumbstick, speeding up and slowing down. The two
+  blend across 1.85-2.75 m/s, which is where people change over by themselves.

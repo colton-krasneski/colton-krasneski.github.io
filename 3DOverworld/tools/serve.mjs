@@ -5,7 +5,8 @@ import http from 'node:http'; import fs from 'node:fs';
 import path from 'node:path'; import url from 'node:url';
 const root = path.join(path.dirname(url.fileURLToPath(import.meta.url)), '..');
 const TYPES = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
-                '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png' };
+                '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png',
+                '.jpg': 'image/jpeg', '.glb': 'model/gltf-binary', '.wav': 'audio/wav', '.txt': 'text/plain' };
 const port = Number(process.argv[2]) || 8124;
 http.createServer((req, res) => {
   const rel = decodeURIComponent(req.url.split('?')[0]).replace(/^\/+/, '') || 'index.html';

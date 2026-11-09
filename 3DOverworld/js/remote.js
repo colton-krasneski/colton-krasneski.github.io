@@ -82,6 +82,7 @@ class RemotePlayer {
     /* the same smoothed values the local player keeps, so the figure
        settles the same way rather than snapping between packets */
     this.amp = 0; this.run = 0; this.air = 0;
+    this.spr = 0; this.cycle = 1.4; this.duty = 0.57; this.ahead = 0.3;
     this.crouch = 0; this.swim = 0; this.push = 0;
     this.land = 0; this.landV = 0;
     this.turn = 0; this.pitchRate = 0;
@@ -150,6 +151,11 @@ class RemotePlayer {
     const swing = swingFor(s.speed, s.onGround);
     this.amp += (swing.amp - this.amp) * Math.min(1, 7 * dt);
     this.run += (swing.run - this.run) * Math.min(1, 5 * dt);
+    this.spr += (swing.sprint - this.spr) * Math.min(1, 4 * dt);
+    const ks = Math.min(1, 8 * dt);
+    this.cycle += (stride.cycle - this.cycle) * ks;
+    this.duty += (stride.duty - this.duty) * ks;
+    this.ahead += (stride.ahead - this.ahead) * ks;
     const wantAir = s.onGround || s.swimming ? 0 : 1;
     this.air += (wantAir - this.air) * Math.min(1, (wantAir ? 7 : 14) * dt);
     this.crouch += (s.crouch - this.crouch) * Math.min(1, 12 * dt);
@@ -182,10 +188,13 @@ class RemotePlayer {
     st.vy = this.vy;
     st.time = this.time;
     st.cyc = s.cyc;
-    st.cycle = stride.cycle;
-    st.duty = stride.duty;
+    st.cycle = this.cycle;
+    st.duty = this.duty;
+    st.ahead = this.ahead;
+    st.speed = s.speed;
     st.amp = this.amp;
     st.run = this.run;
+    st.sprint = this.spr;
     st.air = this.air;
     st.land = this.land;
     st.crouch = this.crouch;
@@ -236,7 +245,7 @@ class RemotePlayer {
 
     /* ---- and their name, over their head ---- */
     r.eye(_v);
-    this.plate.position.set(_v.x, this.pos.y + 1.99 - this.crouch * 0.3, _v.z);
+    this.plate.position.set(_v.x, this.pos.y + 2.03 - this.crouch * 0.3, _v.z);
   }
 
   dispose() {

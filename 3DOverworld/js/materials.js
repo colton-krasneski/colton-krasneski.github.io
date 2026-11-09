@@ -6,7 +6,7 @@
 
 import * as THREE from "three";
 import { MAX_ANISO, SH, SKY_LOOKUP, dress } from "./graphics.js";
-import { normalFrom, splitCard, texBark, texBlossom, texCloth, texDenim, texEye, texFace, texHair, texLeafCard, texLeather, texMote, texNeedle, texNeedleMass, texNoise, texSand, texSkin, texSoil, texStone, texTuft, texTurf } from "./textures.js";
+import { normalFrom, splitCard, texBark, texBlossom, texLeafCard, texMote, texNeedle, texNeedleMass, texNoise, texSand, texSoil, texStone, texTuft, texTurf } from "./textures.js";
 
 const TEX = {};
 
@@ -65,18 +65,6 @@ async function buildTextures(step) {
   TEX.tuft = cardTex(texTuft(C));
   TEX.blossom = cardTex(texBlossom(128));
   TEX.mote = toCard(texMote(64), true);
-  await step("dressing the figure");
-  TEX.skin = surface(texSkin(C), 1.15);
-  TEX.shirt = surface(texCloth(C, [104, 126, 156]), 1.70);
-  TEX.denim = surface(texDenim(C), 1.45);
-  TEX.hide = surface(texLeather(C), 2.00);
-  TEX.hair = surface(texHair(C), 1.40);
-  await step("working on the face");
-  /* A face gets twice the map the rest of him does. It is the one
-     surface anybody looks straight at, and half of what reads as a
-     face at all - lips, lashes, stubble - lives in the paint. */
-  TEX.face = surface(texFace(512), 1.05);
-  TEX.eye = surface(texEye(C), 0.35);
   await step("drawing the weather");
   TEX.noise = toMap(texNoise(256), false);
   SH.uNoise.value = TEX.noise;
@@ -286,36 +274,6 @@ function propMaterial(surf, key, opts) {
   return dress(m, "ow-prop-" + key, null);
 }
 
-/* ---- a body ----
-   Same deal as a prop, except that skin gets a little of the light that
-   went in, bounced about under the surface and came back out somewhere
-   else. Without it skin reads as painted plaster: the giveaway is the
-   terminator, which on a person is a soft red band and on plaster is a
-   hard grey line. The term below is the light *beyond* Lambert, so it
-   is zero on the fully lit side and only shows where it should. */
-function bodyMaterial(surf, key, opts) {
-  const o = opts || {};
-  const m = new THREE.MeshStandardMaterial({
-    map: surf.map, normalMap: surf.normalMap,
-    normalScale: new THREE.Vector2(o.normal || 1, o.normal || 1),
-    roughness: o.rough === undefined ? surf.rough : o.rough,
-    metalness: 0, vertexColors: true,
-  });
-  if (o.hide) { m.colorWrite = false; m.depthWrite = false; }
-  return dress(m, "ow-body-" + key, !o.wrap ? null : (sh) => {
-    sh.fragmentShader = sh.fragmentShader.replace("#include <lights_fragment_end>", [
-      "#include <lights_fragment_end>",
-      "{",
-      "  vec3 sunV = normalize( ( viewMatrix * vec4( uSunDir, 0.0 ) ).xyz );",
-      "  float nl = dot( normal, sunV );",
-      "  float extra = max( 0.0, ( nl + 0.45 ) / 1.45 ) - max( 0.0, nl );",
-      "  reflectedLight.directDiffuse += uSunCol * extra * " + o.wrap.toFixed(3),
-      "    * diffuseColor.rgb * vec3( 1.00, 0.56, 0.44 );",
-      "}",
-    ].join("\n"));
-  });
-}
-
 /* ---- water ----
    No mirror pass: on open water nearly everything you see reflected is
    the sky, and the sky is already a lookup table. Fresnel decides how
@@ -389,5 +347,5 @@ const WATER_FRAG = [
   "}",
 ].join("\n");
 export {
-  TEX, toMap, toCard, cardTex, surface, nextFrame, buildTextures, terrainMaterial, WIND_VERT, UP_NORMAL, translucency, grassMaterial, cardMaterial, propMaterial, bodyMaterial, WATER_VERT, WATER_FRAG,
+  TEX, toMap, toCard, cardTex, surface, nextFrame, buildTextures, terrainMaterial, WIND_VERT, UP_NORMAL, translucency, grassMaterial, cardMaterial, propMaterial, WATER_VERT, WATER_FRAG,
 };
