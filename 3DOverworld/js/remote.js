@@ -123,6 +123,10 @@ class RemotePlayer {
   update(now, dt, listener) {
     const s = this.line.sample(now, this._s);
     if (!s) return;
+    /* Nothing new for a while - they are on a menu, or in another tab -
+       so they stand, rather than running on the spot at whatever speed
+       the last packet said until the next one comes. */
+    if (s.lead > 0.6) { s.speed = 0; s.sprinting = false; }
     const r = this.rig;
     this.time += dt;
 

@@ -51,6 +51,11 @@ const ICE = {
 const BEAT = 60;
 const STALE = 160;
 
+/* How long an offer waits to become a connection before it is made
+   again. A connection takes a second or two; this is for the answer
+   that never came - most often a phone that was asleep. */
+const PATIENCE = 25;
+
 const PEERS = "worldPeers";
 const LINKS = "worldLinks";
 
@@ -63,6 +68,8 @@ let unsubs = [];
 let beat = null;
 let live = false;
 const peers = new Map();       /* id -> { pc, dc, name, open } */
+const fresh = new Map();       /* id -> name: who the lobby last said is here */
+const answered = new Map();    /* id -> the tag of the last offer of theirs we answered */
 
 const rid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
 /* both ends work this out and both get the same answer, so there is
@@ -118,21 +125,29 @@ async function connect(opts) {
   /* who else is out there */
   unsubs.push(FS.onSnapshot(FS.collection(db, PEERS), (snap) => {
     const now = Date.now();
-    const seen = new Set();
+    fresh.clear();
     snap.forEach((d) => {
       const v = d.data() || {};
       if (d.id === me) return;
       if (!v.at || now - v.at > STALE * 1000) return;
-      seen.add(d.id);
-      const p = peers.get(d.id);
-      if (!p) link(d.id, v.name);
-      else if (v.name && v.name !== p.name) { p.name = v.name; announce(p); }
+      fresh.set(d.id, v.name);
     });
+    for (const [id, name] of fresh) {
+      const p = peers.get(id);
+      try {
+        if (!p) link(id, name);
+        else if (name && name !== p.name) { p.name = name; announce(p); }
+      } catch (err) { /* one bad pairing must not hold up the rest */ }
+    }
     /* anyone whose presence has gone, goes */
-    for (const id of [...peers.keys()]) if (!seen.has(id)) drop(id, "left");
+    for (const id of [...peers.keys()]) if (!fresh.has(id)) drop(id, "left");
   }, () => say("offline", "lost the lobby")));
 
   addEventListener("beforeunload", leaveNow);
+  /* Phones do not send beforeunload - iOS never has - so a phone that
+     closed the tab used to stand in the lobby for nearly three minutes
+     with every newcomer offering to it. pagehide they do send. */
+  addEventListener("pagehide", leaveNow);
   say("online");
   return me;
 }
@@ -154,6 +169,8 @@ function disconnect() {
   leaveNow();
   live = false;
   for (const id of [...peers.keys()]) drop(id, "left");
+  fresh.clear();
+  answered.clear();
   for (const u of unsubs) { try { u(); } catch (err) { /* already gone */ } }
   unsubs = [];
   if (beat) clearInterval(beat);
@@ -164,69 +181,145 @@ function disconnect() {
 /* ------------------------------------------------------------
    One connection
 
-   The offer/answer and the two candidate piles are exactly the
-   shape the duels use, with the pair's own document standing in
-   for the duel's.
+   The offer/answer and the two candidate piles are the shape the
+   duels use, with the pair's own document standing in for the
+   duel's. Two things are added, because a duel is two people who
+   both just pressed a button, and this is anybody, at any time, on
+   a phone that may go to sleep halfway through:
+
+   - Every offer carries a tag, and so does every candidate. When an
+     attempt fails - an answer that never came, a connection that
+     died - the side that offers simply offers again under a new
+     tag, and the side that answers drops what it had and answers
+     the new one. Leftovers from an earlier attempt carry its tag
+     and are ignored rather than deleted. Deleting them was a race:
+     it used to take the other side's fresh offer with it, and the
+     pair then sat waiting on each other until somebody reloaded.
+
+   - Candidates that arrive before the description they belong to
+     wait for it. See take().
    ------------------------------------------------------------ */
 
 function link(them, name) {
-  if (peers.has(them) || them === me) return;
-  const p = { id: them, name: name || "someone", told: null, pc: null, dc: null, open: false, subs: [] };
+  if (!live || peers.has(them) || them === me) return;
+  const p = {
+    id: them, name: name || "someone", told: null, pc: null, dc: null, open: false,
+    subs: [], early: [], n: null, answered: false, timer: null,
+  };
   peers.set(them, p);
 
   let pc;
   try { pc = new RTCPeerConnection(ICE); } catch (err) { peers.delete(them); return; }
   p.pc = pc;
+  const current = () => peers.get(them) === p;
 
   const id = linkId(me, them);
-  const mine = iOffer(them) ? "aCand" : "bCand";
-  const theirs = iOffer(them) ? "bCand" : "aCand";
+  const offering = iOffer(them);
   const dref = FS.doc(db, LINKS, id);
+  const mine = offering ? "aCand" : "bCand";
+  const theirs = offering ? "bCand" : "aCand";
 
   pc.onicecandidate = (e) => {
-    if (!e.candidate) return;
-    FS.addDoc(FS.collection(db, LINKS, id, mine), e.candidate.toJSON()).catch(() => {});
+    if (!e.candidate || p.n === null || !current()) return;
+    const c = e.candidate.toJSON();
+    c.n = p.n;
+    FS.addDoc(FS.collection(db, LINKS, id, mine), c).catch(() => {});
   };
   pc.onconnectionstatechange = () => {
-    if (pc.connectionState === "failed" || pc.connectionState === "closed") drop(them, "failed");
+    if (pc.connectionState === "failed" || pc.connectionState === "closed") retry(them, p);
   };
 
   p.subs.push(FS.onSnapshot(FS.collection(db, LINKS, id, theirs), (s) => {
     s.docChanges().forEach((c) => {
       if (c.type !== "added" || !p.pc) return;
-      p.pc.addIceCandidate(new RTCIceCandidate(c.doc.data())).catch(() => {});
+      const cand = c.doc.data();
+      if (p.pc.remoteDescription) take(p, cand);
+      else p.early.push(cand);
     });
   }, () => {}));
 
-  if (iOffer(them)) {
+  if (offering) {
+    p.n = rid();
     p.dc = pc.createDataChannel("world", { ordered: false, maxRetransmits: 0 });
     wire(p);
+    /* no answer in time, or no connection from it: offer again */
+    p.timer = setTimeout(() => { if (!p.open) retry(them, p, 0); }, PATIENCE * 1000);
     (async () => {
       try {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
-        await FS.setDoc(dref, { offer: { type: offer.type, sdp: offer.sdp }, at: Date.now() });
-      } catch (err) { drop(them, "failed"); return; }
+        await FS.setDoc(dref, { offer: { type: offer.type, sdp: offer.sdp }, n: p.n, at: Date.now() });
+      } catch (err) { retry(them, p); return; }
+      if (!current()) return;
       p.subs.push(FS.onSnapshot(dref, (d) => {
         const v = d.data();
-        if (v && v.answer && p.pc && !p.pc.currentRemoteDescription) {
-          p.pc.setRemoteDescription(new RTCSessionDescription(v.answer)).catch(() => {});
-        }
+        if (!v || !v.answer || p.answered || !p.pc) return;
+        /* a late answer to an earlier offer of ours */
+        if (v.answer.n !== undefined && v.answer.n !== p.n) return;
+        p.answered = true;
+        p.pc.setRemoteDescription(new RTCSessionDescription({ type: v.answer.type, sdp: v.answer.sdp }))
+          .then(() => flush(p), () => { p.answered = false; });
       }, () => {}));
     })();
   } else {
     pc.ondatachannel = (e) => { p.dc = e.channel; wire(p); };
     p.subs.push(FS.onSnapshot(dref, async (d) => {
       const v = d.data();
-      if (!v || !v.offer || !p.pc || p.pc.currentRemoteDescription) return;
+      if (!v || !v.offer || !p.pc || !current()) return;
+      /* an untagged offer comes from a page older than the tags */
+      const n = v.n === undefined ? "" : String(v.n);
+      if (p.n !== null) {
+        /* already on one: a different tag means they have started again */
+        if (n !== p.n) retry(them, p, 0);
+        return;
+      }
+      /* the one a dropped link of ours already answered: wait for the next */
+      if (n && answered.get(them) === n) return;
+      p.n = n;
+      answered.set(them, n);
       try {
         await p.pc.setRemoteDescription(new RTCSessionDescription(v.offer));
+        flush(p);
         const answer = await p.pc.createAnswer();
         await p.pc.setLocalDescription(answer);
-        await FS.updateDoc(dref, { answer: { type: answer.type, sdp: answer.sdp } });
-      } catch (err) { /* they may have given up; the sweep will tidy it */ }
+        const a = { type: answer.type, sdp: answer.sdp };
+        if (n) a.n = n;
+        await FS.updateDoc(dref, { answer: a });
+      } catch (err) { /* they will offer again */ }
     }, () => {}));
   }
+}
+
+/* A candidate added before the description it belongs to is refused,
+   and it is never sent again. The candidates and the description come
+   down separate listeners, in whatever order Firestore delivers them,
+   so a refused one was simply lost: two of four, the first time two
+   real browsers were watched doing this. On one machine that does not
+   matter. Between a phone and a computer the one lost is usually the
+   route across the router, which is the only one that works. So any
+   that arrive early wait in p.early until flush(). (The duels never
+   had this: they only start listening once the description is in.) */
+function take(p, cand) {
+  if (!p.pc) return;
+  /* left over from another attempt */
+  if (cand.n !== undefined && p.n && cand.n !== p.n) return;
+  const c = Object.assign({}, cand);
+  delete c.n;
+  p.pc.addIceCandidate(new RTCIceCandidate(c)).catch(() => {});
+}
+function flush(p) {
+  for (const c of p.early.splice(0)) take(p, c);
+}
+
+/* This attempt is over. Forget it and, if they are still in the lobby,
+   start again - which, for the side that answers, means waiting for the
+   next offer. Nothing is tidied: see "One connection" above. */
+function retry(them, p, delay) {
+  if (peers.get(them) !== p) return;
+  drop(them, "lost", true);
+  setTimeout(() => {
+    if (live && fresh.has(them) && !peers.has(them)) link(them, fresh.get(them));
+  }, delay === undefined ? 1500 : delay);
 }
 
 /* What a channel does once it is open. Position updates are sent
@@ -240,10 +333,13 @@ function wire(p) {
   dc.binaryType = "arraybuffer";
   dc.onopen = () => {
     p.open = true;
+    if (p.timer) { clearTimeout(p.timer); p.timer = null; }
     try { dc.send(encodeHello(myName)); } catch (err) { /* it will go next time */ }
     announce(p);
   };
-  dc.onclose = () => drop(p.id, "left");
+  /* closed from the far end without a goodbye: their page died, or the
+     connection did. If they are still in the lobby, start again. */
+  dc.onclose = () => retry(p.id, p);
   dc.onerror = () => { /* onclose follows */ };
   dc.onmessage = (e) => {
     if (typeof e.data === "string") {
@@ -267,18 +363,24 @@ function announce(p) {
   if (on.join) on.join(p.id, p.name);
 }
 
-function drop(id, why) {
+/* "keep" leaves the pair's documents alone, for an attempt that is
+   about to be made again. */
+function drop(id, why, keep) {
   const p = peers.get(id);
   if (!p) return;
   peers.delete(id);
+  if (p.timer) { clearTimeout(p.timer); p.timer = null; }
   for (const u of p.subs) { try { u(); } catch (err) { /* gone */ } }
+  p.subs = [];
+  if (p.dc) p.dc.onopen = p.dc.onclose = p.dc.onmessage = null;
   try { if (p.dc) p.dc.close(); } catch (err) { /* gone */ }
   try { if (p.pc) p.pc.close(); } catch (err) { /* gone */ }
+  p.pc = null;
   /* Whichever of the two is still running tidies up - not only the
      one who made the offer, because if that is the browser that closed
      then nobody would, and the lobby fills with dead offers and the
      candidates underneath them. Both trying is harmless. */
-  tidy(id);
+  if (!keep) { tidy(id); answered.delete(id); }
   if (on.leave) on.leave(id, why);
 }
 
@@ -313,6 +415,14 @@ function broadcast(buf) {
   return sent;
 }
 
+/* Whether a channel to them is open right now. Somebody with an open
+   channel who has gone quiet is still here - on a menu, in another
+   tab - and only standing still. */
+function isOpen(id) {
+  const p = peers.get(id);
+  return !!(p && p.open && p.dc && p.dc.readyState === "open");
+}
+
 /* what the readouts and the tests want to know */
 function netState() {
   const list = [];
@@ -325,6 +435,6 @@ function netState() {
   return { live, me, name: myName, peers: list, open: list.filter((x) => x.open).length };
 }
 export {
-  BEAT, STALE, PEERS, LINKS,
-  linkId, connect, disconnect, broadcast, netState, peers,
+  BEAT, STALE, PATIENCE, PEERS, LINKS,
+  linkId, connect, disconnect, broadcast, isOpen, netState, peers,
 };

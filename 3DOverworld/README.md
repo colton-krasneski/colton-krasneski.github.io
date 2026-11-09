@@ -137,7 +137,7 @@ Collected the hard way; each one cost an afternoon.
   every first stride. `animate()` starts the phase where a foot that is right
   under the hips belongs.
 
-## Multiplayer## Multiplayer
+## Multiplayer
 
 The world never travels. It is generated from fixed constants, so every browser
 already has the identical terrain, trees and lake - which leaves only the people
@@ -153,6 +153,8 @@ recurring write. Figure on a handful of players, not a server full.
 
 **It needs rules.** `worldPeers` and `worldLinks` have to be in `firestore.rules`
 *and deployed*, or every write is rejected and the lobby silently never forms.
+That is once: rules live in Firebase, not on the site, and only need deploying
+again when `firestore.rules` itself changes. Pushing the game never touches them.
 
 Things that will bite you here too:
 
@@ -174,9 +176,32 @@ Things that will bite you here too:
 - **Say goodbye before clearing the flag.** `leaveNow()` guards on `live`, so
   `disconnect()` clearing it first made leaving a no-op: presence was never
   deleted and everybody else kept a ghost of you until it timed out.
-- **Either side tidies the paperwork, not just the offerer.** If the browser that
-  made the offer is the one that closed, nobody would, and the lobby fills with
-  dead offers and the candidate documents underneath them.
+- **Either side tidies the paperwork, not just the offerer** - but only when
+  somebody has actually left. If the browser that made the offer is the one that
+  closed, nobody else would, and the lobby fills with dead offers and the
+  candidate documents underneath them.
+- **A failed attempt is made again, never tidied.** Every offer and every
+  candidate carries a tag. No answer within `PATIENCE` (25 s), or a connection
+  that dies, and the side that offers offers again under a new tag; the side
+  that answers drops what it had and answers the new one, and leftovers with an
+  old tag are ignored. It used to tidy instead, and the two tidies raced: a phone
+  that went to sleep and woke up deleted the computer's fresh offer, each side
+  then waited for the other, and the pair stayed stuck until somebody reloaded.
+- **A candidate that arrives before its description waits for it** (`take()`).
+  Candidates and descriptions come down separate listeners in no fixed order,
+  and one added too early is refused and never sent again. Two of four were
+  being lost: invisible on one machine, fatal between a phone and a computer,
+  where the one lost is usually the route across the router. The duels never
+  had this because they only start listening once the description is in.
+- **Paused is not gone.** On the menu, or with the tab hidden, you still stand in
+  the meadow for everybody else: a paused game keeps sending (four times a
+  second, standing still), and somebody whose channel is open but who has gone
+  quiet stands where they were rather than vanishing after six seconds. Testing
+  on two devices with one pair of hands, one of them is always paused - which
+  is what "multiplayer is broken" turned out to mean.
+- **Phones leave on `pagehide`.** iOS never sends `beforeunload`, so a phone that
+  closed the tab used to stay in the lobby for nearly three minutes, with every
+  newcomer offering to it.
 - **The avatar is loaded once and cloned for every rig** (`avatar.js`). Clones
   share geometry, textures and materials and get skeletons of their own, so
   somebody walking past costs a skeleton, not a download.

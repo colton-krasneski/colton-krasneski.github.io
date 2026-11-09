@@ -13,7 +13,7 @@ import { scene, camera, canvas, composer, gradePass, GradeShader, SH,
   makeComposer, resize } from "./graphics.js";
 import { loadSounds, setAudioPaused, setMuted, startAudio } from "./audio.js";
 import { loadAvatar } from "./avatar.js";
-import { broadcast, connect as netConnect, netState } from "./net.js";
+import { broadcast, connect as netConnect, isOpen as netIsOpen, netState } from "./net.js";
 import { encodeState } from "./protocol.js";
 import { RemotePlayer } from "./remote.js";
 import { TEX, buildTextures, nextFrame } from "./materials.js";
@@ -262,18 +262,26 @@ function tick(now) {
   }
 
   /* Everybody else: posed from what has arrived, and dropped if they
-     have gone quiet. Their timelines run on the same clock this does. */
+     have gone quiet - unless their channel is still open, in which case
+     they are on a menu or in another tab, and stand where they were
+     until they move or leave. Their timelines run on this clock. */
   if (others.size) {
     const t = nowSec();
     for (const [id, o] of others) {
-      if (o.lost(t)) { o.dispose(); others.delete(id); continue; }
+      if (o.lost(t) && !netIsOpen(id)) { o.dispose(); others.delete(id); continue; }
       o.update(t, dt, camera.position);
     }
   }
-  /* and where we are, a dozen times a second */
-  if (netOn && state === "play" && wall - sendAt > 1 / SEND_HZ) {
+  /* And where we are: a dozen times a second, and a few times a second
+     while paused, standing still. Sending nothing on the menu made you
+     vanish for everybody else six seconds later - and with two devices
+     and one pair of hands, one of them is always on the menu. */
+  const sendHz = state === "play" ? SEND_HZ : 4;
+  if (netOn && wall - sendAt > 1 / sendHz) {
     sendAt = wall;
-    broadcast(encodeState(player.describe(packet)));
+    player.describe(packet);
+    if (state !== "play") { packet.speed = 0; packet.sprinting = false; }
+    broadcast(encodeState(packet));
   }
 
   world.update(player.pos.x, player.pos.z, state === "play" ? 3.5 : 10);
