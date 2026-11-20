@@ -1,0 +1,220 @@
+{
+  "game": {
+    "move": [
+      "g-move1.wav",
+      "g-move2.wav",
+      "g-move3.wav",
+      "g-move4.wav",
+      "g-move5.wav"
+    ],
+    "check": [
+      "g-check1.wav"
+    ],
+    "notify": [
+      "g-notify1.wav"
+    ],
+    "win": [
+      "g-win1.wav"
+    ],
+    "lose": [
+      "g-lose1.wav"
+    ],
+    "explosion": [
+      "g-explosion1.wav",
+      "g-explosion2.wav",
+      "g-explosion3.wav"
+    ],
+    "rocket": [
+      "g-rocket1.wav",
+      "g-rocket2.wav"
+    ],
+    "capture": [
+      "g-capture1.wav",
+      "g-capture2.wav",
+      "g-capture3.wav"
+    ],
+    "drop": [
+      "g-capture3.wav"
+    ]
+  },
+  "board": [
+    {
+      "id": "airhorn",
+      "label": "Air horn",
+      "emoji": "📣",
+      "file": "sb-airhorn.mp3",
+      "gain": 0.87
+    },
+    {
+      "id": "applause",
+      "label": "Applause",
+      "emoji": "👏",
+      "file": "sb-applause.wav"
+    },
+    {
+      "id": "yay",
+      "label": "Yay!",
+      "emoji": "🙌",
+      "file": "sb-yay.mp3",
+      "gain": 0.32
+    },
+    {
+      "id": "wow",
+      "label": "Wow",
+      "emoji": "😮",
+      "file": "sb-wow.mp3",
+      "gain": 0.97
+    },
+    {
+      "id": "gasp",
+      "label": "Gasp",
+      "emoji": "😱",
+      "file": "sb-gasp.mp3",
+      "gain": 0.46
+    },
+    {
+      "id": "laugh",
+      "label": "Laugh",
+      "emoji": "😂",
+      "file": "sb-laugh.wav"
+    },
+    {
+      "id": "evil",
+      "label": "Evil laugh",
+      "emoji": "😈",
+      "file": "sb-evil.mp3",
+      "gain": 0.42
+    },
+    {
+      "id": "boo",
+      "label": "Boo",
+      "emoji": "👎",
+      "file": "sb-boo.wav"
+    },
+    {
+      "id": "trombone",
+      "label": "Sad trombone",
+      "emoji": "🎺",
+      "file": "sb-trombone.wav"
+    },
+    {
+      "id": "tada",
+      "label": "Ta-da!",
+      "emoji": "🎉",
+      "file": "sb-tada.mp3",
+      "gain": 1.1
+    },
+    {
+      "id": "drumroll",
+      "label": "Drum roll",
+      "emoji": "🥁",
+      "file": "sb-drumroll.wav"
+    },
+    {
+      "id": "rimshot",
+      "label": "Rimshot",
+      "emoji": "🪘",
+      "file": "sb-rimshot.mp3",
+      "gain": 0.72
+    },
+    {
+      "id": "dramatic",
+      "label": "Dramatic",
+      "emoji": "🎭",
+      "file": "sb-dramatic.mp3",
+      "gain": 1.58
+    },
+    {
+      "id": "crickets",
+      "label": "Crickets",
+      "emoji": "🦗",
+      "file": "sb-crickets.wav"
+    },
+    {
+      "id": "scratch",
+      "label": "Record scratch",
+      "emoji": "💿",
+      "file": "sb-scratch.mp3",
+      "gain": 0.41
+    },
+    {
+      "id": "boing",
+      "label": "Boing",
+      "emoji": "🌀",
+      "file": "sb-boing.mp3",
+      "gain": 0.68
+    },
+    {
+      "id": "bonk",
+      "label": "Bonk",
+      "emoji": "🔨",
+      "file": "sb-bonk.mp3",
+      "gain": 0.48
+    },
+    {
+      "id": "honk",
+      "label": "Honk",
+      "emoji": "🤡",
+      "file": "sb-honk.mp3",
+      "gain": 1.24
+    },
+    {
+      "id": "falling",
+      "label": "Falling",
+      "emoji": "📉",
+      "file": "sb-falling.mp3",
+      "gain": 0.54
+    },
+    {
+      "id": "balloon",
+      "label": "Pfffft",
+      "emoji": "🎈",
+      "file": "sb-balloon.mp3",
+      "gain": 0.5
+    },
+    {
+      "id": "kiss",
+      "label": "Mwah",
+      "emoji": "💋",
+      "file": "sb-kiss.wav"
+    },
+    {
+      "id": "quack",
+      "label": "Quack",
+      "emoji": "🦆",
+      "file": "sb-quack.wav"
+    },
+    {
+      "id": "meow",
+      "label": "Meow",
+      "emoji": "🐱",
+      "file": "sb-meow.mp3",
+      "gain": 0.92
+    },
+    {
+      "id": "snore",
+      "label": "Snore",
+      "emoji": "😴",
+      "file": "sb-snore.wav"
+    },
+    {
+      "id": "yawn",
+      "label": "Yawn",
+      "emoji": "🥱",
+      "file": "sb-yawn.wav"
+    },
+    {
+      "id": "gong",
+      "label": "Gong",
+      "emoji": "🔔",
+      "file": "sb-gong.wav"
+    },
+    {
+      "id": "ding",
+      "label": "Ding",
+      "emoji": "🛎️",
+      "file": "sb-ding.mp3",
+      "gain": 0.71
+    }
+  ]
+}

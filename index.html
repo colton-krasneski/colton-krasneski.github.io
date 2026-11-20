@@ -655,6 +655,37 @@
     #grpMenu button.danger { color: #ff6b81; }
     #grpMenu button.danger:hover { background: rgba(255, 0, 51, 0.16); color: #ff8fa1; }
     #grpMenu.dm .group-only { display: none; }   /* one-on-one chats only get the wallpaper item */
+    /* chess: the time picker under the ♟️ button, the challenge card in a thread, the pop-up */
+    #chessMenu {
+      position: absolute; top: 100%; right: 10px; z-index: 31; display: none;
+      flex-direction: column; min-width: 190px; margin-top: 6px;
+      background: var(--m-panel); border: 1px solid var(--m-edge); border-radius: 12px;
+      padding: 0.35rem; box-shadow: var(--m-shadow);
+    }
+    #chessMenu.open { display: flex; }
+    #chessMenu .cm-head { font-size: 0.68rem; letter-spacing: 0.1em; color: var(--m-dim); padding: 0.4rem 0.7rem 0.2rem; }
+    #chessMenu button {
+      background: none; border: none; color: var(--m-text); font-family: inherit; font-size: 0.85rem;
+      text-align: left; padding: 0.55rem 0.7rem; border-radius: 8px; cursor: pointer;
+    }
+    #chessMenu button:hover { background: var(--m-hover); color: var(--m-accent); }
+    .bubble.chess-card { min-width: 190px; }
+    .chess-card .cc-title { font-weight: 700; }
+    .chess-card .cc-sub { font-size: 0.78rem; opacity: 0.8; margin: 2px 0 8px; }
+    .chess-card .cc-go {
+      width: 100%; padding: 0.5rem; border-radius: 9px; border: 1px solid currentColor;
+      background: rgba(0, 0, 0, 0.25); color: inherit; font-family: inherit; font-weight: 700; cursor: pointer;
+    }
+    #chessToast {
+      position: fixed; top: 14px; left: 50%; transform: translateX(-50%); z-index: 9999; display: none;
+      align-items: center; gap: 10px; max-width: 92vw; padding: 10px 12px; border-radius: 14px;
+      background: #0c1a12; color: #dff5e6; border: 1px solid #ffd24a; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+      font-family: system-ui, sans-serif; font-size: 0.9rem;
+    }
+    #chessToast.show { display: flex; }
+    #chessToast button { border: none; border-radius: 9px; padding: 7px 12px; font-weight: 700; cursor: pointer; font-family: inherit; }
+    #chessToast .go { background: #2fe672; color: #00210c; }
+    #chessToast .no { background: transparent; color: #8fb3a0; }
     .msg-wrap .who { font-size: 0.68rem; color: var(--m-dim); letter-spacing: 0.06em; margin: 0 0.4rem 3px; }
     .sys-note { align-self: center; font-size: 0.7rem; color: var(--m-faint); text-align: center; padding: 0.2rem 0.6rem; }
     .sheet {
@@ -1215,6 +1246,7 @@
       <div class="dock">
         <div class="app" id="airHockeyApp"><span class="icon">🏒</span><span class="label">Air Hockey</span></div>
         <div class="app" id="messagesApp"><span class="icon">💬</span><span class="label">Messages</span></div>
+        <div class="app" id="chessApp"><span class="icon">♟️</span><span class="label">Chess</span></div>
         <div class="app" id="soccerApp" style="display:none;"><span class="icon">⚽</span><span class="label">Soccer Trainer</span></div>
         <div class="app" id="musicfyApp"><span class="icon">🎵</span><span class="label">Musicfy</span></div>
         <div class="app" id="passgameApp"><span class="icon">🔑</span><span class="label">Password Game</span></div>
@@ -1252,6 +1284,7 @@
             <div class="chat-sub" id="chatSub"></div>
           </div>
           <div class="chat-tools">
+            <button class="callbtn" id="chessBtn" title="Challenge to a game of chess">♟️</button>
             <button class="callbtn" id="callBtn" title="Call">📞</button>
             <button class="callbtn" id="grpMenuBtn" title="Group options" style="display:none;">⋯</button>
             <button class="callbtn danger" id="grpTrashBtn" title="Delete this group for everyone" style="display:none;">🗑️</button>
@@ -1263,6 +1296,7 @@
             <button class="group-only" id="gmRename">✏️ Rename group</button>
             <button class="group-only danger" id="gmLeave">🚪 Leave group</button>
           </div>
+          <div id="chessMenu"></div>
         </div>
         <div class="thread" id="thread"></div>
         <div id="gifPanel">
@@ -1759,6 +1793,9 @@
 
   <!-- ===== CALLS ===== -->
   <audio id="remoteAudio" autoplay></audio>
+  <!-- a chess challenge arriving, or one of yours being accepted -->
+  <div id="chessToast" role="status"><span id="chessToastText"></span><button class="go" id="chessToastGo">Play</button><button class="no" id="chessToastNo" aria-label="Dismiss">✕</button></div>
+
   <div id="incomingCall" class="call-overlay">
     <div class="call-card">
       <div class="call-title" id="incomingText">Incoming call…</div>
@@ -2049,12 +2086,14 @@
     showScreen('home');
     applyTheme();               // this account's Messages style
     startCallListener();
+    startChessListener();
     $('soccerApp').style.display = ''; // Soccer Trainer is open to every account now
   }
 
   $('logoutBtn').addEventListener('click', () => {
     localStorage.removeItem(TRUST_KEY);
     stopCallListener();
+    stopChessListener();
     me = null;
     mode = MODES.intro;
     ['login','home','messages','airhockey','soccer','musicfy','passgame','drivesad','council'].forEach(s => $(s).classList.add('inactive'));
@@ -2657,6 +2696,16 @@
         const img = document.createElement('img');
         img.src = m.text; img.alt = 'gif';
         b.appendChild(img);
+      } else if (m.type === 'chess' && m.chess && m.chess.invite) {
+        // a chess challenge: one tap takes whoever it was sent to straight to the board
+        b.classList.add('chess-card');
+        const title = document.createElement('div'); title.className = 'cc-title'; title.textContent = '♟️ Chess challenge';
+        const sub = document.createElement('div'); sub.className = 'cc-sub';
+        sub.textContent = chessLabel(m.chess.tc) + (m.chess.rated ? ' · rated' : ' · casual');
+        const go = document.createElement('button'); go.className = 'cc-go';
+        go.textContent = m.from === me ? 'Open the board' : 'Accept & play';
+        go.addEventListener('click', e => { e.stopPropagation(); goChess('?join=' + encodeURIComponent(m.chess.invite)); });
+        b.append(title, sub, go);
       } else {
         b.textContent = cleanText(m.text);
       }
@@ -2754,6 +2803,70 @@
   }
   $('sendBtn').addEventListener('click', sendMessage);
   $('msgInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendMessage(); });
+
+  /* ----- chess challenges -----
+     The chess app (chess/) keeps its open challenges under duels/chess/invites.
+     A challenge sent from a chat is one of those, plus a message of type
+     'chess' that carries its id and is drawn as a card with a Play button.
+     In a group it is open to whoever taps it first. */
+  const chessInvites = () => collection(db, 'duels', 'chess', 'invites');
+  const CHESS_TIMES = [[60, 0, '🚀 1 min'], [180, 0, '⚡ 3 min'], [180, 2, '⚡ 3 min + 2 s'], [300, 0, '⚡ 5 min'], [600, 0, '⏱️ 10 min'], [900, 10, '⏱️ 15 min + 10 s'], [0, 0, '♾️ No clock']];
+  function chessLabel(tc) { return !tc || !tc.base ? 'no clock' : (tc.base / 60) + '+' + (tc.inc || 0); }
+  function goChess(q) { if (me) localStorage.setItem('colton_last_user', me); location.href = 'chess/' + (q || ''); }
+  async function sendChessChallenge(base, inc) {
+    if (!currentContact && !currentGroup) return;
+    const tc = { base, inc }, rated = base > 0;
+    try {
+      const ref = doc(chessInvites());
+      await setDoc(ref, { from: me, to: currentGroup ? null : currentContact, tc, rated, color: 'r', via: 'msg', fromElo: 1200, status: 'open', game: null, at: Date.now() });
+      await addDoc(collection(db, 'messages'), envelope({ type: 'chess', text: '♟️ Chess challenge · ' + chessLabel(tc), chess: { invite: ref.id, tc, rated } }));
+    } catch (e) { alert('Could not send the challenge: ' + e.message); }
+  }
+  (function () {
+    const menu = $('chessMenu');
+    const head = document.createElement('div'); head.className = 'cm-head'; head.textContent = 'CHALLENGE TO CHESS';
+    menu.appendChild(head);
+    CHESS_TIMES.forEach(([base, inc, label]) => {
+      const b = document.createElement('button'); b.textContent = label;
+      b.addEventListener('click', () => { menu.classList.remove('open'); sendChessChallenge(base, inc); });
+      menu.appendChild(b);
+    });
+    $('chessBtn').addEventListener('click', e => { e.stopPropagation(); menu.classList.toggle('open'); });
+    document.addEventListener('click', () => menu.classList.remove('open'));
+  })();
+
+  /* a pop-up anywhere on the phone when somebody challenges you, or says yes */
+  let chessSubs = [], chessToastGo = null;
+  const chessSeen = new Set();
+  function chessToast(text, q) {
+    $('chessToastText').textContent = text;
+    chessToastGo = q;
+    $('chessToast').classList.add('show');
+    try { tone(660, 0.14); setTimeout(() => tone(990, 0.2), 150); } catch (e) {}
+  }
+  $('chessToastGo').addEventListener('click', () => { $('chessToast').classList.remove('show'); if (chessToastGo) goChess(chessToastGo); });
+  $('chessToastNo').addEventListener('click', () => $('chessToast').classList.remove('show'));
+  function stopChessListener() { chessSubs.forEach(u => { try { u(); } catch (e) {} }); chessSubs = []; $('chessToast').classList.remove('show'); }
+  function startChessListener() {
+    stopChessListener();
+    const fresh = t => Date.now() - (t || 0) < 20 * 60000;
+    chessSubs.push(onSnapshot(query(chessInvites(), where('to', '==', me), where('status', '==', 'open')), snap => {
+      snap.forEach(d => {
+        const v = d.data();
+        if (chessSeen.has(d.id) || !fresh(v.at)) return;
+        chessSeen.add(d.id);
+        chessToast('♟️ ' + v.from + ' challenges you to chess (' + chessLabel(v.tc) + ')', '?join=' + encodeURIComponent(d.id));
+      });
+    }, () => {}));
+    chessSubs.push(onSnapshot(query(chessInvites(), where('from', '==', me), where('status', '==', 'accepted')), snap => {
+      snap.forEach(d => {
+        const v = d.data();
+        if (chessSeen.has(d.id) || !v.game || !fresh(v.acceptedAt)) return;
+        chessSeen.add(d.id);
+        chessToast('♟️ ' + (v.by || 'They') + ' accepted your chess challenge!', '?g=' + encodeURIComponent(v.game));
+      });
+    }, () => {}));
+  }
 
   /* ----- GIF picker (GIPHY) ----- */
   const GIPHY_KEY = 'tyC31epHwRUPex8AME7WUOquGpmiqe33';
@@ -5695,10 +5808,17 @@
     $('trollApp').addEventListener('click', () => launchApp('troll/'));
     $('letterApp').addEventListener('click', () => launchApp('letter/'));
     $('worldApp').addEventListener('click', () => launchApp('3DOverworld/'));
+    $('chessApp').addEventListener('click', () => launchApp('chess/'));
 
     /* ================= THE COUNCIL (shared, Firestore-backed) ================= */
     (function (FS) {
-      const CADMIN = 'realcolton_onpc';                 // only this account can found / own the council
+      /* The creator's account. It founds the council and is its owner, whatever
+         the stored "owner" field says - that field can never be rewritten (the
+         database rules lock it), and the account it names, realcolton_onpc, is
+         Colton's old one. So ownership is decided here: this account wears the
+         crown, and the old one keeps its keys so nothing it could do is lost. */
+      const CADMIN = 'colton_onpc_real_2';
+      const owns = n => n === CADMIN || (!!db && n === db.owner);
       const EMOJIS = ['🏛️','⚔️','👑','🐉','🔥','🎮','🎧','🚀','🛡️','🌙','🍕','🐺','💎','🌀','⚽','🎯'];
       const PFP_EMOJIS = ['😀','😎','🤠','🥳','🤖','👑','🐺','🦊','🐉','🦁','🐸','🐼','👻','💀','🎃','🦄','🌟','🔥','⚡','🎧','⚽','🏆','🍕','🌙'];
       const SWATCHES = ['#f04747','#e67e22','#faa61a','#f1c40f','#2ecc71','#1abc9c','#3498db','#5865f2','#9b59b6','#e91e63','#95a5a6','#ffffff'];
@@ -5719,8 +5839,8 @@
       const hash = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
       const canonName = s => String(s || '').trim().toLowerCase();
 
-      function isOwner() { return !!db && db.owner === me; }
-      function amMember() { return !!db && (db.owner === me || db.members.some(m => m.name === me)); }
+      function isOwner() { return !!db && owns(me); }
+      function amMember() { return !!db && (owns(me) || db.members.some(m => m.name === me)); }
       function canFound() { return me === CADMIN; }
       function canModerate() { if (!db) return false; if (isOwner()) return true; const m = myMember(); return !!m && db.roles.some(r => m.roleIds.includes(r.id) && r.name.toLowerCase() === 'loyalty'); }
       function isMuted(name) { return !!(db && db.mutes && db.mutes[name] && db.mutes[name] > nowMs()); }
@@ -5731,7 +5851,7 @@
       function topRole(m) { for (const r of db.roles) if (m.roleIds.includes(r.id)) return r; return null; }
       function memColor(m) { const r = topRole(m); return (r && r.color) ? r.color : AV_COLORS[hash(m.name || '?') % AV_COLORS.length]; }
       const initials = n => ((n || '?').trim()[0] || '?').toUpperCase();
-      function memberCanView(m, ch) { if (!ch.private) return true; if (!m) return false; if (m.name === db.owner) return true; if (m.roleIds.includes('owner')) return true; return (ch.allow || []).some(r => m.roleIds.includes(r)); }
+      function memberCanView(m, ch) { if (!ch.private) return true; if (!m) return false; if (owns(m.name)) return true; if (m.roleIds.includes('owner')) return true; return (ch.allow || []).some(r => m.roleIds.includes(r)); }
       function viewableChannels() { if (isOwner()) return db.channels.slice(); const me2 = myMember(); return db.channels.filter(c => memberCanView(me2, c)); }
       function fmt(ts) { const d = new Date(ts); return d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }); }
       const pfpOf = m => db.pfps && db.pfps[m.name];
@@ -5831,7 +5951,7 @@
           else main.innerHTML = emptyState('🏛️', 'The Council', 'There is no council yet. Only the council founder can create one.');
           return;
         }
-        if (!amMember()) { $('coApp').classList.remove('nav-open', 'mem-open'); main.innerHTML = emptyState('🔒', db.name, "You haven't been added to the council. Ask " + esc(db.owner) + ' to add you.'); return; }
+        if (!amMember()) { $('coApp').classList.remove('nav-open', 'mem-open'); main.innerHTML = emptyState('🔒', db.name, "You haven't been added to the council. Ask " + esc(CADMIN) + ' to add you.'); return; }
         const chans = viewableChannels();
         if (!chans.some(c => c.id === cur.channel)) cur.channel = (chans[0] || db.channels[0] || {}).id;
         const ch = db.channels.find(c => c.id === cur.channel) || chans[0];
@@ -5894,11 +6014,11 @@
         groups.forEach(g => {
           const cat = document.createElement('div'); cat.className = 'co-mem-cat'; cat.textContent = g.name + ' — ' + g.mem.length; box.appendChild(cat);
           g.mem.forEach(m => {
-            const el = document.createElement('div'); el.className = 'co-mem' + (m.name === db.owner ? ' owner' : ''); el.dataset.act = 'member'; el.dataset.mem = m.name;
+            const el = document.createElement('div'); el.className = 'co-mem' + (m.name === CADMIN ? ' owner' : ''); el.dataset.act = 'member'; el.dataset.mem = m.name;
             el.innerHTML = '<div class="av" style="' + avStyle(m) + '">' + avText(m) + '</div>' +
               '<span class="nm" style="color:' + (topRole(m) && topRole(m).color ? memColor(m) : '#dbdee1') + '">' + esc(m.name) + '</span>' +
               (isMuted(m.name) ? '<span class="crown" title="Muted">🔇</span>' : '') +
-              (m.name === db.owner ? '<span class="crown">👑</span>' : (m.bot ? '<span class="badge-bot">Bot</span>' : ''));
+              (m.name === CADMIN ? '<span class="crown">👑</span>' : (m.bot ? '<span class="badge-bot">Bot</span>' : ''));
             box.appendChild(el);
           });
         });
@@ -5959,7 +6079,7 @@
         const parts = (text || '').trim().split(/\s+/); const user = canonName(parts[0] || ''); const dur = parts[1] || '';
         if (!user || !dur) { toast('Usage', '/mute <user> <30s|10m|2h|1d>', false); return; }
         const m = memberByName(user); if (!m) { toast('No such member', user, false); return; }
-        if (m.name === db.owner) { toast("Can't mute", 'The owner cannot be muted.', false); return; }
+        if (owns(m.name)) { toast("Can't mute", 'The owner cannot be muted.', false); return; }
         const ms = parseDur(dur); if (!ms) { toast('Bad duration', 'Use 30s, 10m, 2h, or 1d.', false); return; }
         db.mutes = db.mutes || {}; db.mutes[user] = nowMs() + ms; persist();
         sysMsg('🔇 ' + user + ' was muted for ' + dur + ' by ' + me); toast('Muted', user + ' muted for ' + dur, false);
@@ -5986,7 +6106,7 @@
       function cmdKick(text) {
         const user = canonName(((text || '').trim().split(/\s+/)[0]) || ''); if (!user) { toast('Usage', '/kick <user>', false); return; }
         const m = memberByName(user); if (!m) { toast('No such member', user, false); return; }
-        if (m.name === db.owner) { toast("Can't kick", "The owner can't be kicked.", false); return; }
+        if (owns(m.name)) { toast("Can't kick", "The owner can't be kicked.", false); return; }
         db.members = db.members.filter(x => x.name !== user); persist();
         sysMsg('👢 ' + user + ' was kicked by ' + me); toast('Kicked', user + ' was removed.', false);
       }
@@ -6061,8 +6181,8 @@
         $('coPopInner').innerHTML =
           '<div class="co-profile"><div class="banner" style="background:' + col + '"></div><div class="pbody">' +
             '<div class="pav" style="' + avStyle(m) + '">' + avText(m) + '</div>' +
-            '<div class="pcard"><div class="pname">' + esc(m.name) + (m.name === db.owner ? ' 👑' : '') + '</div>' +
-            '<div class="phandle">' + (m.bot ? 'Bot' : (m.name === db.owner ? 'Owner' : 'Member')) + '</div>' +
+            '<div class="pcard"><div class="pname">' + esc(m.name) + (m.name === CADMIN ? ' 👑' : '') + '</div>' +
+            '<div class="phandle">' + (m.bot ? 'Bot' : (m.name === CADMIN ? 'Owner' : 'Member')) + '</div>' +
             '<div class="psec">Roles</div><div>' + roleChips + '</div>' + acts + '</div></div></div>';
         $('coPop').classList.add('show');
       }
@@ -6102,7 +6222,7 @@
         if (coTab === 'overview') {
           body = '<label class="co-label">Server name</label><input class="co-input" id="coRen" value="' + esc(db.name) + '" maxlength="40" data-act="renameServer">' +
             '<label class="co-label">Icon</label><div id="coIconPick">' + emojiPicker(db.icon) + '</div>' +
-            '<label class="co-label">Owner</label><div class="co-list-row"><div class="co-swatch" style="background:#f1c40f"></div><div class="grow"><div class="r-name">' + esc(db.owner) + '</div><div class="r-sub">Founder of the council</div></div></div>' +
+            '<label class="co-label">Owner</label><div class="co-list-row"><div class="co-swatch" style="background:#f1c40f"></div><div class="grow"><div class="r-name">' + esc(CADMIN) + ' 👑</div><div class="r-sub">Owner of the council</div></div></div>' +
             '<label class="co-label" style="color:#f04747">Danger zone</label><button class="co-btn danger full" data-act="confirmDelete">Delete this council</button>';
         } else if (coTab === 'roles') {
           body = db.roles.map(roleRow).join('') + '<button class="co-btn full" data-act="newRole">＋ Create role</button>';
@@ -6130,7 +6250,7 @@
         const chips = db.roles.filter(r => m.roleIds.includes(r.id)).map(r => '<span class="co-role-chip"><span class="rd" style="background:' + (r.color || '#95a5a6') + '"></span>' + esc(r.name) + (r.id === 'owner' ? '' : '<button data-act="removeMemberRole" data-mem="' + esc(m.name) + '" data-role="' + r.id + '">✕</button>') + '</span>').join('');
         const addable = db.roles.filter(r => !m.roleIds.includes(r.id));
         const sel = addable.length ? '<select class="co-select" style="margin-top:6px" data-act="assignRole" data-mem="' + esc(m.name) + '"><option value="">＋ Add role…</option>' + addable.map(r => '<option value="' + r.id + '">' + esc(r.name) + '</option>').join('') + '</select>' : '';
-        return '<div class="co-list-row col"><div class="row-top"><div class="co-swatch" style="' + avStyle(m) + ';width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px">' + avText(m) + '</div><div class="grow"><div class="r-name">' + esc(m.name) + (m.name === me ? ' (you)' : '') + (m.bot ? ' 🤖' : '') + '</div></div>' + (m.name === db.owner ? '' : '<button class="co-btn danger sm" data-act="removeMember" data-mem="' + esc(m.name) + '">Kick</button>') + '</div><div style="margin-top:8px">' + (chips || '<span class="r-sub">No roles</span>') + '</div>' + sel + '</div>';
+        return '<div class="co-list-row col"><div class="row-top"><div class="co-swatch" style="' + avStyle(m) + ';width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px">' + avText(m) + '</div><div class="grow"><div class="r-name">' + esc(m.name) + (m.name === me ? ' (you)' : '') + (m.bot ? ' 🤖' : '') + '</div></div>' + (owns(m.name) ? '' : '<button class="co-btn danger sm" data-act="removeMember" data-mem="' + esc(m.name) + '">Kick</button>') + '</div><div style="margin-top:8px">' + (chips || '<span class="r-sub">No roles</span>') + '</div>' + sel + '</div>';
       }
       function channelRow(c) {
         const roleChecks = c.private ? '<div style="margin-top:6px">' + db.roles.map(r => '<label class="co-check" style="padding:4px 0;font-size:13px"><input type="checkbox" ' + ((c.allow || []).includes(r.id) ? 'checked' : '') + (r.id === 'owner' ? ' checked disabled' : '') + ' data-act="chanAllow" data-ch="' + c.id + '" data-role="' + r.id + '"><span class="co-swatch" style="background:' + (r.color || '#95a5a6') + ';width:12px;height:12px"></span>' + esc(r.name) + '</label>').join('') + '</div>' : '';
@@ -6197,6 +6317,12 @@
           db = snap.exists() ? snap.data() : null;
           if (db) { db.pfps = db.pfps || {}; db.members = db.members || []; db.roles = db.roles || []; db.channels = db.channels || []; if (!cur.channel || !db.channels.some(c => c.id === cur.channel)) cur.channel = (viewableChannels()[0] || db.channels[0] || {}).id; }
           ready = true;
+          /* the owner sits at the top of the member list with the Owner role;
+             the first time this account opens the council it is put there */
+          if (db && me === CADMIN && !db.members.some(m => m.name === me)) {
+            db.members.unshift({ id: uid('m'), name: me, roleIds: roleById('owner') ? ['owner'] : [], bot: false });
+            persist();
+          }
           if (!$('council').classList.contains('inactive')) renderAll(); else renderRail();
         }, () => { ready = true; });
         const q = FS.query(msgsCol, FS.orderBy('ts'), FS.limit(400));

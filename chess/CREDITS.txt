@@ -1,0 +1,182 @@
+CHESS - where the borrowed parts came from
+==========================================
+
+The game itself was written for this site. Two things in it were made by
+other people, who gave them away for anyone to use.
+
+
+THE PIECES  (js/pieces.js)
+--------------------------
+The twelve piece drawings are the "Cburnett" set by Colin M.L. Burnett, the
+one Wikipedia uses, taken from Wikimedia Commons:
+    https://commons.wikimedia.org/wiki/Category:SVG_chess_pieces
+They are offered under three licences; they are used here under the BSD one,
+which asks that this notice travels with them:
+
+    Copyright (c) Colin M.L. Burnett. All rights reserved.
+
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions are
+    met:
+      * Redistributions of source code must retain the above copyright
+        notice, this list of conditions and the following disclaimer.
+      * Redistributions in binary form must reproduce the above copyright
+        notice, this list of conditions and the following disclaimer in the
+        documentation and/or other materials provided with the distribution.
+      * Neither the name of the author nor the names of its contributors
+        may be used to endorse or promote products derived from this
+        software without specific prior written permission.
+
+    THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS "AS IS" AND ANY
+    EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+    DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE FOR
+    ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
+    OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+    HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+    STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+    ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+    POSSIBILITY OF SUCH DAMAGE.
+
+
+THE SOUNDS  (sfx/)
+------------------
+Every recording is from freesound.org and was released by the person who
+uploaded it into the public domain (Creative Commons Zero,
+https://creativecommons.org/publicdomain/zero/1.0/). Each sound's own page
+was checked for that licence on 2026-11-20 before the file was fetched.
+Credit is not required by CC0; it is given anyway, with thanks.
+
+What was done to them: the files are freesound's preview copies. The .mp3
+files are exactly as they came. The .wav files were cut down to the part
+that was wanted, faded at both ends so they do not click, levelled so that
+no button is far louder than another, and saved as 22 kHz mono. The moves
+and captures are single knocks cut out of one longer recording of chess
+pieces being put down.
+
+sfx.json is the list the game reads: "game" says which clips play at which
+moment, "board" is the soundboard in button order. Moments with no
+recording (the clock ticking, a pawn promoting, a menu click) are made by
+the game itself as plain tones.
+
+Which file is which recording:
+
+  sb-airhorn.mp3
+      "Airhorn" by jacksonacademyashmore
+      https://freesound.org/people/jacksonacademyashmore/sounds/414208/
+  sb-applause.wav
+      "Small crowd cheering" by misjoc
+      https://freesound.org/people/misjoc/sounds/400590/
+  sb-yay.mp3
+      "yay.mp3" by zut50
+      https://freesound.org/people/zut50/sounds/162395/
+  sb-wow.mp3
+      "WOW male voice" by ahab2000
+      https://freesound.org/people/ahab2000/sounds/398933/
+  sb-gasp.mp3
+      "Crowd gasp.wav" by RadioCounseling
+      https://freesound.org/people/RadioCounseling/sounds/635110/
+  sb-laugh.wav
+      "Small Crowd Laughing" by snakebarney
+      https://freesound.org/people/snakebarney/sounds/138112/
+  sb-evil.mp3
+      "Evil Laugh" by balloonhead
+      https://freesound.org/people/balloonhead/sounds/362330/
+  sb-boo.wav
+      "boo.wav" by dr_skitz
+      https://freesound.org/people/dr_skitz/sounds/353925/
+  sb-trombone.wav
+      "wah wah sad trombone.wav" by kirbydx
+      https://freesound.org/people/kirbydx/sounds/175409/
+  sb-tada.mp3
+      "Tada Fanfare A" by plasterbrain
+      https://freesound.org/people/plasterbrain/sounds/397355/
+  sb-drumroll.wav
+      "drumroll.aif" by Heigh-hoo
+      https://freesound.org/people/Heigh-hoo/sounds/19433/
+  sb-rimshot.mp3
+      "buzz roll.wav" by bigjoedrummer
+      https://freesound.org/people/bigjoedrummer/sounds/77305/
+  sb-dramatic.mp3
+      "Timpani Crescendo" by nomiqbomi
+      https://freesound.org/people/nomiqbomi/sounds/578574/
+  sb-crickets.wav
+      "crickets" by FreethinkerAnon
+      https://freesound.org/people/FreethinkerAnon/sounds/129678/
+  sb-scratch.mp3
+      "Record Scratch #6" by musicvision31
+      https://freesound.org/people/musicvision31/sounds/431779/
+  sb-boing.mp3
+      "Boing 2" by magnuswaker
+      https://freesound.org/people/magnuswaker/sounds/540790/
+  sb-bonk.mp3
+      "Bonk.wav" by facklere
+      https://freesound.org/people/facklere/sounds/458572/
+  sb-honk.mp3
+      "Honk! (Vintage Bicycle Horn)" by Breviceps
+      https://freesound.org/people/Breviceps/sounds/468441/
+  sb-falling.mp3
+      "Cartoon Fall" by plasterbrain
+      https://freesound.org/people/plasterbrain/sounds/395443/
+  sb-balloon.mp3
+      "Deflating Balloon.MP3" by VKProduktion
+      https://freesound.org/people/VKProduktion/sounds/217351/
+  sb-kiss.wav
+      "NPX Male Kiss 1.wav" by noahpardo
+      https://freesound.org/people/noahpardo/sounds/352339/
+  sb-quack.wav
+      "single quack from a duck" by Mikes-MultiMedia
+      https://freesound.org/people/Mikes-MultiMedia/sounds/418509/
+  sb-meow.mp3
+      "Cat Meow1.wav" by steffcaffrey
+      https://freesound.org/people/steffcaffrey/sounds/262312/
+  sb-snore.wav
+      "Fast Snore .wav" by bsmacbride
+      https://freesound.org/people/bsmacbride/sounds/108519/
+  sb-yawn.wav
+      "Yawning Man.mp3" by husky70
+      https://freesound.org/people/husky70/sounds/157303/
+  sb-gong.wav
+      "gong.WAV" by BOSS MUSIC
+      https://freesound.org/people/BOSS%20MUSIC/sounds/121800/
+  sb-ding.mp3
+      "bell ding 1.wav" by 5ro4
+      https://freesound.org/people/5ro4/sounds/611113/
+  g-move1.wav
+      "Piece Placement.mp3" by el_boss
+      https://freesound.org/people/el_boss/sounds/546119/
+  g-check1.wav
+      "bell ding 3.wav" by 5ro4
+      https://freesound.org/people/5ro4/sounds/611111/
+  g-notify1.wav
+      "ding 2.wav" by organicmanpl
+      https://freesound.org/people/organicmanpl/sounds/149269/
+  g-win1.wav
+      "Game Success Fanfare Short" by el_boss
+      https://freesound.org/people/el_boss/sounds/677858/
+  g-lose1.wav
+      "Game Fail Fanfare" by el_boss
+      https://freesound.org/people/el_boss/sounds/677855/
+  g-explosion1.wav
+      "Short Explosion.wav" by animationIsaac
+      https://freesound.org/people/animationIsaac/sounds/207322/
+  g-explosion2.wav
+      "BOOMING PUNCHY EXPLOSION - close, big SCHOEPS MK41.wav" by misosound
+      https://freesound.org/people/misosound/sounds/251759/
+  g-explosion3.wav
+      "Explosion 1" by magnuswaker
+      https://freesound.org/people/magnuswaker/sounds/523089/
+  g-rocket1.wav
+      "Rocket Launch" by Jarusca
+      https://freesound.org/people/Jarusca/sounds/521377/
+  g-rocket2.wav
+      "Woosh" by florianreichelt
+      https://freesound.org/people/florianreichelt/sounds/683096/
+  g-move2.wav, g-move3.wav, g-move4.wav, g-move5.wav, g-capture1.wav, g-capture2.wav, g-capture3.wav
+      "chess pieces.wav" by simone_ds
+      https://freesound.org/people/simone_ds/sounds/366065/
+
+Not everything a soundboard wants could be found in the public domain: the
+"Pfffft" button is a balloon letting its air out, standing in for a whoopee
+cushion.
